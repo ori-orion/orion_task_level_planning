@@ -62,8 +62,8 @@ def dummy_behaviour(outcomes, probs, messages=[]):
 
     index = roulette_wheel(probs)
     if messages == []:
-        print outcomes[index]
+        rospy.loginfo(outcomes[index])
     else:
-        print messages[index]
+        rospy.loginfo(messages[index])
     
     return outcomes[index]
