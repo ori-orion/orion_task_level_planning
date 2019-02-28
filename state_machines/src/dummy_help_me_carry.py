@@ -34,6 +34,42 @@ class StateJumperColour(smach.State):
 
 
 
+class FindItem(smach.State):
+    """ SMACH state for searching for an item. """
+    def __init__(self):
+        """ Constructor initialises attributes and calls super constructor."""
+
+        outcomes = ['Item Found', 'Item Not Found']
+        super(FindItem, self).__init__(outcomes=outcomes)
+
+        self._outcomes = outcomes
+    
+    def execute(self, userdata):
+        """Executes find_item behaviour."""
+        item = userdata.requested_item
+        messages = ['Found: ' + item, 'Could not find: ' + item]
+        probs = [0.9, 0.1]
+        return dummy_behaviour(self._outcomes, probs, messages)
+
+
+class TravelBack(smach.State):
+    """ SMACH state for travelling back to a known location. """
+    def __init__(self):
+        """ Constructor initialises attributes and calls super constructor."""
+
+        outcomes = ['Reached Destination', 'Navigation Failure']
+        super(TravelBack, self).__init__(outcomes=outcomes)
+
+        self._outcomes = outcomes
+    
+    def execute(self, userdata):
+        """Executes monitored navigation."""
+        destination = userdata.start_location
+        messages = ['Arrived back at: ' + destination, 'Navigation Failure']
+        probs = [0.9, 0.1]
+
+        return dummy_behaviour(self._outcomes, probs, messages)
+
 def make_and_start_state_machine():
     """ Function for starting node/state machine."""
     rospy.init_node('dummy_help_me_carry')
