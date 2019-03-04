@@ -58,7 +58,7 @@ class FindItem(GlobalStoreState):
     
     def execute(self, userdata):
         """Executes find_item behaviour."""
-        item = self.global_store['requested_item']
+        item = self.global_store['item']
         messages = ['Found: ' + item, 'Could not find: ' + item]
         probs = [0.9, 0.1]
 
@@ -127,21 +127,38 @@ class Memorise(GlobalStoreState):
 class AskForOperator(GlobalStoreState):
     """ SMACH state for the Ask For Operator"""
     def __init__(self, global_store):
+        
+        self.counter = 0
+        self.try_allow = 5
+
+        outcomes = ['Failure', 'Operator_Found', 'Repeat_Failure']
         smach.State.__init__(global_store=global_store,
-                             outcomes=['Failure', 'OperatorFound'])
+                             outcomes=outcomes)
 
 
     def execute(self,userdata):
         probs = [0.1, 0.9]
         msgs = ['Failed to Find operator', 'Found Operator']
+        
+        outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
+        if outcome == 'Failure':
+            self.counter += 1
+        
+        if self.counter > self.try_allow:
+            return 'Repeat_Failure'
+        else:
+            return outcome
 
-        return dummy_behaviour(self._outcomes, probs, msgs)
 
 
 class WaitForRequest(GlobalStoreState):
     """ SMACH state for the wait for request"""
     def __init__(self, global_store):
-        outcomes = ['TimeOut', 'ReceiveRequest']
+
+        self.counter = 0
+        self.try_allow = 5
+
+        outcomes = ['Time_Out', 'Receive_Request', 'Repeat_Timeout']
         super(WaitForRequest, self).__init__(global_store=global_store,
                                              outcomes=outcomes)
 
@@ -149,7 +166,19 @@ class WaitForRequest(GlobalStoreState):
     def execute(self,userdata):
         probs = [0.1, 0.9]
         msgs=['Time Out Waiting For Request', 'Request Received']
-        return dummy_behaviour(self._outcomes, probs, msgs)
+        outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
+
+        if outcome == 'Receive_Request':
+            self.global_store['item'] = 'Coffee Mug'
+
+        if outcome == 'Time_Out':
+            self.counter += 1
+        
+        if self.counter > self.try_allow:
+            return 'Repeat_Timeout'
+        else:
+            return outcome
+
 
 class AskForRequest(GlobalStoreState):
     """ SMACH state for the ask for request"""
@@ -274,24 +303,80 @@ def make_and_start_state_machine():
         # Add operator waiting state
         smach.StateMachine.add('Op_Detect',
                                 WaitForOperator(global_store),
-                                transitions={})
-        
-        # TODO: Add rest of states!
+                                transitions={'Operator_Found': 'Memorise',
+                                             'Time_Out': 'TASK_FAILURE'})
 
+        # Add memorisation state
         smach.StateMachine.add('Memorise', Memorise(global_store),
-                               transitions = {'Failure': 'Memorise',
-                                              'Memorised':'Follow', 
-                                              'RepeatedFailure':'SystemFailure'})
+                               transitions={'Failure':'Memorise',
+                                            'Memorised':'Follow', 
+                                            'RepeatedFailure':'TASK_FAILURE'})
+
+        # Concurrent follow state
+        concurrent = make_follow_concurrent_state(global_store)
+        smach.StateMachine.add('Follow', concurrent,
+                                transitions={'Follow_Success':
+                                             'WaitForRequest',
+                                             'Follow_Nav_Failure':
+                                             'TASK_FAILURE',
+                                             'Follow_Cam_Failure':
+                                             'AskForOperator'})
+
+        # State for asking operator if lost
         smach.StateMachine.add('AskForOperator', AskForOperator(global_store),
                                transitions = {'Failure': 'AskForOperator',
-                                              'OperatorFound':'Follow'})
+                                              'Operator_Found':'Follow',
+                                              'Repeat_Failure':'TASK_FAILURE'})
+
+        # State for waiting for item request
         smach.StateMachine.add('WaitForRequest', WaitForRequest(global_store),
-                               transitions = {'TimeOut': 'AskForRequest',
-                                              'ReceiveRequest':
-                                              'FindItem'})
+                               transitions = {'Time_Out': 'AskForRequest',
+                                              'Receive_Request':'Find_Item',
+                                              'Repeat_Timeout':'TASK_FAILURE'})
+
+        # Asking operator for help if no request given
         smach.StateMachine.add('AskForRequest', AskForRequest(global_store),
                                transitions = {'Asked':'WaitForRequest'})
 
+        # Try and find the item
+        smach.StateMachine.add('FindItem', FindItem(global_store),
+                               transitions={'Item_Found':'GetItem',
+                                            'Item_Not_Found':'ReturnToOp'})
+        
+        # Return to operator if item can't be found
+        smach.StateMachine.add('ReturnToOp', ReturnToOperator(global_store),
+                               transitions={'Found_Operator':
+                                            'AskAssistance',
+                                            'Cant_Find_Operator':
+                                            'TASK_FAILURE'})
+        
+        # Ask operator for assistance
+        smach.StateMachine.add('AskAssistance', AskForAssistance(global_store),
+                               transitions={'Assistance_Given':'FindItem',
+                                            'No_Assistance':'TASK_FAILURE'})
+
+        # Pick up the item
+        smach.StateMachine.add('GetItem', GetItem(global_store),
+                               transitions={'Grasped':
+                                            'TravelBack',
+                                            'Not_Grasped':
+                                            'GetItem',
+                                            'Repeat_Not_Grasped':
+                                            'TASK_FAILURE'})
+        
+        # Travel back to start spot
+        smach.StateMachine.add('TravelBack', MonitoredNav(global_store),
+                               transitions={'Reached_Destination':
+                                            'PutOnFloor',
+                                            'Navigation_Failure':
+                                            'TASK_FAILURE'})
+
+        # Put item on floor
+        smach.StateMachine.add('PutOnFloor', PutOnFloor(global_store),
+                               transitions={'On_Floor':'StateJumperColour',
+                                            'Failure':'TASK_FAILURE'})
+
+        # States jumper colour of operator
         smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(global_store),
                                 transitions={'Correct_Colour':'TASK_SUCCESS',
