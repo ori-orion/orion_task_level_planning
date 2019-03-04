@@ -15,101 +15,100 @@ import time
 import numpy as np
 from dummy_behaviours.dummy_behaviours import *
 
-class StateJumperColour(smach.State):
+class GlobalStoreState(smach.State):
+    """ Overwriting smach state to have global data store."""
+    def __init__(self, global_store, outcomes):
+        """ Constructor initialises new fields and calls super constructor.
+
+        Args:
+            global_store: A dictionary of strings to data items
+            outcomes: The state outcomes
+
+        """
+        self.global_store = global_store
+        super(GlobalStoreState, self).__init__(outcomes=outcomes)
+        # Need to set afterwards
+        self._outcomes = outcomes
+
+class StateJumperColour(GlobalStoreState):
     """ SMACH state for speaking jumper colour."""
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Correct_Colour']
-        super(StateJumperColour, self).__init__(outcomes=outcomes)
-
-        # Super constructor seems to make it a set so set it afterwards
-        self._outcomes = outcomes
-
+        super(StateJumperColour, self).__init__(global_store=global_store,
+                                                outcomes=outcomes)
 
     def execute(self, userdata):
         """ Executes the behaviour within the state."""
-        rospy.loginfo('Colour: ' + userdata.in_op_info)
-
-        userdata.out_op_info = userdata.in_op_info
-        userdata.out_start_location = userdata.in_start_location
+        rospy.loginfo('Colour: ' + str(self.global_store['op_info']))
 
         return self._outcomes[0]
 
 
 
-class FindItem(smach.State):
+class FindItem(GlobalStoreState):
     """ SMACH state for searching for an item. """
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Item_Found', 'Item_Not_Found']
-        super(FindItem, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
+        super(FindItem, self).__init__(global_store=global_store,
+                                       outcomes=outcomes)
     
     def execute(self, userdata):
         """Executes find_item behaviour."""
-        item = userdata.requested_item
+        item = self.global_store['requested_item']
         messages = ['Found: ' + item, 'Could not find: ' + item]
         probs = [0.9, 0.1]
 
-        userdata.out_op_info = userdata.in_op_info
-        userdata.out_start_location = userdata.in_start_location
 
         return dummy_behaviour(self._outcomes, probs, messages)
 
 
-class MonitoredNav(smach.State):
+class MonitoredNav(GlobalStoreState):
     """ SMACH state for monitored navigation. """
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Reached_Destination', 'Navigation_Failure']
-        super(MonitoredNav, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
+        super(MonitoredNav, self).__init__(global_store=global_store,
+                                           outcomes=outcomes)
     
     def execute(self, userdata):
         """Executes monitored navigation."""
-        destination = userdata.in_start_location
+        destination = self.global_store['start_location']
         messages = ['Arrived back at: ' + destination, 'Navigation Failure']
         probs = [0.99, 0.01]
 
-        userdata.out_op_info = userdata.in_op_info
-        userdata.out_start_location = userdata.in_start_location
-
         return dummy_behaviour(self._outcomes, probs, messages)
 
-class StartBackgroundSystems(smach.State):
+class StartBackgroundSystems(GlobalStoreState):
     """ SMACH state for travelling back to a known location. """
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Started_Background_Systems', 'Failed_Start_Up']
-        super(StartBackgroundSystems, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
-
+        super(StartBackgroundSystems, self).__init__(global_store=global_store,
+                                                     outcomes=outcomes)
     def execute(self, userdata):
         """Starts up base robot behaviours."""
         messages = ['Started people tracking, object/hot-word detection',
                     'Failed to start up base systems.']
         probs = [0.99, 0.01]
 
-        userdata.out_start_location = 'WayPoint1'
+        self.global_store['start_location'] = 'WayPoint1'
         
         return dummy_behaviour(self._outcomes, probs, messages)
 
-class WaitForOperator(smach.State):
+class WaitForOperator(GlobalStoreState):
     """SMACH state for detecting the operator in the first instance."""
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Operator_Found', 'Time_Out']
-        super(WaitForOperator, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
+        super(WaitForOperator, self).__init__(global_store=global_store,
+                                              outcomes=outcomes)
     
     def execute(self, userdata):
         """ Looks for operator."""
@@ -118,22 +117,20 @@ class WaitForOperator(smach.State):
 
         outcome = dummy_behaviour(self._outcomes, probs, messages)
         if outcome == 'Operator_Found':
-            userdata.out_op_info = 'Red'
+            self.global_store['op_info'] = 'Red'
         
         return outcome
 
 # <---- Code for concurrent Follow Behaviour ---->
 
-class DetectFollowSignal(smach.State):
+class DetectFollowSignal(GlobalStoreState):
     """SMACH state for detecting the end of follow signal from the operator."""
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
 
         outcomes = ['Signal_Detected', 'Time_Out']
-        super(DetectFollowSignal, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
-    
+        super(DetectFollowSignal, self).__init__(global_store=global_store,
+                                                 outcomes=outcomes)
     def execute(self, userdata):
         """Waits for signal from operator."""
         messages = ['Signal from operator wearing: ' + userdata.in_op_info,
@@ -141,31 +138,25 @@ class DetectFollowSignal(smach.State):
         probs = [0.99, 0.01]
         time.sleep(0.1)
 
-        userdata.out_op_info = userdata.in_op_info
-        userdata.out_start_location = userdata.in_start_location
-
         return dummy_behaviour(self._outcomes, probs, messages)
 
-class FollowWithCamera(smach.State):
+class FollowWithCamera(GlobalStoreState):
     """State for keeping operator in view of camera."""
 
-    def __init__(self):
+    def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
         outcomes = ['Lost_Operator']
-        super(FollowWithCamera, self).__init__(outcomes=outcomes)
-
-        self._outcomes = outcomes
+        super(FollowWithCamera, self).__init__(global_store=global_store,
+                                               outcomes=outcomes)
 
     def execute(self, userdata):
         """Follows until lost."""
-        rospy.loginfo('Following Operator wearing ' + userdata.op_info)
+        colour = str(self.global_store['op_info'])
+        rospy.loginfo('Following Operator wearing ' + colour)
         while np.random.rand() < 0.99:
             time.sleep(0.01)
         
         rospy.loginfo('Lost Operator')
-
-        userdata.out_op_info = userdata.in_op_info
-        userdata.out_start_location = userdata.in_start_location
 
         return self._outcomes[0]
 
@@ -182,14 +173,12 @@ def follow_child_cb(outcome_map):
     
     return False
 
-def make_follow_concurrent_state():
+def make_follow_concurrent_state(global_store):
     """ Function creates concurrent container for the follow behaviour."""
     con = Concurrence(outcomes=['Follow_Success', 
                                 'Follow_Nav_Failure',
                                 'Follow_Cam_Failure'],
                       default_outcome='Follow_Failure',
-                      input_keys=['in_op_info', 'in_start_location'],
-                      output_keys=['out_op_info', 'out_start_location'],
                       child_termination_cb = follow_child_cb,
                       outcome_map={'Follow_Success': 
                                     {'Sig_Detect': 'Signal_Detected'},
@@ -198,21 +187,9 @@ def make_follow_concurrent_state():
                                    'Follow_Cam_Failure': 
                                     {'Follow_Camera': 'Lost_Operator'}})
     with con:
-        Concurrence.add('Sig_Detect', DetectFollowSignal(),
-                        remapping={'in_op_info':'in_op_info',
-                                   'in_start_location':'in_start_location',
-                                   'out_op_info':'out_op_info',
-                                   'out_start_location':'out_start_location'})
-        Concurrence.add('Follow_Nav', MonitoredNav(),
-                        remapping={'in_op_info':'in_op_info',
-                                   'in_start_location':'in_start_location',
-                                   'out_op_info':'out_op_info',
-                                   'out_start_location':'out_start_location'})
-        Concurrence.add('Follow_Camera', FollowWithCamera(),
-                        remapping={'in_op_info':'in_op_info',
-                                   'in_start_location':'in_start_location',
-                                   'out_op_info':'out_op_info',
-                                   'out_start_location':'out_start_location'})
+        Concurrence.add('Sig_Detect', DetectFollowSignal(global_store))
+        Concurrence.add('Follow_Nav', MonitoredNav(global_store))
+        Concurrence.add('Follow_Camera', FollowWithCamera(global_store))
     
     return con
 
@@ -223,26 +200,27 @@ def make_and_start_state_machine():
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
+    global_store = {}
+
     # Add our states
     with sm:
 
         # Add start-up state
         smach.StateMachine.add('Start_Up',
-                                StartBackgroundSystems(),
+                                StartBackgroundSystems(global_store),
                                 transitions={'Started_Background_Systems':
                                              'Op_Detect',
                                              'Failed_Start_Up':
                                              'TASK_FAILURE'})
         # Add operator waiting state
         smach.StateMachine.add('Op_Detect',
-                               transitions={}, # TODO: Fill in!
-                               remapping={'in_start_location':
-                                          'out_start_location'})
+                                WaitForOperator(global_store),
+                                transitions={} #TODO: Fill in!)
         
         # TODO: Add rest of states!
 
         smach.StateMachine.add('State_Jumper_Colour',
-                                StateJumperColour(),
+                                StateJumperColour(global_store),
                                 transitions={'Correct_Colour':'TASK_SUCCESS',
                                              'Incorrect_Colour':'TASK_FAILURE'})
     # Execute the State Machine
