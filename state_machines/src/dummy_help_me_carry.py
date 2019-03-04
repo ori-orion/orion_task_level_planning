@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 """ File containing states for dummy help_me_carry.
-
 This module contains states for the dummy version of the
 help_me_carry task for RoboCup.
-
 Author: Charlie Street
-
 """
 
 import rospy
@@ -281,6 +278,63 @@ def make_follow_concurrent_state(global_store):
     
     return con
 
+class GetItem(smach.State):
+    """ SMACH state for the Get Item which can lead to System Failure"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Failure', 'Picked_Up', 'Repeated_Failure'])
+        self.counter = 0
+        self.try_allow = 5
+
+    # It requires the userdata which indicates the Got_item
+    def execute(self,userdata):
+        if userdata.Got_item:
+            return 'Picked_Up'
+        else:
+            if self.counter > self.try_allow:
+                return 'Repeated_Failure'
+            else:
+                self.counter += 1
+                return 'Failure'
+
+class ReturnToOperator(smach.State):
+    """ SMACH state for the ask for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['No_Operator', 'Operator_Found'])
+
+    # It requires the userdata which indicates the Operator_flag
+
+    def execute(self,userdata):
+        if userdata.Operator_flag:
+            return 'Operator_Found'
+        else:
+            return 'No_Operator'
+
+
+class AskForAssistance(smach.State):
+    """ SMACH state for asking for assistance"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Assistance_Given', 'Assistance_Not_Given'])
+
+    #It requires the userdata which indicates the Assistance_Given
+    def execute(self,userdata):
+        if userdata.Assistance_Given:
+            return 'Assistance_Given'
+        else:
+            return 'Assistance_Not_Given'
+
+class PutOnFloor(smach.State):
+    """ SMACH state for putting an object on floor"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Success', 'Time_Out'])
+
+    #It requires the userdata which indicates the On_The_Floor
+    def execute(self,userdata):
+        if userdata.On_The_Floor:
+            return 'Success'
+        else:
+            return 'Time_Out'
+
+
 def make_and_start_state_machine():
     """ Function for starting node/state machine."""
     rospy.init_node('dummy_help_me_carry')
@@ -336,7 +390,7 @@ def make_and_start_state_machine():
 
         # Asking operator for help if no request given
         smach.StateMachine.add('AskForRequest', AskForRequest(global_store),
-                               transitions = {'Asked':'WaitForRequest'})
+                               transitions = {'Asked':'WaitForRequest'})                                                                                         
 
         # Try and find the item
         smach.StateMachine.add('FindItem', FindItem(global_store),
@@ -345,23 +399,25 @@ def make_and_start_state_machine():
         
         # Return to operator if item can't be found
         smach.StateMachine.add('ReturnToOp', ReturnToOperator(global_store),
-                               transitions={'Found_Operator':
+                               transitions={'Operator_Found':
                                             'AskAssistance',
-                                            'Cant_Find_Operator':
+                                            'No_Operator':
                                             'TASK_FAILURE'})
         
         # Ask operator for assistance
         smach.StateMachine.add('AskAssistance', AskForAssistance(global_store),
-                               transitions={'Assistance_Given':'FindItem',
-                                            'No_Assistance':'TASK_FAILURE'})
+                               transitions={'Assistance_Given':
+                                            'FindItem',
+                                            'Assistance_Not_Given':
+                                            'TASK_FAILURE'})
 
         # Pick up the item
         smach.StateMachine.add('GetItem', GetItem(global_store),
-                               transitions={'Grasped':
+                               transitions={'Picked_Up':
                                             'TravelBack',
-                                            'Not_Grasped':
+                                            'Failure':
                                             'GetItem',
-                                            'Repeat_Not_Grasped':
+                                            'Repeat_Failure':
                                             'TASK_FAILURE'})
         
         # Travel back to start spot
@@ -373,8 +429,8 @@ def make_and_start_state_machine():
 
         # Put item on floor
         smach.StateMachine.add('PutOnFloor', PutOnFloor(global_store),
-                               transitions={'On_Floor':'StateJumperColour',
-                                            'Failure':'TASK_FAILURE'})
+                               transitions={'Success':'StateJumperColour',
+                                            'Time_Out':'TASK_FAILURE'})
 
         # States jumper colour of operator
         smach.StateMachine.add('StateJumperColour',
