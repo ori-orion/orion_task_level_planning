@@ -71,6 +71,43 @@ class Memorise(smach.State):
                 self.counter += 1
                 return 'Failure'
 
+class AskForOperator(smach.State):
+    """ SMACH state for the Ask For Operator"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Failure', 'OperatorFound'])
+        probs = [0.3,0.7]
+
+    # It requires the userdata which indicates the operator_flag
+    def execute(self,userdata):
+        if userdata.Operator_flag:
+            return 'OperatorFound'
+        else:
+            return 'Failure'
+
+
+class WaitForRequest(smach.State):
+    """ SMACH state for the wait for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['TimeOut', 'ReceiveRequest'])
+
+    # It requires the userdata which indicates the request_flag
+    def execute(self,userdata):
+        if userdata.Request_flag:
+            return 'ReceiveRequest'
+        else:
+            return 'TimeOut'
+
+class AskForRequest(smach.State):
+    """ SMACH state for the ask for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Asked'])
+
+    #It executes the dummy version of asking for request
+    def execute(self,userdata):
+        rospy.loginfo('Asking for request')
+        return 'Asked'
+
+
 def make_and_start_state_machine():
     """ Function for starting node/state machine."""
     rospy.init_node('dummy_help_me_carry')
@@ -87,6 +124,12 @@ def make_and_start_state_machine():
                                transitions = {'NoOperator': 'Waiting', 'OperatorFound': 'Memorise'})
         smach.StateMachine.add('Memorise', Memorise(),
                                transitions = {'Failure': 'Memorise', 'Memorised':'Follow', 'RepeatedFailure':'SystemFailure'})
+        smach.StateMachine.add('AskForOperator', AskForOperator(),
+                               transitions = {'Failure': 'AskForOperator', 'OperatorFound':'Follow'})
+        smach.StateMachine.add('WaitForRequest', WaitForRequest(),
+                               transitions = {'TimeOut': 'AskForRequest', 'ReceiveRequest': 'FindItem'})
+        smach.StateMachine.add('AskForRequest', AskForRequest(),
+                               transitions = {'Asked':'WaitForRequest'})
 
         smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(),
