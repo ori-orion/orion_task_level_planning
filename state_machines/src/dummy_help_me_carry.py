@@ -101,6 +101,67 @@ class StartBackgroundSystems(GlobalStoreState):
         
         return dummy_behaviour(self._outcomes, probs, messages)
 
+class Memorise(GlobalStoreState):
+    """ SMACH state for the Memorise Behaviour which can lead to System Failure"""
+    def __init__(self, global_store):
+        outcomes = ['Failure', 'Memorised', 'RepeatedFailure']
+        super(Memorise, self).__init__(global_store=global_store,
+                                       outcomes=outcomes)
+        self.counter = 0
+        self.try_allow = 5
+
+    # It requires the userdata which indicates the Memorised_flag
+    def execute(self,userdata):
+        probs = [0.1,0.9]
+        msgs = ['Failed to memorise', 'Memorised']
+        outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
+        if outcome == 'Memorised':
+            self.global_store['op_info'] = 'Red'
+        else:
+            if self.counter > self.try_allow:
+                return 'RepeatedFailure'
+            else:
+                self.counter += 1
+                return 'Failure'
+
+class AskForOperator(GlobalStoreState):
+    """ SMACH state for the Ask For Operator"""
+    def __init__(self, global_store):
+        smach.State.__init__(global_store=global_store,
+                             outcomes=['Failure', 'OperatorFound'])
+
+
+    def execute(self,userdata):
+        probs = [0.1, 0.9]
+        msgs = ['Failed to Find operator', 'Found Operator']
+
+        return dummy_behaviour(self._outcomes, probs, msgs)
+
+
+class WaitForRequest(GlobalStoreState):
+    """ SMACH state for the wait for request"""
+    def __init__(self, global_store):
+        outcomes = ['TimeOut', 'ReceiveRequest']
+        super(WaitForRequest, self).__init__(global_store=global_store,
+                                             outcomes=outcomes)
+
+    # It requires the userdata which indicates the request_flag
+    def execute(self,userdata):
+        probs = [0.1, 0.9]
+        msgs=['Time Out Waiting For Request', 'Request Received']
+        return dummy_behaviour(self._outcomes, probs, msgs)
+
+class AskForRequest(GlobalStoreState):
+    """ SMACH state for the ask for request"""
+    def __init__(self, global_store):
+        super(AskForRequest, self).__init__(global_store=global_store,
+                                            outcomes=['Asked'])
+
+    #It executes the dummy version of asking for request
+    def execute(self,userdata):
+        rospy.loginfo('Asking for request')
+        return 'Asked'
+
 class WaitForOperator(GlobalStoreState):
     """SMACH state for detecting the operator in the first instance."""
     def __init__(self, global_store):
@@ -116,8 +177,6 @@ class WaitForOperator(GlobalStoreState):
         probs = [0.9, 0.1]
 
         outcome = dummy_behaviour(self._outcomes, probs, messages)
-        if outcome == 'Operator_Found':
-            self.global_store['op_info'] = 'Red'
         
         return outcome
 
@@ -201,10 +260,10 @@ def make_and_start_state_machine():
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
     global_store = {}
-
+    
     # Add our states
     with sm:
-
+        
         # Add start-up state
         smach.StateMachine.add('Start_Up',
                                 StartBackgroundSystems(global_store),
@@ -215,14 +274,29 @@ def make_and_start_state_machine():
         # Add operator waiting state
         smach.StateMachine.add('Op_Detect',
                                 WaitForOperator(global_store),
-                                transitions={} #TODO: Fill in!)
+                                transitions={})
         
         # TODO: Add rest of states!
 
-        smach.StateMachine.add('State_Jumper_Colour',
+        smach.StateMachine.add('Memorise', Memorise(global_store),
+                               transitions = {'Failure': 'Memorise',
+                                              'Memorised':'Follow', 
+                                              'RepeatedFailure':'SystemFailure'})
+        smach.StateMachine.add('AskForOperator', AskForOperator(global_store),
+                               transitions = {'Failure': 'AskForOperator',
+                                              'OperatorFound':'Follow'})
+        smach.StateMachine.add('WaitForRequest', WaitForRequest(global_store),
+                               transitions = {'TimeOut': 'AskForRequest',
+                                              'ReceiveRequest':
+                                              'FindItem'})
+        smach.StateMachine.add('AskForRequest', AskForRequest(global_store),
+                               transitions = {'Asked':'WaitForRequest'})
+
+        smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(global_store),
                                 transitions={'Correct_Colour':'TASK_SUCCESS',
                                              'Incorrect_Colour':'TASK_FAILURE'})
+
     # Execute the State Machine
     _ = sm.execute()
 
