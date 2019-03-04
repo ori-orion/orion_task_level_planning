@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 """ File containing states for dummy help_me_carry.
-
 This module contains states for the dummy version of the
 help_me_carry task for RoboCup.
-
 Author: Charlie Street
-
 """
 
 import rospy
@@ -107,6 +104,62 @@ class AskForRequest(smach.State):
         rospy.loginfo('Asking for request')
         return 'Asked'
 
+class GetItem(smach.State):
+    """ SMACH state for the Get Item which can lead to System Failure"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Failure', 'PickedUp', 'RepeatedFailure'])
+        self.counter = 0
+        self.try_allow = 5
+
+    # It requires the userdata which indicates the Got_item
+    def execute(self,userdata):
+        if userdata.Got_item:
+            return 'PickedUp'
+        else:
+            if self.counter > self.try_allow:
+                return 'RepeatedFailure'
+            else:
+                self.counter += 1
+                return 'Failure'Memorised_flag
+
+class ReturnToOperator(smach.State):
+    """ SMACH state for the ask for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['NoOperator', 'OperatorFound'])
+
+    # It requires the userdata which indicates the Operator_flag
+
+    def execute(self,userdata):
+        if userdata.Operator_flag:
+            return 'OperatorFound'
+        else:
+            return 'NoOperator'
+
+
+class AskForAssistance(smach.State):
+    """ SMACH state for asking for assistance"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['AssistanceGiven', 'AssistanceNotGiven'])
+
+        #It requires the userdata which indicates the Assistance_Given
+        def execute(self,userdata)
+            if userdata.Assistance_Given:
+                return 'AssistanceGiven'
+            else
+                return 'AssistanceNotGiven'
+
+class PutOnFloor(smach.State):
+    """ SMACH state for putting an object on floor"""
+        def __init__(self):
+        smach.State.__init__(self, outcomes=['Success', 'TimeOut'])
+
+        #It requires the userdata which indicates the On_The_Floor
+        def execute(self,userdata)
+            if userdata.On_The_Floor:
+                return 'Success'
+            else
+                return 'TimeOut'
+
 
 def make_and_start_state_machine():
     """ Function for starting node/state machine."""
@@ -130,6 +183,14 @@ def make_and_start_state_machine():
                                transitions = {'TimeOut': 'AskForRequest', 'ReceiveRequest': 'FindItem'})
         smach.StateMachine.add('AskForRequest', AskForRequest(),
                                transitions = {'Asked':'WaitForRequest'})
+        smach.StateMachine.add('GetItem', GetItem(),
+                               transitions = {'Failure': 'GetItem', 'PickedUp':'TravelBack', 'RepeatedFailure':'SystemFailure'})  
+        smach.StateMachine.add('ReturnToOperator', ReturnToOperator(),
+                               transitions = {'NoOperator': 'SystemFailure', 'OperatorFound':'AskForAssistance'})
+        smach.StateMachine.add('AskForAssistance', AskForAssistance(),
+                               transitions = {'AssistanceGiven': 'FindItem', 'AssistanceNotGiven':'SystemFailure'})
+        smach.StateMachine.add('PutOnFloor', PutOnFloor(),
+                                transitions = {'Success':'StateJumperColour', 'TimeOut':'SystemFailure' })                                                                                          
 
         smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(),
@@ -139,4 +200,4 @@ def make_and_start_state_machine():
     _ = sm.execute()
 
 if __name__ == '__main__':
-    make_and_start_state_machine()
+make_and_start_state_machine()
