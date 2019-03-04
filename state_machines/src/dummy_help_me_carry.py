@@ -32,6 +32,80 @@ class StateJumperColour(smach.State):
         probs = [0.7,0.3]
         return dummy_behaviour(self._outcomes, probs, messages)
 
+class Waiting(smach.State):
+    """ SMACH state for the initial waiting"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['PERSON_DETECTED'])
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state Waiting')
+        return 'PERSON_DETECTED'
+
+class OperatorDetection(smach.State):
+    """ SMACH state for the Operator Detection"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['NoOperator', 'OperatorFound'])
+
+    # It requires the userdata which indicates the operator_flag
+    def execute(self,userdata):
+        if userdata.Operator_flag:
+            return 'OperatorFound'
+        else:
+            return 'NoOperator'
+
+class Memorise(smach.State):
+    """ SMACH state for the Memorise Behaviour which can lead to System Failure"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Failure', 'Memorised', 'RepeatedFailure'])
+        self.counter = 0
+        self.try_allow = 5
+
+    # It requires the userdata which indicates the Memorised_flag
+    def execute(self,userdata):
+        if userdata.Memorised_flag:
+            return 'Memorised'
+        else:
+            if self.counter > self.try_allow:
+                return 'RepeatedFailure'
+            else:
+                self.counter += 1
+                return 'Failure'
+
+class AskForOperator(smach.State):
+    """ SMACH state for the Ask For Operator"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Failure', 'OperatorFound'])
+        probs = [0.3,0.7]
+
+    # It requires the userdata which indicates the operator_flag
+    def execute(self,userdata):
+        if userdata.Operator_flag:
+            return 'OperatorFound'
+        else:
+            return 'Failure'
+
+
+class WaitForRequest(smach.State):
+    """ SMACH state for the wait for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['TimeOut', 'ReceiveRequest'])
+
+    # It requires the userdata which indicates the request_flag
+    def execute(self,userdata):
+        if userdata.Request_flag:
+            return 'ReceiveRequest'
+        else:
+            return 'TimeOut'
+
+class AskForRequest(smach.State):
+    """ SMACH state for the ask for request"""
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Asked'])
+
+    #It executes the dummy version of asking for request
+    def execute(self,userdata):
+        rospy.loginfo('Asking for request')
+        return 'Asked'
 
 
 def make_and_start_state_machine():
@@ -43,6 +117,20 @@ def make_and_start_state_machine():
 
     # Add our states
     with sm:
+
+        smach.StateMachine.add('Waiting', Waiting(),
+                               transitions = {'PERSON_DETECTED': 'OperatorDetection'})
+        smach.StateMachine.add('OperatorDetection', OperatorDetection(),
+                               transitions = {'NoOperator': 'Waiting', 'OperatorFound': 'Memorise'})
+        smach.StateMachine.add('Memorise', Memorise(),
+                               transitions = {'Failure': 'Memorise', 'Memorised':'Follow', 'RepeatedFailure':'SystemFailure'})
+        smach.StateMachine.add('AskForOperator', AskForOperator(),
+                               transitions = {'Failure': 'AskForOperator', 'OperatorFound':'Follow'})
+        smach.StateMachine.add('WaitForRequest', WaitForRequest(),
+                               transitions = {'TimeOut': 'AskForRequest', 'ReceiveRequest': 'FindItem'})
+        smach.StateMachine.add('AskForRequest', AskForRequest(),
+                               transitions = {'Asked':'WaitForRequest'})
+
         smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(),
                                 transitions={'Correct_Colour':'TASK_SUCCESS',
