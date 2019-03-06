@@ -8,6 +8,7 @@ Author: Charlie Street
 import rospy
 import smach
 from smach import Concurrence
+import smach_ros
 import time
 import numpy as np
 from dummy_behaviours.dummy_behaviours import *
@@ -78,7 +79,7 @@ class MonitoredNav(GlobalStoreState):
         messages = ['Arrived back at: ' + destination, 'Navigation Failure']
         probs = [0.99, 0.01]
 
-        return dummy_behaviour(self._outcomes, probs, messages)
+        return dummy_behaviour(self._outcomes[0:2], probs, messages)
 
 class StartBackgroundSystems(GlobalStoreState):
     """ SMACH state for travelling back to a known location. """
@@ -93,7 +94,6 @@ class StartBackgroundSystems(GlobalStoreState):
         messages = ['Started people tracking, object/hot-word detection',
                     'Failed to start up base systems.']
         probs = [0.99, 0.01]
-
         self.global_store['start_location'] = 'WayPoint1'
         
         return dummy_behaviour(self._outcomes, probs, messages)
@@ -101,7 +101,7 @@ class StartBackgroundSystems(GlobalStoreState):
 class Memorise(GlobalStoreState):
     """ SMACH state for the Memorise Behaviour which can lead to System Failure"""
     def __init__(self, global_store):
-        outcomes = ['Failure', 'Memorised', 'RepeatedFailure']
+        outcomes = ['Failure', 'Memorised', 'Repeated_Failure']
         super(Memorise, self).__init__(global_store=global_store,
                                        outcomes=outcomes)
         self.counter = 0
@@ -114,9 +114,10 @@ class Memorise(GlobalStoreState):
         outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
         if outcome == 'Memorised':
             self.global_store['op_info'] = 'Red'
+            return 'Memorised'
         else:
             if self.counter > self.try_allow:
-                return 'RepeatedFailure'
+                return 'Repeated_Failure'
             else:
                 self.counter += 1
                 return 'Failure'
@@ -129,8 +130,8 @@ class AskForOperator(GlobalStoreState):
         self.try_allow = 5
 
         outcomes = ['Failure', 'Operator_Found', 'Repeat_Failure']
-        smach.State.__init__(global_store=global_store,
-                             outcomes=outcomes)
+        super(AskForOperator, self).__init__(global_store=global_store,
+                                             outcomes=outcomes)
 
 
     def execute(self,userdata):
@@ -164,7 +165,6 @@ class WaitForRequest(GlobalStoreState):
         probs = [0.1, 0.9]
         msgs=['Time Out Waiting For Request', 'Request Received']
         outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
-
         if outcome == 'Receive_Request':
             self.global_store['item'] = 'Coffee Mug'
 
@@ -218,7 +218,7 @@ class DetectFollowSignal(GlobalStoreState):
                                                  outcomes=outcomes)
     def execute(self, userdata):
         """Waits for signal from operator."""
-        messages = ['Signal from operator wearing: ' + userdata.in_op_info,
+        messages = ['Signal from operator wearing: ' + self.global_store['op_info'],
                     'Time Out waiting for signal']
         probs = [0.99, 0.01]
         time.sleep(0.1)
@@ -230,7 +230,7 @@ class FollowWithCamera(GlobalStoreState):
 
     def __init__(self, global_store):
         """ Constructor initialises attributes and calls super constructor."""
-        outcomes = ['Lost_Operator']
+        outcomes = ['Lost_Operator', 'Preempted']
         super(FollowWithCamera, self).__init__(global_store=global_store,
                                                outcomes=outcomes)
 
@@ -240,99 +240,111 @@ class FollowWithCamera(GlobalStoreState):
         rospy.loginfo('Following Operator wearing ' + colour)
         while np.random.rand() < 0.99:
             time.sleep(0.01)
+            if self.preempt_requested():
+                return 'Preempted'
         
         rospy.loginfo('Lost Operator')
 
         return self._outcomes[0]
 
 def follow_child_cb(outcome_map):
-
-    if outcome_map['Sig_Detect'] == 'Signal_Detected':
+    """ Executed whenever a child in the concurrent state is terminated."""
+    if outcome_map['SigDetect'] == 'Signal_Detected':
         return True
     
-    if outcome_map['Follow_Camera'] == 'Lost_Operator':
+    if outcome_map['FollowCamera'] == 'Lost_Operator':
         return True
     
-    if outcome_map['Follow_Nav'] == 'Navigation_Failure':
+    if outcome_map['FollowNav'] == 'Navigation_Failure':
         return True
     
     return False
+
 
 def make_follow_concurrent_state(global_store):
     """ Function creates concurrent container for the follow behaviour."""
     con = Concurrence(outcomes=['Follow_Success', 
                                 'Follow_Nav_Failure',
                                 'Follow_Cam_Failure'],
-                      default_outcome='Follow_Failure',
+                      default_outcome='Follow_Nav_Failure',
                       child_termination_cb = follow_child_cb,
                       outcome_map={'Follow_Success': 
-                                    {'Sig_Detect': 'Signal_Detected'},
+                                    {'SigDetect': 'Signal_Detected'},
                                    'Follow_Nav_Failure': 
-                                    {'Follow_Nav': 'Navigation_Failure'},
+                                    {'FollowNav': 'Navigation_Failure'},
                                    'Follow_Cam_Failure': 
-                                    {'Follow_Camera': 'Lost_Operator'}})
+                                    {'FollowCamera': 'Lost_Operator'}})
     with con:
-        Concurrence.add('Sig_Detect', DetectFollowSignal(global_store))
-        Concurrence.add('Follow_Nav', MonitoredNav(global_store))
-        Concurrence.add('Follow_Camera', FollowWithCamera(global_store))
+        Concurrence.add('SigDetect', DetectFollowSignal(global_store))
+        Concurrence.add('FollowNav', MonitoredNav(global_store))
+        Concurrence.add('FollowCamera', FollowWithCamera(global_store))
     
     return con
 
-class GetItem(smach.State):
+class GetItem(GlobalStoreState):
     """ SMACH state for the Get Item which can lead to System Failure"""
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['Failure', 'Picked_Up', 'Repeated_Failure'])
+    def __init__(self, global_store):
+        outcomes = ['Failure', 'Picked_Up', 'Repeated_Failure']
+        super(GetItem, self).__init__(global_store=global_store,
+                                      outcomes=outcomes)
         self.counter = 0
         self.try_allow = 5
 
-    # It requires the userdata which indicates the Got_item
     def execute(self,userdata):
-        if userdata.Got_item:
-            return 'Picked_Up'
-        else:
-            if self.counter > self.try_allow:
-                return 'Repeated_Failure'
-            else:
-                self.counter += 1
-                return 'Failure'
+        probs = [0.1, 0.9]
+        msgs=['Failed to pick up item: ' + self.global_store['item'],
+              'Picked up item: ' + self.global_store['item']]
+        outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
 
-class ReturnToOperator(smach.State):
+        if outcome == 'Picked_Up':
+            self.global_store['grasp'] = self.global_store['item']
+        
+        if outcome == 'Failure':
+            self.counter += 1
+        
+        if self.counter > self.try_allow:
+            return 'Repeated_Failure'
+        else:
+            return outcome
+
+
+class ReturnToOperator(GlobalStoreState):
     """ SMACH state for the ask for request"""
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['No_Operator', 'Operator_Found'])
-
-    # It requires the userdata which indicates the Operator_flag
+    def __init__(self, global_store):
+        outcomes = ['No_Operator', 'Operator_Found']
+        super(ReturnToOperator, self).__init__(global_store=global_store,
+                                               outcomes=outcomes)
 
     def execute(self,userdata):
-        if userdata.Operator_flag:
-            return 'Operator_Found'
-        else:
-            return 'No_Operator'
+        probs = [0.01, 0.99]
+        msgs = ['Navigation Failure', 'Returned to operator']
+        return dummy_behaviour(self._outcomes, probs, msgs)
 
 
-class AskForAssistance(smach.State):
+class AskForAssistance(GlobalStoreState):
     """ SMACH state for asking for assistance"""
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['Assistance_Given', 'Assistance_Not_Given'])
+    def __init__(self, global_store):
+        outcomes = ['Assistance_Given', 'Assistance_Not_Given']
+        super(AskForAssistance, self).__init__(global_store=global_store,
+                                               outcomes=outcomes)
 
-    #It requires the userdata which indicates the Assistance_Given
     def execute(self,userdata):
-        if userdata.Assistance_Given:
-            return 'Assistance_Given'
-        else:
-            return 'Assistance_Not_Given'
+        probs=[0.99, 0.01]
+        msgs=['Assistance Given', 'Assistance Not Received']
+        return dummy_behaviour(self._outcomes, probs, msgs)
 
-class PutOnFloor(smach.State):
+class PutOnFloor(GlobalStoreState):
     """ SMACH state for putting an object on floor"""
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['Success', 'Time_Out'])
+    def __init__(self, global_store):
+        outcomes = ['Success', 'Time_Out']
+        super(PutOnFloor, self).__init__(global_store=global_store,
+                                         outcomes=outcomes)
 
-    #It requires the userdata which indicates the On_The_Floor
     def execute(self,userdata):
-        if userdata.On_The_Floor:
-            return 'Success'
-        else:
-            return 'Time_Out'
+        probs = [0.99, 0.01]
+        msgs = [str(self.global_store['grasp']) + ' put on floor',
+                'Failed to put ' + str(self.global_store['grasp']) + ' down']
+        return dummy_behaviour(self._outcomes, probs, msgs)
 
 
 def make_and_start_state_machine():
@@ -348,14 +360,14 @@ def make_and_start_state_machine():
     with sm:
         
         # Add start-up state
-        smach.StateMachine.add('Start_Up',
+        smach.StateMachine.add('StartUp',
                                 StartBackgroundSystems(global_store),
                                 transitions={'Started_Background_Systems':
-                                             'Op_Detect',
+                                             'OpDetect',
                                              'Failed_Start_Up':
                                              'TASK_FAILURE'})
         # Add operator waiting state
-        smach.StateMachine.add('Op_Detect',
+        smach.StateMachine.add('OpDetect',
                                 WaitForOperator(global_store),
                                 transitions={'Operator_Found': 'Memorise',
                                              'Time_Out': 'TASK_FAILURE'})
@@ -364,7 +376,7 @@ def make_and_start_state_machine():
         smach.StateMachine.add('Memorise', Memorise(global_store),
                                transitions={'Failure':'Memorise',
                                             'Memorised':'Follow', 
-                                            'RepeatedFailure':'TASK_FAILURE'})
+                                            'Repeated_Failure':'TASK_FAILURE'})
 
         # Concurrent follow state
         concurrent = make_follow_concurrent_state(global_store)
@@ -385,7 +397,7 @@ def make_and_start_state_machine():
         # State for waiting for item request
         smach.StateMachine.add('WaitForRequest', WaitForRequest(global_store),
                                transitions = {'Time_Out': 'AskForRequest',
-                                              'Receive_Request':'Find_Item',
+                                              'Receive_Request':'FindItem',
                                               'Repeat_Timeout':'TASK_FAILURE'})
 
         # Asking operator for help if no request given
@@ -417,7 +429,7 @@ def make_and_start_state_machine():
                                             'TravelBack',
                                             'Failure':
                                             'GetItem',
-                                            'Repeat_Failure':
+                                            'Repeated_Failure':
                                             'TASK_FAILURE'})
         
         # Travel back to start spot
@@ -435,11 +447,18 @@ def make_and_start_state_machine():
         # States jumper colour of operator
         smach.StateMachine.add('StateJumperColour',
                                 StateJumperColour(global_store),
-                                transitions={'Correct_Colour':'TASK_SUCCESS',
-                                             'Incorrect_Colour':'TASK_FAILURE'})
+                                transitions={'Correct_Colour':'TASK_SUCCESS'})
+
+    # Allow us to view the state machine
+    sis = smach_ros.IntrospectionServer('server', sm, '/SM_ROOT')
+    sis.start()
 
     # Execute the State Machine
     _ = sm.execute()
+
+    # Allow us to check the state machine
+    rospy.spin()
+    sis.stop()
 
 if __name__ == '__main__':
     make_and_start_state_machine()
