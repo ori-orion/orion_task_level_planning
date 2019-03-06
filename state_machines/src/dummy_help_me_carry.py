@@ -2,7 +2,7 @@
 """ File containing states for dummy help_me_carry.
 This module contains states for the dummy version of the
 help_me_carry task for RoboCup.
-Author: Charlie Street
+Author: Charlie Street, Han Zhou, Mia Mijovic
 """
 
 import rospy
