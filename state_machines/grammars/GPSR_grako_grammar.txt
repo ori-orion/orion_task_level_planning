@@ -67,7 +67,6 @@ taxi
 phpeople
 	=
 	| ('everyone' | ('all the ' ('people' | 'men' | 'women' | 'guests' | 'elders' | 'children')))
-	| phpeople ' in the ' room '.'
 	;
 
 pron

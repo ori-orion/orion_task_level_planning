@@ -636,7 +636,9 @@ def parse_GPSR_grammar(input_files):
         new_rule += "\n\t=\n"
 
         # All lines starting with that nonterminal
-        filter_by_nt = filter((lambda x: x.startswith(new_nt)), no_comments)
+        filter_by_nt = filter((lambda x: x.startswith(new_nt) and 
+                               (not bool(re.match("[a-z]|[A-Z]|[0-9]|_", 
+                                x[len(new_nt)])))), no_comments)
 
         # If this non-terminal doesn't have a definitin
         if filter_by_nt == []:
