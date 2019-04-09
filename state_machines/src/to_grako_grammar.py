@@ -10,7 +10,7 @@ Author: Charlie Street
 """
 
 from xml.dom import minidom
-
+import re
 
 # This is an annoying thing I have to do because the repo
 # Doesn't understand consistency apparently...
@@ -25,6 +25,12 @@ GESTURES = COMMON + 'Gestures.xml'
 LOCATIONS = COMMON + 'Locations.xml'
 NAMES = COMMON + 'Names.xml'
 OBJECTS = COMMON + 'Objects.xml'
+
+GPSR_COMMON = '../GPSRCmdGen/GPSRCmdGen/Resources/CommonRules.txt'
+GPSR_GRAMMAR = '../GPSRCmdGen/GPSRCmdGen/Resources/GPSRGrammar.txt'
+
+EGPSR_COMMON = '../GPSRCmdGen/EPGSRCmdGen/Resources/CommonRules.txt'
+EGPSR_GRAMMAR = '../GPSRCmdGen/EPGSRCmdGen/Resources/EGPSRGrammar.txt'
 
 def remove_u(str):
     """ Removes weird formatting from xml minidom.
@@ -262,6 +268,382 @@ def form_question_rule():
     q_rule = "question\n\t=\n\t| 'question'\n\t;\n\n"
     return q_rule
 
+
+def process_wildcard(wildcard):
+    """ Processes the GPSR wildcard token.
+
+    This function takes a wildcard, i.e. {<stuff>} from the GPSR grammar.
+    It returns back an appropriate string for the new grako grammar.
+
+    Args:
+        wildcard: The string encapsulated in {}
+    
+    Returns:
+        grako_non_terminal: The appropriate non terminal for our new grammar.
+    
+    Raises:
+        bad_obfuscation: Raised if ? used in wrong place
+        unknown_wildcard: Raised if unknown wildcard found
+    """
+    wildcard_data = wildcard[1:-1]
+
+    # Do we want to move up a level?
+    obfuscate = '?' in wildcard_data
+
+    if (wildcard_data.starts_with('location beacon') or
+       wildcard_data.starts_with('beacon')):
+        if obfuscate:
+            return 'room'
+        else:
+            return 'beacon'
+
+    elif (wildcard_data.starts_with('object alike') or 
+          wildcard_data.starts_with('aobject')):
+        if obfuscate:
+            return 'category'
+        else:
+            return 'aobject'
+
+    elif (wildcard_data.starts_with('name female') or 
+          wildcard_data.starts_with('female')):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Names: " + wildcard)
+        else:
+            return 'female'
+
+    elif (wildcard_data.starts_with('object known') or 
+          wildcard_data.starts_with('kobject')):
+        if obfuscate:
+            return 'category'
+        else:
+            return 'kobject'
+
+    elif (wildcard_data.starts_with('name male') or 
+          wildcard_data.starts_with('male')):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Names: " + wildcard)
+        else:
+            return 'male'
+
+    elif (wildcard_data.starts_with('location placement') or 
+          wildcard_data.starts_with('placement')):
+        if obfuscate:
+            return 'room'
+        else:
+            return 'placement'
+
+    elif (wildcard_data.starts_with('location room') or 
+          wildcard_data.starts_with('room')):
+        if obfuscate:
+            return "'room'"
+        else:
+            return 'room'
+
+    elif (wildcard_data.starts_with('object special') or 
+          wildcard_data.starts_with('sobject')):
+        if obfuscate:
+            return 'category'
+        else:
+            return 'sobject'
+
+    elif wildcard_data.starts_with('category'):
+        if obfuscate:
+            return "'objects'"
+        else:
+            return 'category'
+
+    elif wildcard_data.starts_with('gesture'):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Gestures: " + wildcard)
+        else:
+            return 'gesture'
+    
+    elif wildcard_data.starts_with('location'):
+        if obfuscate:
+            return ("('room' | room)")
+        else:
+            return 'location'
+
+    elif wildcard_data.starts_with('name'):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Names: " + wildcard)
+        else:
+            return 'name'
+
+    elif wildcard_data.starts_with('object'):
+        if obfuscate:
+            return 'category'
+        else:
+            return 'object'
+    
+    elif wildcard_data.starts_with('question'):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Questions: " + wildcard)
+        else:
+            return 'question'
+
+    elif wildcard_data.starts_with('void'):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Void: " + wildcard)
+        else:
+            # TODO: Find a better solution to this!
+            return "'VOID'"
+
+    elif wildcard_data.starts_with('pron'):
+        if obfuscate:
+            raise Exception("Can't Obfuscate With Pronouns: " + wildcard)
+        else:
+            return 'pron'
+    else:
+        raise Exception('Unknown Wildcard Found: ' + wildcard)
+    
+
+def consume_non_terminal(str, start):
+    """ Consumes a non-terminal in the grammar.
+
+    This function consumes a non-terminal in the GPSRCmdGen grammar, starting
+    at start until an invalid character for a nonterminal name is found.
+
+    Args:
+        str: The string to consume from
+        start: The start of the non-terminal, i.e. the $ character
+    
+    Returns:
+        non_terminal: The full non-terminal string
+        pointer: The index in str of the first character of the non-terminal
+
+    Raises:
+        invalid_non_terminal: Raised when an invalid non terminal is passed in
+        end_of_string: Raised if we reach the end of the string without stopping
+    """
+    
+    non_terminal = "$"
+
+    if str[start] != "$":
+        raise Exception("Invalid Non-Terminal Passed In: " + str[start:])
+
+    for i in range(start+1, len(str)):
+        if bool(re.match("[a-z]|[A-Z]|[0-9]|_",str[i])):
+            non_terminal += str[i]
+        else:
+            return non_terminal, i
+    
+    raise Exception('Reached End Of String Consuming Non-Terminal: ' +
+                    str[start:])
+
+
+def consume_bracket(str, start, brace):
+    """ Consumes a bracketed expression in the grammar.
+
+    This function consumes a string until the correct closing bracket is
+    matched. It then returns the bracketed expression as well as the index
+    of the first character not related to the bracketed expression.
+
+    Args:
+        str: The string being examined
+        start: The start of the expression, i.e. the position of the (/{
+        brace: The type of brace to use, i.e. (/{ in a pair, e.g. ('{','}')
+
+    Returns: 
+        expression: The bracketed expression
+        pointer: The index of the first character after the expression
+    
+    Raises:
+        invalid_expression: Raised if an invalid expression is passed in
+        end_of_string: Raised if we reach the end of the string without stopping
+    """
+    
+    expression = brace[0]
+    open_braces = 1
+
+    if str[start] != brace[0]:
+        raise Exception("Invalid Bracket Expression Passed In: " + str[start:])
+
+    for i in range(start+1, len(str)-1):
+        expression += str[i]
+
+        if str[i] == brace[0]:
+            open_braces += 1
+        elif str[i] == brace[1]:
+            open_braces -= 1
+        
+        if open_braces == 0:
+            return expression, i+1
+
+    raise Exception('Reached End Of String Consuming Bracket Expression: ' + 
+                    str[start:])
+
+def parse_line(line, root):
+    """ Parses a single line of the GPSRCmdGen grammar.
+
+    This function takes a line from the GPSRCmdGen version of the grammar
+    and outputs a line for the grako grammar, and also returns the nonterminals
+    seen on the rhs of this line.
+
+    Args:
+        line: The string to be parsed
+        root: Is the root call to the function (boolean)
+
+    Returns:
+        non_terminals_seen: The nonterminal seen in this line
+        grako_line: The line to be used in the grako grammar
+    """
+    non_terminals_seen = []
+    grako_line = ""
+
+    # Keeping track of occurrences of literals
+    literal = False
+    add_outer_brackets = False
+
+    # Accounting for new line characters
+    length = len(line)
+    if line[length-1] == "\n":
+        length -= 1
+    
+    i = 0
+
+    while i < length:
+
+        if line[i] == "$": # Start non-terminal
+
+            # Stop the literal
+            if literal:
+                grako_line += "' "
+                literal = False
+            
+            non_terminal, pointer = consume_non_terminal(line, i)
+            i = pointer
+            non_terminals_seen.append(non_terminal)
+            grako_line += non_terminal[1:].lower() # Remove the $ and lower
+
+        elif line[i] == "{": # Start non-terminal
+            
+            # Stop the literal
+            if literal:
+                grako_line += "' "
+                literal = False
+
+            wildcard, pointer = consume_bracket(line, i, ('{','}'))
+            grako_line += process_wildcard(wildcard)
+            i = pointer
+
+        elif line[i] == "(": # Start non-terminal
+            
+            # Stop the literal
+            if literal:
+                grako_line += "' "
+                literal = False
+
+            expression, pointer = consume_bracket(line, i, ('(', ')'))
+            grako_line += "(" + parse_line(expression[1:-1], False) + ")"
+            i = pointer
+
+        elif line[i:i+2] == " |":
+            
+            # Stop the literal 
+            if literal:
+                grako_line += "' "
+                literal = False
+
+            grako_line += " | "
+            i += 3
+
+            if root:
+                add_outer_brackets = True
+
+        else:
+            if not literal:
+                grako_line += "'"
+                literal = True
+            grako_line += line[i]
+            i += 1
+
+
+    if add_outer_brackets:
+        grako_line = "(" + grako_line + ")"
+
+    return non_terminals_seen, grako_line
+
+def parse_GPSR_grammar(input_files):
+    """ Parses files of the GPSRCmdGen grammar.
+
+    This function parses GPSRCmdGen grammar files and converts it into
+    a grako (EBNF) grammar for later use.
+
+    Args:
+        input_files: The .txt file containing the GPSRCmdGen grammar
+
+    Returns:
+        grako_grammar: A string containing the parsed grako grammar
+    
+    Raises:
+        unknown_non_terminal: Raised if an unknown non terminal is found
+    """
+
+    # Read in lines of all files
+    lines = []
+    for in_file in input_files:
+        with open(in_file) as to_read:
+            lines += to_read.readlines()
+    
+    # Remove all useless lines from the input files
+    no_comments = filter((lambda x: len(x) > 0 and x[0] == '$'), lines)
+
+    grammar = ""
+
+    # Start our grammar building with just
+    non_terminals = ["$Main"]
+    completed_non_terminals = []
+
+    while non_terminals != []:
+
+        # Adjust non_terminals queue
+        new_nt = non_terminals[0]
+        non_terminals = non_terminals[1:]
+
+        # If we've already made the rule for this we don't worry about it
+        if new_nt in completed_non_terminals:
+            continue
+
+        # The grako non-terminal name
+        new_rule = new_nt[1].lower()
+
+        # Account for initial case
+        if new_nt == "$Main":
+            new_rule = "start"
+        
+        new_rule += "\n\t=\n"
+
+        # All lines starting with that nonterminal
+        filter_by_nt = filter((lambda x: x.starts_with(new_nt)), no_comments)
+
+        # If this non-terminal doesn't have a definitin
+        if filter_by_nt == []:
+            raise Exception('Unknown Non-Terminal Found: ' + new_nt)
+
+        # Compute the new grako lines and add for that rule
+        for line in filter_by_nt:
+
+            # the rhs of the line is all we care about
+            rhs = line[line.find('=')+2:]
+
+            non_terminals_seen, grako_line = parse_line(rhs, True)
+            new_rule += "\t| " + grako_line + "\n"
+            non_terminals += non_terminals_seen
+
+        new_rule += "\t;\n\n"
+        
+        grammar += new_rule
+
+        completed_non_terminals.append(new_nt)
+
+    return grammar
+
+
+
+
+
+
 def form_grammar(output_file, enhanced):
     """ Forms grako grammar for (E)GPSR task.
 
@@ -289,6 +671,17 @@ def form_grammar(output_file, enhanced):
         else:
             grammar.write('@@grammar::GPSR\n\n')
         
+        # Create a new start symbol with explicit terminator
+        grammar.write('s = start $\n\n')
+
+        # Now do the bulk of the parser conversion
+        grammar_files = [GPSR_GRAMMAR, GPSR_COMMON]
+        
+        if enhanced:
+            grammar_files = [EGPSR_GRAMMAR, EGPSR_COMMON]
+
+        grammar.write(parse_GPSR_grammar(grammar_files))
+
         # Add stuff from xml files etc.
         grammar.write(form_pronoun_rule(PRONOUNS))
         grammar.write(form_gesture_rule(GESTURES))

@@ -1,6 +1,8 @@
 @@grammar::GPSR
 
-pron
+s = start $
+
+stuff will go herepron
 	=
 	| 'it'
 	| 'our'
