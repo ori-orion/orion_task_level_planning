@@ -2,7 +2,75 @@
 
 s = start $
 
-stuff will go herepron
+start
+	=
+	| (pmain | main)
+	;
+
+pmain
+	=
+	| polite ' ' main
+	;
+
+main
+	=
+	| partyhost
+	;
+
+polite
+	=
+	| ('VOID' | 'please')
+	| 'could you'
+	| 'robot please'
+	| 'could you please'
+	;
+
+partyhost
+	=
+	| vbserve ' ' ('drinks' | 'snacks') ' to ' phpeopler
+	| vbmeet ' ' name ' at the ' door ' and introduce ' pron ' to ' phpeopler
+	| vbmeet ' ' name ' at the ' beacon ' and ask ' pron ' to leave'
+	| vbmeet ' ' name ' at the ' beacon ' and introduce ' pron ' to ' name ' at the ' beacon
+	| vbmeet ' ' name ' at the ' beacon ' and ' vbguide ' ' pron ' to ' pron ' ' taxi
+	;
+
+vbserve
+	=
+	| ('serve' | 'arrange' | 'deliver' | 'distribute' | 'give' | 'provide')
+	;
+
+phpeopler
+	=
+	| phpeople ' in the ' room '.'
+	;
+
+vbmeet
+	=
+	| ('contact' | 'face' | 'find' | 'greet')
+	;
+
+door
+	=
+	| ('front' | 'back' | 'main' | 'rear') ' ' ('entrance' | 'door')
+	;
+
+vbguide
+	=
+	| ('guide' | 'escort' | 'take' | 'lead' | 'accompany')
+	;
+
+taxi
+	=
+	| ('taxi' | 'cab' | 'uber')
+	;
+
+phpeople
+	=
+	| ('everyone' | ('all the ' ('people' | 'men' | 'women' | 'guests' | 'elders' | 'children')))
+	| phpeople ' in the ' room '.'
+	;
+
+pron
 	=
 	| 'it'
 	| 'our'

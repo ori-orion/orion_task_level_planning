@@ -290,106 +290,106 @@ def process_wildcard(wildcard):
     # Do we want to move up a level?
     obfuscate = '?' in wildcard_data
 
-    if (wildcard_data.starts_with('location beacon') or
-       wildcard_data.starts_with('beacon')):
+    if (wildcard_data.startswith('location beacon') or
+       wildcard_data.startswith('beacon')):
         if obfuscate:
             return 'room'
         else:
             return 'beacon'
 
-    elif (wildcard_data.starts_with('object alike') or 
-          wildcard_data.starts_with('aobject')):
+    elif (wildcard_data.startswith('object alike') or 
+          wildcard_data.startswith('aobject')):
         if obfuscate:
             return 'category'
         else:
             return 'aobject'
 
-    elif (wildcard_data.starts_with('name female') or 
-          wildcard_data.starts_with('female')):
+    elif (wildcard_data.startswith('name female') or 
+          wildcard_data.startswith('female')):
         if obfuscate:
             raise Exception("Can't Obfuscate With Names: " + wildcard)
         else:
             return 'female'
 
-    elif (wildcard_data.starts_with('object known') or 
-          wildcard_data.starts_with('kobject')):
+    elif (wildcard_data.startswith('object known') or 
+          wildcard_data.startswith('kobject')):
         if obfuscate:
             return 'category'
         else:
             return 'kobject'
 
-    elif (wildcard_data.starts_with('name male') or 
-          wildcard_data.starts_with('male')):
+    elif (wildcard_data.startswith('name male') or 
+          wildcard_data.startswith('male')):
         if obfuscate:
             raise Exception("Can't Obfuscate With Names: " + wildcard)
         else:
             return 'male'
 
-    elif (wildcard_data.starts_with('location placement') or 
-          wildcard_data.starts_with('placement')):
+    elif (wildcard_data.startswith('location placement') or 
+          wildcard_data.startswith('placement')):
         if obfuscate:
             return 'room'
         else:
             return 'placement'
 
-    elif (wildcard_data.starts_with('location room') or 
-          wildcard_data.starts_with('room')):
+    elif (wildcard_data.startswith('location room') or 
+          wildcard_data.startswith('room')):
         if obfuscate:
             return "'room'"
         else:
             return 'room'
 
-    elif (wildcard_data.starts_with('object special') or 
-          wildcard_data.starts_with('sobject')):
+    elif (wildcard_data.startswith('object special') or 
+          wildcard_data.startswith('sobject')):
         if obfuscate:
             return 'category'
         else:
             return 'sobject'
 
-    elif wildcard_data.starts_with('category'):
+    elif wildcard_data.startswith('category'):
         if obfuscate:
             return "'objects'"
         else:
             return 'category'
 
-    elif wildcard_data.starts_with('gesture'):
+    elif wildcard_data.startswith('gesture'):
         if obfuscate:
             raise Exception("Can't Obfuscate With Gestures: " + wildcard)
         else:
             return 'gesture'
     
-    elif wildcard_data.starts_with('location'):
+    elif wildcard_data.startswith('location'):
         if obfuscate:
             return ("('room' | room)")
         else:
             return 'location'
 
-    elif wildcard_data.starts_with('name'):
+    elif wildcard_data.startswith('name'):
         if obfuscate:
             raise Exception("Can't Obfuscate With Names: " + wildcard)
         else:
             return 'name'
 
-    elif wildcard_data.starts_with('object'):
+    elif wildcard_data.startswith('object'):
         if obfuscate:
             return 'category'
         else:
             return 'object'
     
-    elif wildcard_data.starts_with('question'):
+    elif wildcard_data.startswith('question'):
         if obfuscate:
             raise Exception("Can't Obfuscate With Questions: " + wildcard)
         else:
             return 'question'
 
-    elif wildcard_data.starts_with('void'):
+    elif wildcard_data.startswith('void'):
         if obfuscate:
             raise Exception("Can't Obfuscate With Void: " + wildcard)
         else:
             # TODO: Find a better solution to this!
             return "'VOID'"
 
-    elif wildcard_data.starts_with('pron'):
+    elif wildcard_data.startswith('pron'):
         if obfuscate:
             raise Exception("Can't Obfuscate With Pronouns: " + wildcard)
         else:
@@ -459,7 +459,7 @@ def consume_bracket(str, start, brace):
     if str[start] != brace[0]:
         raise Exception("Invalid Bracket Expression Passed In: " + str[start:])
 
-    for i in range(start+1, len(str)-1):
+    for i in range(start+1, len(str)):
         expression += str[i]
 
         if str[i] == brace[0]:
@@ -524,6 +524,8 @@ def parse_line(line, root):
                 literal = False
 
             wildcard, pointer = consume_bracket(line, i, ('{','}'))
+
+            # Determine what this wildcard should be!
             grako_line += process_wildcard(wildcard)
             i = pointer
 
@@ -535,29 +537,48 @@ def parse_line(line, root):
                 literal = False
 
             expression, pointer = consume_bracket(line, i, ('(', ')'))
-            grako_line += "(" + parse_line(expression[1:-1], False) + ")"
-            i = pointer
+            bracketless = expression[1:-1]
 
+            # Removing superflous whitespace
+            if bracketless[0] == " ":
+                bracketless = bracketless[1:]
+            if bracketless[-1] == " ":
+                bracketless = bracketless[:-1]
+
+            new_nts, bracket_grako_line = parse_line(bracketless, False)
+            non_terminals_seen += new_nts
+
+            grako_line += "(" + bracket_grako_line + ")"
+            i = pointer
+            
         elif line[i:i+2] == " |":
             
             # Stop the literal 
             if literal:
-                grako_line += "' "
+                grako_line += "'"
                 literal = False
 
             grako_line += " | "
             i += 3
 
+            # This is to stop issues of precedence in grako
             if root:
                 add_outer_brackets = True
 
         else:
             if not literal:
+
+                # Ensure we have enough whitespace to seperate things
+                if len(grako_line) > 0 and grako_line[-1] != " ":
+                    grako_line += " "
+
                 grako_line += "'"
                 literal = True
-            grako_line += line[i]
+            grako_line += line[i].lower()
             i += 1
 
+    if literal:
+        grako_line += "'"
 
     if add_outer_brackets:
         grako_line = "(" + grako_line + ")"
@@ -606,7 +627,7 @@ def parse_GPSR_grammar(input_files):
             continue
 
         # The grako non-terminal name
-        new_rule = new_nt[1].lower()
+        new_rule = new_nt[1:].lower()
 
         # Account for initial case
         if new_nt == "$Main":
@@ -615,7 +636,7 @@ def parse_GPSR_grammar(input_files):
         new_rule += "\n\t=\n"
 
         # All lines starting with that nonterminal
-        filter_by_nt = filter((lambda x: x.starts_with(new_nt)), no_comments)
+        filter_by_nt = filter((lambda x: x.startswith(new_nt)), no_comments)
 
         # If this non-terminal doesn't have a definitin
         if filter_by_nt == []:
@@ -692,4 +713,4 @@ def form_grammar(output_file, enhanced):
 
         
 if __name__ == '__main__':
-    form_grammar('../grammars/test_gpsr.txt', False)
+    form_grammar('../grammars/GPSR_grako_grammar.txt', False)
