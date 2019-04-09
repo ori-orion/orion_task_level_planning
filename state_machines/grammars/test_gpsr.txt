@@ -1,0 +1,178 @@
+@@grammar::GPSR
+
+pron
+	=
+	| 'it'
+	| 'our'
+	| 'your'
+	| 'her'
+	| 'its'
+	| 'their'
+	| 'ours'
+	| 'you'
+	| 'we'
+	| 'his'
+	| 'I'
+	| 'mine'
+	| 'them'
+	| 'they'
+	| 'hers'
+	| 'him'
+	| 'he'
+	| 'me'
+	| 'theirs'
+	| 'us'
+	| 'she'
+	| 'my'
+	| 'yours'
+	;
+
+gesture
+	=
+	| 'waving'
+	| 'raising their left arm'
+	| 'raising their right arm'
+	| 'pointing to the left'
+	| 'pointing to the right'
+	;
+
+location
+	=
+	| room
+	| placement
+	| beacon
+	;
+
+room
+	=
+	| 'corridor'
+	| 'bedroom'
+	| 'dining room'
+	| 'living room'
+	| 'kitchen'
+	;
+
+placement
+	=
+	| 'side table'
+	| 'desk'
+	| 'dining table'
+	| 'end table'
+	| 'bookcase'
+	| 'cupboard'
+	| 'storage table'
+	| 'sink'
+	| 'counter'
+	;
+
+beacon
+	=
+	| 'entrance'
+	| 'bed'
+	| 'desk'
+	| 'dining table'
+	| 'exit'
+	| 'couch'
+	| 'end table'
+	| 'bookcase'
+	| 'sink'
+	| 'dishwasher'
+	;
+
+name
+	=
+	| male
+	| female
+	;
+
+male
+	=
+	| 'alex'
+	| 'charlie'
+	| 'francis'
+	| 'james'
+	| 'john'
+	| 'michael'
+	| 'robert'
+	| 'robin'
+	| 'skyler'
+	| 'william'
+	;
+
+female
+	=
+	| 'alex'
+	| 'charlie'
+	| 'elizabeth'
+	| 'francis'
+	| 'jennifer'
+	| 'linda'
+	| 'mary'
+	| 'patricia'
+	| 'robin'
+	| 'skyler'
+	;
+
+category
+	=
+	| 'cleaning stuff'
+	| 'containers'
+	| 'cutlery'
+	| 'drinks'
+	| 'food'
+	| 'fruits'
+	| 'snacks'
+	| 'tableware'
+	;
+
+object
+	=
+	| kobject
+	| aobject 
+	| sobject
+	;
+
+kobject
+	=
+	| 'cloth'
+	| 'scrubby'
+	| 'sponge'
+	| 'cascade pod'
+	| 'fork'
+	| 'knife'
+	| 'spoon'
+	| 'chocolate drink'
+	| 'coke'
+	| 'grape juice'
+	| 'orange juice'
+	| 'sprite'
+	| 'cereal'
+	| 'noodles'
+	| 'sausages'
+	| 'pringles'
+	| 'crackers'
+	| 'potato chips'
+	| 'dish'
+	| 'bowl'
+	| 'cup'
+	;
+
+aobject
+	=
+	| 'apple'
+	| 'orange'
+	| 'paprika'
+	;
+
+sobject
+	=
+	| 'tray'
+	| 'basket'
+	| 'bag'
+	;
+
+question
+	=
+	| 'question'
+	;
+
