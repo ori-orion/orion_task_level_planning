@@ -1,20 +1,22 @@
 @@grammar::GPSR
 
-s = start $
+@@ignorecase :: True
+
+s = start $;
 
 start
 	=
-	| (pmain | main)
+	(pmain | main)
 	;
 
 pmain
 	=
-	| polite ' ' main
+	polite ' ' main
 	;
 
 main
 	=
-	| partyhost
+	partyhost
 	;
 
 polite
@@ -36,37 +38,37 @@ partyhost
 
 vbserve
 	=
-	| ('serve' | 'arrange' | 'deliver' | 'distribute' | 'give' | 'provide')
+	('serve' | 'arrange' | 'deliver' | 'distribute' | 'give' | 'provide')
 	;
 
 phpeopler
 	=
-	| phpeople ' in the ' room '.'
+	phpeople ' in the ' room '.'
 	;
 
 vbmeet
 	=
-	| ('contact' | 'face' | 'find' | 'greet')
+	('contact' | 'face' | 'find' | 'greet')
 	;
 
 door
 	=
-	| ('front' | 'back' | 'main' | 'rear') ' ' ('entrance' | 'door')
+	('front' | 'back' | 'main' | 'rear') ' ' ('entrance' | 'door')
 	;
 
 vbguide
 	=
-	| ('guide' | 'escort' | 'take' | 'lead' | 'accompany')
+	('guide' | 'escort' | 'take' | 'lead' | 'accompany')
 	;
 
 taxi
 	=
-	| ('taxi' | 'cab' | 'uber')
+	('taxi' | 'cab' | 'uber')
 	;
 
 phpeople
 	=
-	| ('everyone' | ('all the ' ('people' | 'men' | 'women' | 'guests' | 'elders' | 'children')))
+	('everyone' | ('all the ' ('people' | 'men' | 'women' | 'guests' | 'elders' | 'children')))
 	;
 
 pron
@@ -242,6 +244,6 @@ sobject
 
 question
 	=
-	| 'question'
+	'question'
 	;
 

@@ -265,7 +265,7 @@ def form_question_rule():
         q_rule: The grammar rule for questions as a string
     """
 
-    q_rule = "question\n\t=\n\t| 'question'\n\t;\n\n"
+    q_rule = "question\n\t=\n\t'question'\n\t;\n\n"
     return q_rule
 
 
@@ -645,13 +645,17 @@ def parse_GPSR_grammar(input_files):
             raise Exception('Unknown Non-Terminal Found: ' + new_nt)
 
         # Compute the new grako lines and add for that rule
+        one_rule = len(filter_by_nt) == 1
         for line in filter_by_nt:
 
             # the rhs of the line is all we care about
             rhs = line[line.find('=')+2:]
 
             non_terminals_seen, grako_line = parse_line(rhs, True)
-            new_rule += "\t| " + grako_line + "\n"
+            if one_rule:
+                new_rule += "\t" + grako_line + "\n"
+            else:
+                new_rule += "\t| " + grako_line + "\n"
             non_terminals += non_terminals_seen
 
         new_rule += "\t;\n\n"
@@ -694,8 +698,11 @@ def form_grammar(output_file, enhanced):
         else:
             grammar.write('@@grammar::GPSR\n\n')
         
+        # Ignore case in the grammar
+        grammar.write('@@ignorecase :: True\n\n')
+
         # Create a new start symbol with explicit terminator
-        grammar.write('s = start $\n\n')
+        grammar.write('s = start $;\n\n')
 
         # Now do the bulk of the parser conversion
         grammar_files = [GPSR_GRAMMAR, GPSR_COMMON]
