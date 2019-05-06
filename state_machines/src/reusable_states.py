@@ -20,7 +20,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
         ReceiveObjectFromOperatorGoal, PutObjectOnFloorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
-                    NavigateGoal, FollowGoal
+                    NavigateGoal, FollowGoal, OpenBinLidGoal
 
 FAILURE_THRESHOLD = 3
 
@@ -78,6 +78,28 @@ class SpeakState(ActionServiceState):
         # Boolean value returned
         result = self.action_dict['Speak'].get_result().succeeded
         if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
+class CheckDoorIsOpenState(ActionServiceState):
+    """ Smach state for robot to check if door is open. This is a common
+        start signal for tasks.
+    """
+    def __init__(self, action_dict, global_store):
+        outcomes = ['OPEN', 'CLOSED']
+        super(CheckDoorIsOpenState, self).__init__(action_dict=action_dict,
+                                                   global_store=global_store,
+                                                   outcomes=outcomes)
+    
+    def execute(self, userdata):
+        is_door_open_goal = IsDoorOpenGoal()
+        self.action_dict['IsDoorOpen'].send_goal(is_door_open_goal)
+        self.action_dict['IsDoorOpen'].wait_for_result()
+
+        # Boolean value returned
+        is_door_open = self.action_dict['IsDoorOpen'].get_result().is_open
+        if is_door_open:
             return self._outcomes[0]
         else:
             return self._outcomes[1]
@@ -468,5 +490,68 @@ def make_follow_hotword_state(action_dict, global_store):
                                                       120))
     
     return con
+# --- End of follow code
 
+class NavigateState(ActionServiceState):
+    """ State for navigating to location on map.
+
+    This state is given a triple (x,y,theta) and navigates there.
+    """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
+        super(NavigateState, self).__init__(action_dict=action_dict,
+                                            global_store=global_store,
+                                            outcomes=outcomes)
         
+        if 'nav_failure' not in self.global_store:
+            self.global_store['nav_failure'] = 0
+    
+    def execute(self, userdata):
+        triple = self.global_store['nav_location']
+
+        nav_goal = NavigateGoal()
+        nav_goal.x = triple[0]
+        nav_goal.y = triple[1]
+        nav_goal.theta = triple[2]
+
+        self.action_dict['Navigate'].send_goal(nav_goal)
+        self.action_dict['Navigate'].wait_for_result()
+
+        result = self.action_dict['Navigate'].get_result().succeeded
+
+        if result:
+            del self.global_store['nav_failure']
+            return self._outcomes[0]
+        else:
+            self.global_store['nav_failure'] += 1
+            if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
+                return self._outcomes[2]
+            return self._outcomes[1]
+
+
+class PickUpObjectState(ActionServiceState):
+    """ State for picking up an object.
+
+    This state picks up an object specified in the global store.
+    """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PickUpObjectState, self).__init__(action_dict=action_dict,
+                                                global_store=global_store,
+                                                outcomes=outcomes)
+    
+    def execute(self, userdata):
+        pick_up_goal = PickUpObjectGoal()
+        pick_up_goal.goal_tf = self.global_store['pick_up']
+
+        self.action_dict['PickUpObject'].send_goal(pick_up_goal)
+        self.action_dict['PickUpObject'].wait_for_result()
+
+        result = self.action_dict['PickUpObject'].get_result().goal_complete
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]

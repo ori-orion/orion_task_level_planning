@@ -196,6 +196,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {}
+    action_dict = {} # TODO: Sort out!
     sm = create_state_machine(action_dict)
     sm.execute()
