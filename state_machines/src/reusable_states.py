@@ -20,7 +20,8 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
         ReceiveObjectFromOperatorGoal, PutObjectOnFloorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
-                    NavigateGoal, FollowGoal, OpenBinLidGoal
+                    NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
+                        PlaceObjectRelativeGoal
 
 FAILURE_THRESHOLD = 3
 
@@ -414,6 +415,7 @@ class OperatorDetectState(ActionServiceState):
     
     def execute(self, userdata):
         # TODO: Fill in, this will likely do stuff with the semantic map
+        # Make sure to store location too!
         pass
 
 #--- Code for following while listening for a hotword    
@@ -555,3 +557,71 @@ class PickUpObjectState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]
+
+
+class SetNavGoalState(ActionServiceState):
+    """ State for setting nav goal to something arbitrary defined by lambda. """
+
+    def __init__(self, action_dict, global_store, function):
+        """ function must have 0 parameters and must return the new nav goal """
+        outcomes = ['SUCCESS']
+        self.function = function
+        super(SetNavGoalState, self).__init__(action_dict=action_dict,
+                                              global_store=global_store,
+                                              outcomes=outcomes)
+    
+    def execute(self, userdata):
+        self.global_store['nav_location'] = self.function()
+        return self._outcomes[0]
+
+
+class OpenDrawerState(ActionServiceState):
+    """ State for opening a drawer. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(OpenDrawerState, self).__init__(action_dict=action_dict,
+                                              global_store=global_store,
+                                              outcomes=outcomes)
+    
+    def execute(self, userdata):
+        drawer_goal = OpenDrawerGoal()
+        drawer_goal.goal_tf = self.global_store['drawer_handle']
+        self.action_dict['OpenDrawer'].send_goal(drawer_goal)
+        self.action_dict['OpenDrawer'].wait_for_result()
+
+        result = self.action_dict['OpenDrawer'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
+
+class PlaceObjectRelativeState(ActionServiceState):
+    """ State for placing objects relative to something else. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PlaceObjectRelativeState, self).__init__(action_dict=action_dict,
+                                                       global_store=
+                                                       global_store,
+                                                       outcomes=outcomes)
+    
+    def execute(self, userdata):
+        """Relative position in global_store['rel_pos'] as a 4-tuple"""
+        place_goal = PlaceObjectRelativeGoal()
+        place_goal.goal_tf = self.global_store['rel_pos'][0]
+        place_goal.x = self.global_store['rel_pos'][1]
+        place_goal.y = self.global_store['rel_pos'][2]
+        place_goal.z = self.global_store['rel_pos'][3]
+
+        self.action_dict['PlaceObjectRelative'].send_goal(place_goal)
+        self.action_dict['PlaceObjectRelative'].wait_for_result()
+
+        result = self.action_dict['PlaceObjectRelative'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1] 
