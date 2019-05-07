@@ -418,6 +418,23 @@ class OperatorDetectState(ActionServiceState):
         # Make sure to store location too!
         pass
 
+
+class MemorisePersonState(ActionServiceState):
+    """ State for memorising mates found. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(MemorisePersonState, self).__init__(action_dict=action_dict,
+                                                  global_store=global_store,
+                                                  outcomes=outcomes)
+    
+    def execute(self, userdata):
+        # TODO: Fill in !
+        # Should memorise like in operator detect but in list for this task
+        # Should take drink information if possible/appropriate
+        pass
+
+
 #--- Code for following while listening for a hotword    
 class FollowState(ActionServiceState):
     """ This state follows a person until it is preempted or fails. """

@@ -136,10 +136,9 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForGraspHelp'})
         
         # Ask for help picking up object
-        question = ("I can't seem to pick up the " + 
-                    global_store['current_item'] + ". Can you help me please?" +
-                    " If you can please tell me when you're ready to hand it "+
-                    "to me.")
+        question = ("I can't seem to pick up this item. Can you help me please?"
+                     + " If you can, please tell me when you're ready " + 
+                     " to hand it to me.")
         smach.StateMachine.add('AskForGraspHelp',
                                SpeakAndListenState(action_dict,
                                                    global_store,
@@ -215,11 +214,9 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelpPour'})
         
         # Ask For help pouring
-        question = ("I appear to be struggling to pour the  " + 
-                    global_store['current_item'] + "." +
+        question = ("I appear to be struggling to pour this." +
                     "Can someone help me? If you can, tell me when you're " +
-                    "ready for me to pass you the " + 
-                    global_store['current_item'] + ".")
+                    "ready for me to pass it to you.")
         smach.StateMachine.add('AskForHelpPour',
                                SpeakAndListenState(action_dict,
                                                    global_store,

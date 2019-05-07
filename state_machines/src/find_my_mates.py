@@ -34,21 +34,6 @@ class LookForPeopleState(ActionServiceState):
         pass
 
 
-class MemorisePersonState(ActionServiceState):
-    """ State for memorising mates found. """
-
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(MemorisePersonState, self).__init__(action_dict=action_dict,
-                                                  global_store=global_store,
-                                                  outcomes=outcomes)
-    
-    def execute(self, userdata):
-        # TODO: Fill in !
-        # Should memorise like in operator detect but in list for this task
-        pass
-
-
 class GiveOperatorInfoState(ActionServiceState):
     """ State for giving operator info about mates. """
 
