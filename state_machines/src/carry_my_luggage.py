@@ -113,7 +113,8 @@ def create_state_machine(action_dict):
         
         # Ask for help!
         question = ("It looks like I'm struggling to pick up your luggage. " + 
-                   "Could you hand it to me please?")
+                   "Could you hand it to me please and let me know " +
+                   "when you have?")
         smach.StateMachine.add('AskForHelp',
                                SpeakAndListenState(action_dict, 
                                                    global_store,

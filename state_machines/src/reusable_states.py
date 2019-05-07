@@ -123,7 +123,7 @@ class CheckAndOpenDoorState(ActionServiceState):
 
         # Boolean value returned
         is_door_open = self.action_dict['IsDoorOpen'].get_result().is_open
-        if is_door_open:
+        if not is_door_open:
             door_goal = OpenDoorGoal()
             self.action_dict['OpenDoor'].send_goal(door_goal)
             self.action_dict['OpenDoor'].wait_for_result()
@@ -135,7 +135,7 @@ class CheckAndOpenDoorState(ActionServiceState):
                 return self._outcomes[1]
 
         else:
-            return self._outcomes[1]
+            return self._outcomes[0]
 
 
 class HandoverObjectToOperatorState(ActionServiceState):

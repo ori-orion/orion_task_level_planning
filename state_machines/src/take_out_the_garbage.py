@@ -44,7 +44,7 @@ class OpenBinState(ActionServiceState):
         self.action_dict['OpenBinLid'].wait_for_result()
 
         result = self.action_dict['OpenBinLid'].get_result().result
-        
+        # TODO: Set tf frame of bin bag
         if result:
             return self._outcomes[0]
         else:
@@ -126,7 +126,8 @@ def create_state_machine(action_dict):
 
 
         # Ask for help with lid
-        question = "Please could someone remove the bin lid for me?"
+        question = ("Please could someone remove the bin lid for me and " + 
+                   "let me know?")
         smach.StateMachine.add('AskForHelpWithLid',
                                SpeakAndListenState(action_dict,
                                                    global_store,
@@ -146,7 +147,8 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHandover'})
 
         # Ask for help putting bin lid on floor
-        question = "Please could someone take the bin lid for me?"
+        question = ("Please could someone take the bin lid from me and " +
+                   "let me know?")
         smach.StateMachine.add('AskForHandover',
                                SpeakAndListenState(action_dict,
                                                    global_store,
@@ -172,7 +174,8 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelpWithGarbage'})
         
         # Ask for help with garbage
-        question = "Could someone pass me the garbage bag please?"
+        question = ("Could someone pass me the garbage bag please and " +
+                   "let me know once you have?")
         smach.StateMachine.add('AskForHelpWithGarbage',
                                SpeakAndListenState(action_dict,
                                                    global_store,
@@ -210,7 +213,8 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelpDropping'})
         
         # Ask for help dropping
-        question = "Will someone help me put this bag on the floor?"
+        question = ("Will someone help me put this bag on the floor and let me "+
+                   "know once they have?")
         smach.StateMachine.add('AskForHelpDropping',
                                SpeakAndListenState(action_dict,
                                                    global_store,
