@@ -21,7 +21,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
                     NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
-                        PlaceObjectRelativeGoal
+                        PlaceObjectRelativeGoal, PourIntoGoal
 
 FAILURE_THRESHOLD = 3
 
@@ -625,3 +625,27 @@ class PlaceObjectRelativeState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1] 
+
+
+class PourIntoState(ActionServiceState):
+    """ State for pouring something into a container. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PourIntoState, self).__init__(action_dict=action_dict,
+                                            global_store=global_store,
+                                            outcomes=outcomes)
+    
+    def execute(self, userdata):
+        pour_goal = PourIntoGoal()
+        pour_goal.goal_tf_frame = self.global_store['pour_into']   
+
+        self.action_dict['PourInto'].send_goal(pour_goal)
+        self.action_dict['PourInto'].wait_for_result()
+
+        result = self.action_dict['PourInto'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]  
