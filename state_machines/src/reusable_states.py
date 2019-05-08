@@ -384,7 +384,7 @@ class PickUpPointedObject(ActionServiceState):
         self.action_dict['GetPointedObject'].send_goal(GetPointedObjectGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
         
-        obj = self.action_dict['getPointedObject'].get_result()
+        obj = self.action_dict['GetPointedObject'].get_result()
 
         pickup_goal = PickUpObjectGoal()
         pickup_goal.goal_tf = obj
