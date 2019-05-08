@@ -21,7 +21,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
                     NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
-                        PlaceObjectRelativeGoal, PourIntoGoal
+                        PlaceObjectRelativeGoal, PourIntoGoal, PointToObjectGoal
 
 FAILURE_THRESHOLD = 3
 
@@ -592,6 +592,22 @@ class SetNavGoalState(ActionServiceState):
         return self._outcomes[0]
 
 
+class SetPickupState(ActionServiceState):
+    """ State for setting pick up to something arbitrary defined by lambda. """
+
+    def __init__(self, action_dict, global_store, function):
+        """ function must have 0 parameters and must return the new object. """
+        outcomes = ['SUCCESS']
+        self.function = function
+        super(SetPickupState, self).__init__(action_dict=action_dict,
+                                             global_store=global_store,
+                                             outcomes=outcomes)
+    
+    def execute(self, userdata):
+        self.global_store['pick_up'] = self.function()
+        return self._outcomes[0]
+
+
 class OpenDrawerState(ActionServiceState):
     """ State for opening a drawer. """
 
@@ -666,3 +682,27 @@ class PourIntoState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]  
+
+
+class PointToObjectState(ActionServiceState):
+    """ State for pointing at an object. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PointToObjectState, self).__init__(action_dict=action_dict,
+                                                 global_store=global_store,
+                                                 outcomes=outcomes)
+    
+    def execute(self, userdata):
+        point_goal = PointToObjectGoal()
+        point_goal.object_tf_frame = self.global_store['point_at']
+
+        self.action_dict['PointToObject'].send_goal(point_goal)
+        self.action_dict['PointToObject'].wait_for_result()
+
+        result = self.action_dict['PointToObject'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
