@@ -12,6 +12,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class ChooseNextItemState(ActionServiceState):
@@ -30,7 +32,7 @@ class ChooseNextItemState(ActionServiceState):
             item = self.global_store['items'][self.global_store['next_item']]
             self.global_store['current_item'] = item
             self.global_store['next_item'] += 1
-            # TODO: Set item tf frame here?
+            self.global_store['pick_up'] = item
             return self._outcomes[0]
 
 
@@ -44,31 +46,32 @@ class ItemDecisionState(ActionServiceState):
                                                 outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Write!
-        # This should also set the appropriate global store fields to carry
-        # out the pouring, placing, relative placing etc.
         if self.global_store['current_item'] == 'bowl':
             return self._outcomes[0]
         elif self.global_store['current_item'] == 'spoon':
+            self.global_store['rel_pos'] = ('bowl', 0.0, -0.2, 0.0)
             return self._outcomes[2]
-        else:
+        else: # Pour relative to the bowl
+            self.global_store['pour_into'] = 'bowl'
             return self._outcomes[1]
 
+def set_nav_goal_to_kitchen_item(item, action_dict):
+    """ Function acts as a wrapper for get_location_of_object.
 
-class PlaceBowlState(ActionServiceState):
-    """ State to place bowl and record position for pouring. """
+    Args:
+        item: The string of the object
+        action_dict: The dictionary giving access to services
+    """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(PlaceBowlState, self).__init__(action_dict=action_dict,
-                                             global_store=global_store,
-                                             outcomes=outcomes)
+    obj1 = SOMObservation()
+    obj2.type = item
+    obj1.room_name = 'kitchen'
+
+    rel = Relation()
+    obj2 = SOMObservation()
     
-    def execute(self, userdata):
-        # TODO: Write!
-        # Should place bowl but also set 'pour_into' field of global store
-        pass
-
+    return get_location_of_object(action_dict, obj1, rel, obj2)
+    
 
 def create_state_machine(action_dict):
     """ Function creates and returns the state machine for the task. """
@@ -117,7 +120,8 @@ def create_state_machine(action_dict):
                                             'NONE_LEFT':'TASK_SUCCESS'})
         
         # Set nav goal to next item
-        func = lambda : None # TODO: Fix!
+        func = lambda: set_nav_goal_to_kitchen_item(global_store['current_item']
+                                                    ,action_dict)
         smach.StateMachine.add('SetNavToItem',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToItem'})
@@ -143,7 +147,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   ['I am ready'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'ReceiveObject',
@@ -158,7 +162,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForGraspHelp'})
         
         # Set nav goal to surface
-        func = lambda : None # TODO: Fix
+        func = lambda : set_nav_goal_to_kitchen_item('table', action_dict)
         smach.StateMachine.add('SetNavToSurface',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToSurface'})
@@ -174,13 +178,14 @@ def create_state_machine(action_dict):
         # Decide what to do with object
         smach.StateMachine.add('ItemDecision',
                                ItemDecisionState(action_dict, global_store),
-                               transitions={'BOWL':'PlaceBowlAndRecord',
+                               transitions={'BOWL':'PlaceBowl',
                                             'POUR':'PourObject',
                                             'SPOON':'PlaceNearBowl'})
         
         # If bowl
-        smach.StateMachine.add('PlaceBowlAndRecord',
-                              PlaceBowlState(action_dict, global_store),
+        smach.StateMachine.add('PlaceBowl',
+                              PutObjectOnSurfaceState(action_dict, 
+                                                      global_store),
                               transitions={'SUCCESS':'ChooseNextItem',
                                            'FAILURE':'AskForHelpBowl'})
         
@@ -268,6 +273,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {}
+    action_dict = create_stage_1_clients(8)
     sm = create_state_machine(action_dict)
     sm.execute()

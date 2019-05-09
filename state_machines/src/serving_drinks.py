@@ -12,6 +12,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 class FindPersonState(ActionServiceState):
     """ State to find someone without a drink. """
@@ -35,22 +37,54 @@ class CheckDrinkState(ActionServiceState):
                                               outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in !
-        # Should check if drink is available
-        # If it is, update Semantic Map
-        # Also set the grasp info for the drink in global store
-        pass
+        drink_index = self.global_store['last_response'].rfind(' ')
+        drink = self.global_store['last_response'][drink_index+1:]
+
+        if drink in self.global_store['drinks']:
+            # Update drink in person SOM object
+            obj = SOMObservation()
+            obj.obj_id = self.global_store['people_found'][-1]
+            obj.drink = drink
+            self.action_dict['SOMObserve'](obj)
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
+
+def go_to_bar(action_dict):
+    """ Gets location of bar. """
+    obj1 = SOMObservation()
+    obj1.type = 'serving_drinks_point_of_interest'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def go_to_last_person(action_dict):
+    """ Function gets location of last person met. """
+    obj1 = SOMObservation()
+    obj1.obj_id = self.global_store['people_found'][-1]
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
 
 
 def create_state_machine(action_dict):
     """ Function creates and returns the state machine for this task. """
 
     global_store = {}
-    # TODO: Set initial nav location as bar!
+
 
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
     with sm:
+
+        # Set nav goal to bar
+        func = lambda: go_to_bar(action_dict)
+        smach.StateMachine.add('SetNavToBar',
+                               SetNavGoalState(action_dict, global_store, func),
+                               transitions={'SUCCESS':'StartTalking'})
+
 
         # Start by speaking
         phrase = "Hi, I'm Bam Bam, I'm gonna go see what's at the bar!"
@@ -73,7 +107,7 @@ def create_state_machine(action_dict):
                                transitions={'IDENTIFIED':'SetNavToLivingRoom'})
         
         # Set nav goal to living room
-        func = lambda : None
+        func = lambda : None # TODO: Needs to be sorted out
         smach.StateMachine.add('SetNavToLivingRoom',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToLivingRoom'})
@@ -144,7 +178,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'TakeDrink'})
         
         # Set nav goal to bar/drink
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_bar(action_dict)
         smach.StateMachine.add('SetBarForOrder',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToBarForOrder'})
@@ -185,7 +219,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelp'})
         
         # Set navigation goal back to person
-        func = lambda : None # TODO: Fix!
+        func = lambda : go_to_last_person(action_dict)
         smach.StateMachine.add('SetNavToPerson',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToPerson'})
@@ -230,6 +264,6 @@ def create_state_machine(action_dict):
     return sm
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(7)
     sm = create_state_machine(action_dict)
     sm.execute()

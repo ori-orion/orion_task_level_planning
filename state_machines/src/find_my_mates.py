@@ -14,6 +14,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 import time
 
@@ -44,9 +46,64 @@ class GiveOperatorInfoState(ActionServiceState):
                                                     outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Take information of memorised people and form speech from it.
-        # Then say it!
+        obj1 = SOMObservation()
+        obj1.type = 'person'
+
+        matches = self.action_dict['SOMQuery'](obj1, Relation(), 
+                                               SOMObservation())
+
+        operator_name = ''
+        people_information = []
+
+        # Extract information from matches
+        for match in matches:
+            person = match.obj1
+            if person.task_role == 'operator':
+                operator_name = person.name
+            else:
+                person_info = {}
+                person_info['name'] = person.name
+                person_info['age'] = person.age
+                person_info['gender'] = person.gender
+                person_info['shirt_colour'] = person.shirt_colour
+                person_info['room'].pose_estimate.most_likely_room
+                people_information.append(person_info)
+        
+        info_string = ("Hi " + operator_name + ", I have some people to tell " +
+                      "you about.")
+        
+        for person in people_information:
+            person_string = ""
+            if person['room'] != '':
+                person_string += " In the " + person['room'] + " I met "
+            else:
+                person_string += " I met "
+            
+            if person['name'] != '':
+                person_string += person['name'] + ', '
+            else:
+                person_string += 'someone, '
+            
+            if person['age'] != 0:
+                person_string += ('who I think is around the age of ' + 
+                                  str(person['age']) + ', ')
+            
+            if person['gender'] != '':
+                person_string += 'who is ' + person['gender'] + ', '
+            
+            if person['shirt_colour'] != '':
+                person_string += 'and who is wearing ' + person['shirt_colour']
+            
+            if person_string[-2] == ',':
+                person_string = person_string[0:-2] + '.'
+            else:
+                person_string += '.'
+            info_string += person_string
+        goal = SpeakGoal()
+        goal.sentence = info_string
+        self.action_dict['Speak'].send_goal(goal)
+        self.action_dict['Speak'].wait_for_result()
+
         return self._outcomes[0]
 
 
@@ -69,6 +126,35 @@ class ShouldIContinueState(ActionServiceState):
         return self._outcomes[0]
 
 
+def go_to_instruction_point(action_dict):
+    """ Returns the navigation location of the instruction point. """
+    obj1 = SOMObservation()
+    obj1.type = 'find_my_mates_point_of_interest'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def get_operator_location(action_dict):
+    """ Gets the location of our operator. """
+
+    obj1 = SOMObservation()
+    obj1.type = 'person'
+
+    matches = action_dict['SOMQuery'](obj1, Relation(), SOMObservation())
+
+    for match in matches:
+        if match.obj1.task_role == 'operator': # If we've found the operator
+            x = match.obj1.pose_estimate.most_recent_pose.position.x
+            y = match.obj1.pose_estimate.most_recent_pose.position.y
+
+            quart = match.obj1.pose_estimate.most_recent_pose.orientation
+            quart_list = [quart.x, quart.y, quart.z, quart.w]
+            (_, _, yaw) = euler_from_quaternion(quart_list)
+            return (x, y, yaw)
+
+    raise Exception('Unable to find operator!')
+
 def create_state_machine(action_dict):
     """ This function creates and returns the state machine for the task. """
 
@@ -76,13 +162,18 @@ def create_state_machine(action_dict):
     global_store = {}
     global_store['start_time'] = time.time()
     global_store['people_found'] = []
-    # TODO: Set instruction point as initial nav goal
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
     with sm:
         
+        # Initially set nav goal to instruction point
+        func = lambda: go_to_instruction_point(action_dict)
+        smach.StateMachine.add('SetNavToInstructionPoint',
+                               SetNavGoalState(action_dict, global_store, func),
+                               transitions={'SUCCESS':'StartSpeak'})
+
         # Start by stating intentions
         phrase = "Hi, I'm Bam Bam and I'm here to find some mates!"
         smach.StateMachine.add('StartSpeak',
@@ -139,8 +230,7 @@ def create_state_machine(action_dict):
                                             'NOBODY_FOUND':'SetOpDestination'})
         
         # Get information from person
-        question = ("Hi, I'm Bam Bam, nice to meet you! Would you mind telling "
-                   + "me a little about yourself?")
+        question = ("Hi, I'm Bam Bam, nice to meet you! What is your name?")
         smach.StateMachine.add('TalkToPerson',
                                SpeakAndListenState(action_dict,
                                                    global_store,
@@ -173,7 +263,7 @@ def create_state_machine(action_dict):
                                             'NO':'SetOpDestination'})
         
         # Set operator destination
-        function = lambda : None # TODO: Make correct!
+        function = lambda : get_operator_location(action_dict)
         smach.StateMachine.add('SetOpDestination',
                                SetNavGoalState(action_dict, 
                                                global_store, 
@@ -202,6 +292,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(4)
     sm = create_state_machine(action_dict)
     sm.execute()

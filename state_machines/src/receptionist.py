@@ -13,6 +13,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class DetectDoorKnockState(ActionServiceState):
@@ -56,9 +58,19 @@ class UpdateWithDrinkState(ActionServiceState):
                                                    outcomes=outcomes)
 
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Update last person memorised with drink info in latest response
-        pass
+        drink_index = self.global_store['last_response'].rfind(' ')
+        drink = self.global_store['last_response'][drink_index+1:]
+
+        # Get last person memorised
+        last_person = self.global_store['people_found'][-1]
+
+        obj1 = SOMObservation()
+        obj1.obj_id = last_person
+        obj1.drink = drink
+
+        self.action_dict['SOMObserve'](obj1)
+        return self._outcomes[0]
+
 
 
 class IntroduceGuestState(ActionServiceState):
@@ -70,9 +82,32 @@ class IntroduceGuestState(ActionServiceState):
                                                   outcomes=outcomes)
 
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Form string to speak which introduces the guest
-        pass
+        index = self.global_store['next_to_introduce']
+        self.global_store['next_to_introduce'] += 1
+
+        person_id = self.global_store['people_found'][index]
+        person = self.action_dict['SOMLookup'](person_id)
+        name = person.name
+        drink = person.drink
+
+        sentence = ''
+        # If new guest
+        if index == len(self.global_store['people_found'] - 1): 
+            sentence = ('Everyone, this is ' + name + ' and they like ' + 
+                       'to drink ' + drink + '.')
+        else:
+            last_person_id = self.global_store['people_found'][-1]
+            last_person = self.action_dict['SOMLookup'](last_person_id)  
+            last_name = last_person.name
+            sentence = (last_name + ', this is ' + name + ' and they like ' +
+                       'to drink ' + drink)
+        
+        speak_goal = SpeakGoal()
+        speak_goal.sentence = sentence
+        self.action_dict['Speak'].send_goal(speak_goal)
+        self.action_dict['Speak'].wait_for_result()
+
+        return self._outcomes[0]
 
 
 class DecideSeatingPlanState(ActionServiceState):
@@ -84,10 +119,40 @@ class DecideSeatingPlanState(ActionServiceState):
                                                      outcomes=outcomes)
 
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Update internal seating plan, determine if oldest guest isn't sat
-        # on sofa
-        pass
+        youngest_on_sofa = None
+        youngest_on_sofa_name = None
+        youngest_age = 150
+
+        for person_id in self.global_store['on_sofa'][0:-1]:
+            person = self.action_dict['SOMLookup'](person_id)
+            if person.age != 0 and person.age < youngest_age:
+                youngest_age = person.age
+                youngest_on_sofa = person_id
+                youngest_on_sofa_name = person.name
+
+        sentence = ''
+        if youngest_on_sofa == None:
+            sentence = 'Please make yourself feel at home.'
+        else: # Compare to new person's age
+            new_person_id = self.global_store['people_found'][-1]
+            new_person = self.action_dict['SOMLookup'](new_person_id)
+            if new_person.age < youngest_age:
+                sentence = 'Please make yourself feel at home.'
+            else:
+                sentence = (youngest_on_sofa_name + ', would you kindly let ' +
+                           new_person.name + 'sit on the sofa as they are ' +
+                           'the elder person here?')
+                self.global_store['on_sofa'].append(new_person_id)
+                index = self.global_store['on_sofa'].index(youngest_on_sofa)
+                del self.global_store['on_sofa'][index]
+                self.global_store['not_on_sofa'].append(youngest_on_sofa)
+            
+        speak_goal = SpeakGoal()
+        speak_goal.sentence = sentence
+        self.action_dict['Speak'].send_goal(speak_goal)
+        self.action_dict['Speak'].wait_for_result()
+
+        return self._outcomes[0]
 
 
 class FindPersonState(ActionServiceState):
@@ -100,19 +165,52 @@ class FindPersonState(ActionServiceState):
                                               outcomes=outcomes)
         
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Use global store information to decide who to introduce next
-        # Set a flag for this and set the point location to them.
-        # The last time this is called, we should introduce the new guest to 
-        # everyone at once
-        pass
+        if (self.global_store['next_to_introduce'] >= 
+            len(self.global_store['people_found'])):
+            self.global_store['next_to_introduce'] = 0
+            return self._outcomes[1]
+        else:
+            index = self.global_store['next_to_introduce']
+            person_id = self.global_store['people_found'][index]
+            person = self.action_dict['SOMLookup'](person_id)
+            name = person.name
+            self.global_store['point_at'] = name
+
+
+def go_to_door(action_dict):
+    """ Door for welcoming guests is POI for this task. """
+    obj1 = SOMObservation()
+    obj1.type = 'receptionist_point_of_interest'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def go_to_sofa(action_dict):
+    """ Get location of sofa in living room. """
+    obj1 = SOMObservation()
+    obj1.type = 'sofa'
+    obj1.room_name = 'living_room'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
 
 
 def create_state_machine(action_dict):
     """ File creates and returns state machine for receptionist task. """
 
+    # Get john's information
+    obj = SOMObservation()
+    obj.name = 'john'
+    matches = action_dict['SOMQuery'](obj, Relation(), SOMObservation())
+    john_id = matches[0].obj_id
+
     # Initialise global store
     global_store = {}
+    global_store['on_sofa'] = [john_id]
+    global_store['people_found'] = [john_id]
+    global_store['not_on_sofa'] = []
+    global_store['next_to_introduce'] = 0
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
@@ -143,7 +241,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavToDoor'})
         
         # Set nav goal to door
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_door(action_dict)
         smach.StateMachine.add('SetNavToDoor',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToDoor'})
@@ -242,7 +340,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SpeakFollowMe'})
         
         # Set nav goal to sofa in living room
-        func = lambda : None # TODO: Fix!
+        func = lambda : go_to_sofa(action_dict)
         smach.StateMachine.add('SetNavToSofa',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToSofa'})
@@ -286,7 +384,7 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Fix!
+    action_dict = create_stage_1_clients(6)
     sm = create_state_machine(action_dict)
     sm.execute()
 

@@ -13,6 +13,7 @@ import actionlib
 import time
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
 
 
 class FindHandleState(ActionServiceState):
@@ -255,6 +256,6 @@ def create_state_machine(action_dict):
     return sm
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(9)
     sm = create_state_machine(action_dict)
     sm.execute()

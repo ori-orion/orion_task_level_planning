@@ -14,6 +14,8 @@ import actionlib
 import time
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class ExecuteTaskState(ActionServiceState):
@@ -36,6 +38,15 @@ class ExecuteTaskState(ActionServiceState):
             return self._outcomes[0]
 
 
+def set_nav_goal_to_instruction_point(action_dict):
+    """ A function to return the location of the instruction point. """
+    obj1 = SOMObservation()
+    obj1.type = 'GPSR_point_of_interest'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
 def create_state_machine(action_dict):
     """ Function creates and returns the state machine for the GPSR task. """
 
@@ -43,11 +54,16 @@ def create_state_machine(action_dict):
     global_store = {}
     global_store['start_time'] = time.time()
     global_store['tasks_completed'] = 0
-    # TODO: Set nav goal to instruction point
 
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
     with sm:
+
+        # Set nav point to instruction point
+        func = lambda: set_nav_goal_to_instruction_point(action_dict)
+        smach.StateMachine.add('SetNavToInstructionPoint',
+                               SetNavGoalState(action_dict, global_store, func),
+                               transitions={'SUCCESS':'StoreInitialLocation'})
 
         # Store initial location
         smach.StateMachine.add('StoreInitialLocation',
@@ -92,8 +108,14 @@ def create_state_machine(action_dict):
         smach.StateMachine.add('ExecuteTask',
                                ExecuteTaskState(action_dict, global_store),
                                transitions={'CONTINUE':'NavToInstructionPoint',
-                                            'STOP':'NavOutOfArena'})
+                                            'STOP':'SetNavOutOfArena'})
         
+        # Set nav out of arena
+        func = lambda: global_store['stored_location']
+        smach.StateMachine.add('SetNavOutOfArena',
+                               SetNavGoalState(action_dict, global_store, func),
+                               transitions={'SUCCESS':'NavOutOfArena'})
+
         # Navigate out of arena
         smach.StateMachine.add('NavOutOfArena',
                                NavigateState(action_dict, global_store),
@@ -106,6 +128,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out
+    action_dict = create_stage_1_clients(5)
     sm = create_state_machine(action_dict)
     sm.execute()

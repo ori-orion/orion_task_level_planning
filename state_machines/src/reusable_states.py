@@ -14,6 +14,7 @@ import smach
 import actionlib
 import time
 from smach import Concurrence
+from tf.transformations import euler_from_quaternion
 
 from orion_actions.msg import GiveObjectToOperatorGoal, \
     SpeakGoal, IsDoorOpenGoal, OpenDoorGoal, GiveObjectToOperatorGoal, \
@@ -52,6 +53,41 @@ class ActionServiceState(smach.State):
         super(ActionServiceState, self).__init__(outcomes=outcomes)
         # Need to set afterwards
         self._outcomes = outcomes
+
+
+def get_location_of_object(action_dict, obj_1, rel, obj_2):
+    """ Function returns the location of an object in terms of (x,y,theta). 
+    
+    This function uses the semantic mapping to get the closest location of an
+    object.
+
+    Args:
+        action_dict: our action dictionary to be able to use the services.
+        obj_1: The first SOMObservation message
+        rel: The Relation message between the objects
+        obj_2: The second SOMObservation message
+    
+    Returns: nav_goal: The (x,y,theta triple)
+
+    """
+    matches = action_dict['SOMQuery'](obj_1, rel, obj_2)
+    
+    if len(matches) == 0:
+        raise Exception("No matches found in Semantic Map")
+    
+    pose = matches[0].obj1.pose_estimate.most_likely_pose
+
+    x = pose.position.x
+    y = pose.position.y
+
+    quat = [pose.orientation.x, pose.orientation.y, 
+            pose.orientation.z, pose.orientation.w]
+    
+    (_, _, yaw) = euler_from_quaternion(quat)
+
+    theta = yaw
+
+    return (x, y, theta)
 
 
 class SpeakState(ActionServiceState):
@@ -416,6 +452,7 @@ class OperatorDetectState(ActionServiceState):
     def execute(self, userdata):
         # TODO: Fill in, this will likely do stuff with the semantic map
         # Make sure to store location too!
+        # Update people_found
         pass
 
 
@@ -432,6 +469,7 @@ class MemorisePersonState(ActionServiceState):
         # TODO: Fill in !
         # Should memorise like in operator detect but in list for this task
         # Should take drink information if possible/appropriate
+        # Update people found
         pass
 
 
@@ -595,16 +633,15 @@ class SetNavGoalState(ActionServiceState):
 class SetPickupState(ActionServiceState):
     """ State for setting pick up to something arbitrary defined by lambda. """
 
-    def __init__(self, action_dict, global_store, function):
-        """ function must have 0 parameters and must return the new object. """
+    def __init__(self, action_dict, global_store, obj):
         outcomes = ['SUCCESS']
-        self.function = function
+        self.obj = obj
         super(SetPickupState, self).__init__(action_dict=action_dict,
                                              global_store=global_store,
                                              outcomes=outcomes)
     
     def execute(self, userdata):
-        self.global_store['pick_up'] = self.function()
+        self.global_store['pick_up'] = self.obj
         return self._outcomes[0]
 
 
@@ -629,7 +666,6 @@ class OpenDrawerState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]
-
 
 class PlaceObjectRelativeState(ActionServiceState):
     """ State for placing objects relative to something else. """

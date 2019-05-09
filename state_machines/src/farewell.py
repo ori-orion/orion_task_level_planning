@@ -13,6 +13,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 class FindLeaverState(ActionServiceState):
     """ A state to find someone wanting to leave. """
@@ -54,10 +56,55 @@ class UpdateCoatInfoState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Should update persons info with coat colour based on last response
-        # Should also set pick up to this
-        pass
+        # Get the last word of the last response
+        last_word_index = self.global_store['last_response'].rfind(' ')
+        colour = self.global_store['last_response'][last_word_index+1:]
+
+        person_update = SOMObservation()
+        person_update.obj_id = self.global_store['people_found'][-1]
+        person_update.coat_colour = colour
+
+        self.action_dict['SOMObserve'](person_update)
+
+        self.global_store['pick_up'] = colour +'_coat'
+        
+        return self._outcomes[0]
+
+
+def go_to_coat_rack(action_dict):
+    """ Function to get location of coat rack. """
+    obj1 = SOMObservation()
+    obj1.type = 'coat_rack'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def go_to_door(action_dict):
+    """ Function to go to exit door of arena (POI). """
+    obj1 = SOMObservation()
+    obj1.type = 'farewell_point_of_interest'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def go_to_umbrella(action_dict):
+    """ Function to go to umbrella location. """
+    obj1 = SOMObservation()
+    obj1.type = 'umbrella'
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
+
+
+def go_to_last_person(action_dict, global_store):
+    """ Function to go to the last person we have met. """
+    obj1 = SOMObservation()
+    obj1.obj_id = global_store['people_found'][-1]
+
+    return get_location_of_object(action_dict, obj1, 
+                                  Relation(), SOMObservation())
 
 
 def create_state_machine(action_dict):
@@ -65,6 +112,7 @@ def create_state_machine(action_dict):
 
     # Initialise global store
     global_store = {}
+    global_store['people_found'] = []
 
     # Create state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
@@ -155,7 +203,7 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavToCoatRack'})
 
         # Set nav goal to coat rack
-        func = lambda : None # TODO: Fix!
+        func = lambda : go_to_coat_rack(action_dict)
         smach.StateMachine.add('SetNavToCoatRack',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToCoatRack'})
@@ -188,7 +236,6 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForCoatHelp',
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
 
-
         # Receive coat
         smach.StateMachine.add('ReceiveCoat',
                                ReceiveObjectFromOperatorState(action_dict,
@@ -197,7 +244,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForCoatHelp'})
 
         # Set nav to person
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_last_person(action_dict, global_store)
         smach.StateMachine.add('SetNavToPerson',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToPerson'})
@@ -245,7 +292,7 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
         
         # set nav to door
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_door(action_dict)
         smach.StateMachine.add('SetNavToDoor',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToDoor'})
@@ -265,7 +312,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavToUmbrella'})
         
         # Set nav to umbrella
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_umbrella(action_dict)
         smach.StateMachine.add('SetNavToUmbrella',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToUmbrella'})
@@ -278,9 +325,10 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
         
         # set pick up to umbrella
-        func = lambda: None # TODO: Fix!
         smach.StateMachine.add('SetPickUpUmbrella',
-                               SetPickupState(action_dict, global_store, func),
+                               SetPickupState(action_dict, 
+                                              global_store, 
+                                              'umbrella'),
                                transitions={'SUCCESS':'PickUpUmbrella'})
 
         # Pick up umbrella
@@ -311,7 +359,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForUmbrellaHelp'})
         
         # Set Nav back to door
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_door(action_dict)
         smach.StateMachine.add('SetNavGoalBackToDoor',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavBackToDoor'})
@@ -352,7 +400,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavBackToUmbrella'})
         
         # Go to put the umbrella back
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_umbrella()
         smach.StateMachine.add('SetNavBackToUmbrella',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavBackToUmnbrella'})
@@ -397,6 +445,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(3)
     sm = create_state_machine(action_dict)
     sm.execute()

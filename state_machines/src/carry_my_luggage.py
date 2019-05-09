@@ -13,6 +13,7 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
 
 class NavigateToStartState(ActionServiceState):
     """ A state to navigate the robot back to the start location.
@@ -77,12 +78,14 @@ def create_state_machine(action_dict):
         
         # Start talking to the operator
         question = ("Hi, I'm Bam-Bam." + 
-                   "Is there an operator nearby who needs my help?")
+                   "Is there an operator nearby who needs my help? If so, " +
+                   "please tell me your name and point at the luggage you " +
+                   "want me to carry!")
         smach.StateMachine.add('StartTalking',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Help me carry'],
+                                                   ['My name is'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS': 'DetectOperator',
@@ -114,12 +117,12 @@ def create_state_machine(action_dict):
         # Ask for help!
         question = ("It looks like I'm struggling to pick up your luggage. " + 
                    "Could you hand it to me please and let me know " +
-                   "when you have?")
+                   "when you're ready to hand it over?")
         smach.StateMachine.add('AskForHelp',
                                SpeakAndListenState(action_dict, 
                                                    global_store,
                                                    question, 
-                                                   ['here you go'],
+                                                   ['I am ready'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'Handover',
@@ -151,13 +154,13 @@ def create_state_machine(action_dict):
                                              'REPEAT_FAILURE': 'TASK_FAILURE'})
 
         # Ask if OK for handover
-        question = ("Yay, we've arrived! Is it OK for me " +
-                   "to give you your luggage?")
+        question = ("Yay, we've arrived! Please tell me when you're ready "
+                    "for me to give you your luggage?")
         smach.StateMachine.add('ArrivalQuestion',
                                SpeakAndListenState(action_dict, 
                                                    global_store, 
                                                    question, 
-                                                   ['Yes'],
+                                                   ['I am ready'],
                                                    [],
                                                    20),
                                 transitions={'SUCCESS':'GiveLuggageBack',
@@ -197,6 +200,6 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(1)
     sm = create_state_machine(action_dict)
     sm.execute()

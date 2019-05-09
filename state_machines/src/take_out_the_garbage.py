@@ -13,6 +13,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class FindNearestBinState(ActionServiceState):
@@ -25,8 +27,36 @@ class FindNearestBinState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        pass
+        obj1 = SOMObservation()
+        obj1.type = 'bin'
+        rel = Relation()
+        obj2 = SOMObservation()
+
+        matches = self.action_dict['SOMQuery'](obj1, rel, obj2)
+
+        if len(matches) == 0:
+            return self._outcomes[1]
+        
+        for match in matches:
+            if match.obj1.obj_id not in self.global_store['bins_taken_out']:
+                pose = match.obj1.pose_estimate.most_likely_pose
+
+                x = pose.position.x
+                y = pose.position.y
+
+                quat = [pose.orientation.x, pose.orientation.y, 
+                        pose.orientation.z, pose.orientation.w]
+                
+                (_, _, yaw) = euler_from_quaternion(quat)
+
+                theta = yaw
+
+                self.global_store['current_bin'] = match.obj1.obj_id
+                self.global_store['nav_location'] = (x, y, theta)
+                return self._outcomes[0]
+
+        if self.global_store['current_bin'] == None:
+            return self._outcomes[1]
 
 
 class OpenBinState(ActionServiceState):
@@ -44,7 +74,7 @@ class OpenBinState(ActionServiceState):
         self.action_dict['OpenBinLid'].wait_for_result()
 
         result = self.action_dict['OpenBinLid'].get_result().result
-        # TODO: Set tf frame of bin bag
+        self.global_store['pick_up'] = 'garbage bag'
         if result:
             return self._outcomes[0]
         else:
@@ -61,8 +91,15 @@ class SetCollectZoneState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        pass
+        obj1 = SOMObservation()
+        rel = Relation()
+        obj2 = SOMObservation()
+
+        obj1.type = 'take_out_the_garbage_point_of_interest'
+
+        loc = get_location_of_object(self.action_dict, obj1, rel, obj2)
+
+        self.global_store['nav_location'] = loc
 
 
 class UpdateBinInfoState(ActionServiceState):
@@ -75,8 +112,10 @@ class UpdateBinInfoState(ActionServiceState):
                                                  outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        pass
+        current_bin = self.global_store['current_bin']
+        self.global_store['bins_taken_out'].append(current_bin)
+        self.global_store['current_bin'] = None
+        return self._outcomes[0]
 
 
 def create_state_machine(action_dict):
@@ -92,6 +131,7 @@ def create_state_machine(action_dict):
     # Initialise global store
     global_store = {}
     global_store['bins_taken_out'] = []
+    global_store['current_bin'] = None
 
 
     # Create the state machine
@@ -242,6 +282,6 @@ def create_state_machine(action_dict):
     return sm
 
 if __name__ == '__main__':
-    action_dict = {} # TODO: Sort out!
+    action_dict = create_stage_1_clients(10)
     sm = create_state_machine(action_dict)
     sm.execute()

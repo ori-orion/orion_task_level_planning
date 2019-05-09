@@ -13,6 +13,8 @@ import smach
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
+from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class SearchForItemState(ActionServiceState):
@@ -43,10 +45,21 @@ class GetItemLocationState(ActionServiceState):
                                                    outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Should set navigation goal in global store
-        pass
-    
+        item = self.global_store['pick_up']
+
+        obj1 = SOMObservation()
+        obj1.type = item
+        
+        rel = Relation()
+        obj2 = SOMObservation()
+
+        try:
+            self.global_store['nav_location'] = \
+                get_location_of_object(self.action_dict, obj1, rel, obj2)
+            return self._outcomes[0]
+        except:
+            return self._outcomes[1]
+
 
 class UpdateItemLocationState(ActionServiceState):
     """ This state updates item location based on speech. """
@@ -214,6 +227,6 @@ def create_state_machine(action_dict):
             
 
 if __name__ == '__main__':
-    action_dict = {}
+    action_dict = create_stage_1_clients(2)
     sm = create_state_machine(action_dict)
     sm.execute()
