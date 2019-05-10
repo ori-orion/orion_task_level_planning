@@ -14,6 +14,7 @@ import time
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
+from orion_actions.msg import SOMObservation, Relation
 
 
 class FindHandleState(ActionServiceState):
@@ -26,9 +27,8 @@ class FindHandleState(ActionServiceState):
                                               outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill In!
-        # Set global_store['drawer_handle']
-        pass
+        self.global_store['drawer_handle'] = 'cupboard'
+        return self._outcomes[0]
 
 
 class PickUpClosestItemState(ActionServiceState):
@@ -80,6 +80,24 @@ class UpdateItemInfoState(ActionServiceState):
         # for future items being placed
         pass
 
+
+def go_to_shelf(action_dict):
+    """ Set nav goal to shelf. Announced pre-task. """
+    obj = SOMObservation()
+    obj.type = 'storing_groceries_point_of_interest_shelf'
+
+    return get_location_of_object(action_dict, obj, 
+                                  Relation(), SOMObservation())
+
+def go_to_table(action_dict):
+    """ Set nav goal to table. Announced pre-task. """
+    obj = SOMObservation()
+    obj.type = 'storing_groceries_point_of_interest_table'
+
+    return get_location_of_object(action_dict, obj, 
+                                  Relation(), SOMObservation())
+
+
 def create_state_machine(action_dict):
     """ This function creates and returns the state machine for this task. """
 
@@ -105,7 +123,7 @@ def create_state_machine(action_dict):
                                             'CLOSED':'WaitForDoor'})
         
         # Set the navigation goal to the shelf
-        func = lambda : None # TODO: Fix!
+        func = lambda : go_to_shelf(action_dict)
         smach.StateMachine.add('SetNavToShelf',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToShelf'})
@@ -144,7 +162,7 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
         
         # Set the navigation to the table
-        func = lambda: None # TODO: Fix!
+        func = lambda: go_to_table(action_dict)
         smach.StateMachine.add('SetNavToTable',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToTable'})
@@ -213,7 +231,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForPosHelp'})
 
         # Set navigation back to shelf
-        func = lambda : None # TODO: Fix!
+        func = lambda : go_to_shelf(action_dict)
         smach.StateMachine.add('SetNavBackToShelf',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavBackToShelf'})

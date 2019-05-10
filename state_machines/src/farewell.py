@@ -400,7 +400,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavBackToUmbrella'})
         
         # Go to put the umbrella back
-        func = lambda: go_to_umbrella()
+        func = lambda: go_to_umbrella(action_dict)
         smach.StateMachine.add('SetNavBackToUmbrella',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavBackToUmnbrella'})
