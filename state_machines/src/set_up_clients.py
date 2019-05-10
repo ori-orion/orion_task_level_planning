@@ -30,20 +30,20 @@ def create_stage_1_clients(task_number):
     action_dict = {}
 
     # Start with semantic mapping stuff
-    rospy.wait_for_service('SOM_clear_database')
-    action_dict['SOMClearDatabase'] = rospy.ServiceProxy('SOM_clear_database',
+    rospy.wait_for_service('som/clear_database')
+    action_dict['SOMClearDatabase'] = rospy.ServiceProxy('som/clear_database',
                                                          SOMClearDatabase)
-    rospy.wait_for_service('SOM_delete')
-    action_dict['SOMDelete'] = rospy.ServiceProxy('SOM_delete', SOMDelete)
-    rospy.wait_for_service('SOM_get_all_objects')
-    action_dict['SOMGetAllObjects'] = rospy.ServiceProxy('SOM_get_all_objects',
+    rospy.wait_for_service('som/delete')
+    action_dict['SOMDelete'] = rospy.ServiceProxy('som/delete', SOMDelete)
+    rospy.wait_for_service('som/get_all_objects')
+    action_dict['SOMGetAllObjects'] = rospy.ServiceProxy('som/get_all_objects',
                                                          SOMGetAllObjects)
-    rospy.wait_for_service('SOM_lookup')
-    action_dict['SOMLookup'] = rospy.ServiceProxy('SOM_lookup', SOMLookup)
-    rospy.wait_for_service('SOM_observe')
-    action_dict['SOMObserve'] = rospy.ServiceProxy('SOM_observe', SOMObserve)
-    rospy.wait_for_service('SOM_query')
-    action_dict['SOMQuery'] = rospy.ServiceProxy('SOM_query', SOMQuery)
+    rospy.wait_for_service('som/lookup')
+    action_dict['SOMLookup'] = rospy.ServiceProxy('som/lookup', SOMLookup)
+    rospy.wait_for_service('som/observe')
+    action_dict['SOMObserve'] = rospy.ServiceProxy('som/observe', SOMObserve)
+    rospy.wait_for_service('som/query')
+    action_dict['SOMQuery'] = rospy.ServiceProxy('som/query', SOMQuery)
 
     # Now add common action clients
     action_dict['Navigate'] = actionlib.SimpleActionClient('navigate', 
