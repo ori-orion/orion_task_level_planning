@@ -427,9 +427,8 @@ def consume_non_terminal(str, start):
             non_terminal += str[i]
         else:
             return non_terminal, i
-    
-    raise Exception('Reached End Of String Consuming Non-Terminal: ' +
-                    str[start:])
+
+    return non_terminal, len(str) # If we reach the end of the line, return
 
 
 def consume_bracket(str, start, brace):
@@ -497,14 +496,18 @@ def parse_line(line, root):
 
     # Accounting for new line characters
     length = len(line)
-    if line[length-1] == "\n":
+    while line[length-1] == "\n" or line[length-1] == " ":
         length -= 1
     
     i = 0
 
+    skip_over = ["'",".",",","?"]
+
     while i < length:
 
-        if line[i] == "$": # Start non-terminal
+        if line[i] in skip_over: # Characters to ignore
+            i+= 1
+        elif line[i] == "$": # Start non-terminal
 
             # Stop the literal
             if literal:
@@ -585,6 +588,71 @@ def parse_line(line, root):
 
     return non_terminals_seen, grako_line
 
+
+def remove_void_from_line(line, void_nts):
+    """ Function removes anything void from a particular line.
+
+    This function removes any nonterminals in void_nts from any 
+    grammar line and reformats the line appropriately.
+
+    Args: 
+        line: A string, a line from the grammar.
+        void_nts: non-terminals to remove
+    
+    Return:
+        void_free: The line free of voids.
+    """
+
+    for nt in void_nts:
+        if nt in line:
+            start_point = line.find(nt)
+            end_point = start_point + len(nt)
+            print line
+            if line[end_point] == '\n': # On the end of a line
+                if line[start_point-2] == '|':
+                    return line[0:start_point-3] + '\n'
+                else:
+                    return line[0:start_point-1] + '\n'
+            elif line[end_point+1] == '|': # In the middle of two or at start
+                return line[0:start_point] + line[end_point+3:]
+            else: # Start of line
+                return line[0:start_point] + line[end_point+1:]
+                
+
+    return line
+
+
+def remove_void(lines):
+    """ An attempt to remove all void occurrences in the grammar.
+
+    The grammar for the command generator has a load of void wildcards, which
+    are used for metadata purposes. This is a attempt to remove them.
+
+    Args: 
+        lines: All lines of the files in an array.
+
+    Returns: 
+        no_void_grammar: A version of the grammar with void removed.
+    """
+    void_nts = ['{void}']
+
+    # Remove all single line void definitions
+    for i in range(len(lines)):
+        eq_point = lines[i].find('=')
+        if len(lines[i]) > eq_point + 7: # plus space plus {void plus 1
+            if lines[i][eq_point+2:eq_point+7] == '{void':
+                if lines[i][-2:] == '}\n' or lines[i][-1] == '}':
+                    nt = lines[i][0:lines[i].find(' ')]
+                    void_nts.append(nt)
+                    lines[i] = '; remove me'
+    
+    for i in range(len(lines)):
+        lines[i] = remove_void_from_line(lines[i], void_nts)
+
+    return lines
+
+
+
 def parse_GPSR_grammar(input_files):
     """ Parses files of the GPSRCmdGen grammar.
 
@@ -607,6 +675,9 @@ def parse_GPSR_grammar(input_files):
         with open(in_file) as to_read:
             lines += to_read.readlines()
     
+    # preprocess to remove instances of void
+    lines = remove_void(lines)
+
     # Remove all useless lines from the input files
     no_comments = filter((lambda x: len(x) > 0 and x[0] == '$'), lines)
 
@@ -623,7 +694,8 @@ def parse_GPSR_grammar(input_files):
         non_terminals = non_terminals[1:]
 
         # If we've already made the rule for this we don't worry about it
-        if new_nt in completed_non_terminals:
+        # Object is a weird one and we should remove it
+        if new_nt in completed_non_terminals or new_nt == '$object':
             continue
 
         # The grako non-terminal name

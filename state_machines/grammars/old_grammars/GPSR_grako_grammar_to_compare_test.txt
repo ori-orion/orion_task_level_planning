@@ -29,7 +29,7 @@ main
 
 polite
 	=
-	| 'please'
+	| ('VOID' | 'please')
 	| 'could you'
 	| 'robot please'
 	| 'could you please'
@@ -42,15 +42,15 @@ fndppl
 	| 'tell me how many people in the ' room ' are ' (pgenderp | pose)
 	| talk ' to ' whowhere
 	| findp ' in the ' room ' and ' talk
-	| goroom ' ' findp ' and ' talk
+	| goroom ', ' findp ', and ' talk
 	;
 
 fndobj
 	=
 	| vbfind ' the ' category ' in the ' room
 	| 'tell me how many ' category ' there are on the ' placement
-	| 'tell me whats the ' oprop ' object on the ' placement
-	| 'tell me whats the ' oprop ' ' category ' on the ' placement
+	| 'tell me what's the ' oprop ' object on the ' placement
+	| 'tell me what's the ' oprop ' ' category ' on the ' placement
 	| vbfind ' the ' category ' in the ' room
 	| 'tell me which are the three ' oprop ' ' ('objects' | category) ' on the ' placement
 	| vbfind ' three ' category ' in the ' room
@@ -60,30 +60,30 @@ fndobj
 
 guide
 	=
-	gdcmd
+	gdcmd ' ' gdmeta ' '
 	;
 
 follow
 	=
 	| vbfollow ' ' name ' from the ' beacon ' to the ' room
 	| 'meet ' name ' at the ' beacon ' and ' vbfollow ' ' pron ' ' fllwdest
-	| gobeacon ' meet ' name ' and ' vbfollow ' ' pron
+	| gobeacon ', meet ' name ', and ' vbfollow ' ' pron ' ' fllwhdst
 	;
 
 followout
 	=
-	| 'meet ' name ' at the ' beacon ' ' vbfollow ' ' pron ' and ' goroom
-	| 'meet ' name ' at the ' beacon ' ' vbfollow ' ' pron ' and ' vbguide ' ' pron ' back'
+	| fllwoutdest ' meet ' name ' at the ' beacon ', ' vbfollow ' ' pron ', and ' goroom
+	| fllwoutdest ' meet ' name ' at the ' beacon ', ' vbfollow ' ' pron ', and ' vbguide ' ' pron ' back'
 	;
 
 incomplete
 	=
 	| vbfollow ' ' name
-	| vbbring ' me the ' category
+	| cmanwarn ' ' vbbring ' me the ' category
 	| vbdeliver ' ' category ' to ' someone
 	| vbguide ' ' name ' to the ' beacon
 	| 'meet ' inguidewho ' and ' vbguide ' ' pron
-	| gobeacon ' meet ' inguidewho ' and ' vbguide ' ' pron
+	| gobeacon ', meet ' inguidewho ', and ' vbguide ' ' pron
 	;
 
 man
@@ -93,7 +93,7 @@ man
 
 complexman
 	=
-	cmancmd
+	cmanwarn ' ' cmancmd
 	;
 
 partyhost
@@ -147,12 +147,22 @@ oprop
 	('biggest' | 'largest' | 'smallest' | 'heaviest' | 'lightest' | 'thinnest')
 	;
 
+object
+	=
+	(object | 'bowl' | 'cloth' | 'tray')
+	;
+
 gdcmd
 	=
 	| vbguide ' ' name ' from the ' beacon ' to the ' beacon
 	| 'meet ' name ' at the ' beacon ' and ' guideto
-	| gobeacon ' meet ' name ' and ' guideto
-	| vbguide ' ' name ' to the ' beacon ' ' gdwhere
+	| gobeacon ', meet ' name ', and ' guideto
+	| vbguide ' ' name ' to the ' beacon ', ' gdwhere
+	;
+
+gdmeta
+	=
+	'VOID'
 	;
 
 vbfollow
@@ -162,7 +172,7 @@ vbfollow
 
 fllwdest
 	=
-	('to the ' room)
+	(('to the ' room) | fllwhdst)
 	;
 
 gobeacon
@@ -170,9 +180,24 @@ gobeacon
 	vbgopl ' to the ' beacon
 	;
 
+fllwhdst
+	=
+	'VOID'
+	;
+
+fllwoutdest
+	=
+	'VOID'
+	;
+
 vbguide
 	=
 	('guide' | 'escort' | 'take' | 'lead' | 'accompany')
+	;
+
+cmanwarn
+	=
+	'VOID'
 	;
 
 vbbring
@@ -207,8 +232,8 @@ deliver
 	| vbbring ' me the ' object
 	| vbdeliver ' the ' object ' to ' someone
 	| takefrom ' and ' vbplace ' it on the ' placement
-	| goplace ' ' vbfind ' the ' object ' and ' (delivme | delivat)
-	| goplace ' ' vbfind ' the ' object ' and ' place
+	| goplace ', ' vbfind ' the ' object ', and ' (delivme | delivat)
+	| goplace ', ' vbfind ' the ' object ', and ' place
 	;
 
 cmancmd
@@ -228,7 +253,7 @@ vbserve
 
 phpeopler
 	=
-	phpeople ' in the ' room
+	phpeople ' in the ' room '.'
 	;
 
 vbmeet
@@ -368,7 +393,7 @@ whattosay
 	| 'something about yourself'
 	| 'the time'
 	| 'what day is ' ('today' | 'tomorrow')
-	| 'your teams ' ('name' | 'country' | 'affiliation')
+	| 'your team's ' ('name' | 'country' | 'affiliation')
 	| 'the day of the ' ('week' | 'month')
 	| 'a joke'
 	;
