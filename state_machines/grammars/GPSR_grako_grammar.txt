@@ -1,0 +1,556 @@
+@@grammar::GPSR
+
+@@ignorecase :: True
+
+s = start $;
+
+start
+	=
+	(pmain | main)
+	;
+
+pmain
+	=
+	polite ' ' main
+	;
+
+main
+	=
+	| fndppl
+	| fndobj
+	| guide
+	| follow
+	| followout
+	| incomplete
+	| man
+	| complexman
+	| partyhost
+	;
+
+polite
+	=
+	| 'please'
+	| 'could you'
+	| 'robot please'
+	| 'could you please'
+	;
+
+fndppl
+	=
+	| 'tell me the ' ('name' | 'gender' | 'pose') ' of the person at the ' beacon
+	| 'tell me the ' ('name' | 'gender' | 'pose') ' of the person in the ' room
+	| 'tell me how many people in the ' room ' are ' (pgenderp | pose)
+	| talk ' to ' whowhere
+	| findp ' in the ' room ' and ' talk
+	| goroom ' ' findp ' and ' talk
+	;
+
+fndobj
+	=
+	| vbfind ' the ' category ' in the ' room
+	| 'tell me how many ' category ' there are on the ' placement
+	| 'tell me whats the ' oprop ' object on the ' placement
+	| 'tell me whats the ' oprop ' ' category ' on the ' placement
+	| vbfind ' the ' category ' in the ' room
+	| 'tell me which are the three ' oprop ' ' ('objects' | category) ' on the ' placement
+	| vbfind ' three ' category ' in the ' room
+	| 'tell me how many ' object ' there are on the ' placement
+	| vbfind ' the ' object ' in the ' room
+	;
+
+guide
+	=
+	gdcmd
+	;
+
+follow
+	=
+	| vbfollow ' ' name ' from the ' beacon ' to the ' room
+	| 'meet ' name ' at the ' beacon ' and ' vbfollow ' ' pron ' ' fllwdest
+	| gobeacon ' meet ' name ' and ' vbfollow ' ' pron
+	;
+
+followout
+	=
+	| 'meet ' name ' at the ' beacon ' ' vbfollow ' ' pron ' and ' goroom
+	| 'meet ' name ' at the ' beacon ' ' vbfollow ' ' pron ' and ' vbguide ' ' pron ' back'
+	;
+
+incomplete
+	=
+	| vbfollow ' ' name
+	| vbbring ' me the ' category
+	| vbdeliver ' ' category ' to ' someone
+	| vbguide ' ' name ' to the ' beacon
+	| 'meet ' inguidewho ' and ' vbguide ' ' pron
+	| gobeacon ' meet ' inguidewho ' and ' vbguide ' ' pron
+	;
+
+man
+	=
+	deliver
+	;
+
+complexman
+	=
+	cmancmd
+	;
+
+partyhost
+	=
+	| vbserve ' ' ('drinks' | 'snacks') ' to ' phpeopler
+	| vbmeet ' ' name ' at the ' door ' and introduce ' pron ' to ' phpeopler
+	| vbmeet ' ' name ' at the ' beacon ' and ask ' pron ' to leave'
+	| vbmeet ' ' name ' at the ' beacon ' and introduce ' pron ' to ' name ' at the ' beacon
+	| vbmeet ' ' name ' at the ' beacon ' and ' vbguide ' ' pron ' to ' pron ' ' taxi
+	;
+
+pgenderp
+	=
+	('men' | 'women' | 'boys' | 'girls' | 'male' | 'female')
+	;
+
+pose
+	=
+	('sitting' | 'standing' | 'lying down')
+	;
+
+talk
+	=
+	(answer | speak)
+	;
+
+whowhere
+	=
+	'the person ' gesture ' in the ' room
+	;
+
+findp
+	=
+	| vbfind ' a ' pgenders
+	| vbfind ' a person ' gesture
+	| vbfind ' a person ' pose
+	;
+
+goroom
+	=
+	vbgopl ' to the ' room
+	;
+
+vbfind
+	=
+	('find' | 'locate' | 'look for')
+	;
+
+oprop
+	=
+	('biggest' | 'largest' | 'smallest' | 'heaviest' | 'lightest' | 'thinnest')
+	;
+
+gdcmd
+	=
+	| vbguide ' ' name ' from the ' beacon ' to the ' beacon
+	| 'meet ' name ' at the ' beacon ' and ' guideto
+	| gobeacon ' meet ' name ' and ' guideto
+	| vbguide ' ' name ' to the ' beacon ' ' gdwhere
+	;
+
+vbfollow
+	=
+	'follow'
+	;
+
+fllwdest
+	=
+	('to the ' room)
+	;
+
+gobeacon
+	=
+	vbgopl ' to the ' beacon
+	;
+
+vbguide
+	=
+	('guide' | 'escort' | 'take' | 'lead' | 'accompany')
+	;
+
+vbbring
+	=
+	('bring' | 'give')
+	;
+
+vbdeliver
+	=
+	(vbbring | 'deliver')
+	;
+
+someone
+	=
+	('me' | whowhere)
+	;
+
+inguidewho
+	=
+	name
+	;
+
+deliver
+	=
+	| vbbtake ' the ' aobject ' from the ' room ' to the ' placement
+	| vbbring ' me the ' aobject ' from the ' placement
+	| takefrom ' and ' (delivme | delivat)
+	| takefrom ' and ' place
+	| vbbtake ' my ' luggage ' to the ' taxi
+	| take ' and ' vbplace ' it on the ' placement
+	| vbplace ' the ' object ' on the ' placement
+	| vbbring ' me the ' object
+	| vbdeliver ' the ' object ' to ' someone
+	| takefrom ' and ' vbplace ' it on the ' placement
+	| goplace ' ' vbfind ' the ' object ' and ' (delivme | delivat)
+	| goplace ' ' vbfind ' the ' object ' and ' place
+	;
+
+cmancmd
+	=
+	| vbbtake ' the ' kobject ' to the ' placement
+	| vbbring ' me the ' abspos ' object ' cmanobjsrc
+	| vbbring ' me the object ' relpos ' the ' object '  ' cmanobjsrc
+	| vbbring ' me the ' oprop ' ' ('object' | category) ' ' cmanobjsrc
+	| vbcleanup ' the ' room
+	| vbtakeout ' the ' garbage
+	;
+
+vbserve
+	=
+	('serve' | 'arrange' | 'deliver' | 'distribute' | 'give' | 'provide')
+	;
+
+phpeopler
+	=
+	phpeople ' in the ' room
+	;
+
+vbmeet
+	=
+	('contact' | 'face' | 'find' | 'greet')
+	;
+
+door
+	=
+	('front' | 'back' | 'main' | 'rear') ' ' ('entrance' | 'door')
+	;
+
+taxi
+	=
+	('taxi' | 'cab' | 'uber')
+	;
+
+answer
+	=
+	'answer a ' question
+	;
+
+speak
+	=
+	vbspeak ' ' whattosay
+	;
+
+pgenders
+	=
+	('man' | 'woman' | 'boy' | 'girl' | ('male person') | ('female person'))
+	;
+
+vbgopl
+	=
+	('go' | 'navigate')
+	;
+
+guideto
+	=
+	vbguide ' ' pron ' to the ' beacon
+	;
+
+gdwhere
+	=
+	'you ' ('may' | 'can' | 'will') ' find ' pron ' at the ' beacon
+	;
+
+vbbtake
+	=
+	('bring' | 'take')
+	;
+
+takefrom
+	=
+	take ' from the ' placement
+	;
+
+delivme
+	=
+	vbdeliver ' it to me'
+	;
+
+delivat
+	=
+	vbdeliver ' it to ' name ' at the ' beacon
+	;
+
+place
+	=
+	vbplace ' it on the ' placement
+	;
+
+luggage
+	=
+	('bag' | 'baggage' | 'valise' | 'suitcase' | 'trolley')
+	;
+
+take
+	=
+	vbtake ' the ' object
+	;
+
+vbplace
+	=
+	('put' | 'place')
+	;
+
+goplace
+	=
+	vbgopl ' to the ' placement
+	;
+
+abspos
+	=
+	('left' | 'right') ' most'
+	;
+
+cmanobjsrc
+	=
+	'from the ' placement
+	;
+
+relpos
+	=
+	| 'at the ' ('left' | 'right') ' of'
+	| 'on top of'
+	| ('above' | 'behind' | 'under')
+	;
+
+vbcleanup
+	=
+	(('clean out') | ('clean up') | ('tidy op') | 'neaten' | 'order')
+	;
+
+vbtakeout
+	=
+	(('take out') | 'dump')
+	;
+
+garbage
+	=
+	('litter' | 'garbage' | 'trash' | 'waste' | 'debris' | 'junk')
+	;
+
+phpeople
+	=
+	('everyone' | ('all the ' ('people' | 'men' | 'women' | 'guests' | 'elders' | 'children')))
+	;
+
+vbspeak
+	=
+	('tell' | 'say')
+	;
+
+whattosay
+	=
+	| 'something about yourself'
+	| 'the time'
+	| 'what day is ' ('today' | 'tomorrow')
+	| 'your teams ' ('name' | 'country' | 'affiliation')
+	| 'the day of the ' ('week' | 'month')
+	| 'a joke'
+	;
+
+vbtake
+	=
+	('get' | 'grasp' | 'take' | 'pick up')
+	;
+
+pron
+	=
+	| 'it'
+	| 'our'
+	| 'your'
+	| 'her'
+	| 'its'
+	| 'their'
+	| 'ours'
+	| 'you'
+	| 'we'
+	| 'his'
+	| 'I'
+	| 'mine'
+	| 'them'
+	| 'they'
+	| 'hers'
+	| 'him'
+	| 'he'
+	| 'me'
+	| 'theirs'
+	| 'us'
+	| 'she'
+	| 'my'
+	| 'yours'
+	;
+
+gesture
+	=
+	| 'waving'
+	| 'raising their left arm'
+	| 'raising their right arm'
+	| 'pointing to the left'
+	| 'pointing to the right'
+	;
+
+location
+	=
+	| room
+	| placement
+	| beacon
+	;
+
+room
+	=
+	| 'corridor'
+	| 'bedroom'
+	| 'dining room'
+	| 'living room'
+	| 'kitchen'
+	;
+
+placement
+	=
+	| 'side table'
+	| 'desk'
+	| 'dining table'
+	| 'end table'
+	| 'bookcase'
+	| 'cupboard'
+	| 'storage table'
+	| 'sink'
+	| 'counter'
+	;
+
+beacon
+	=
+	| 'entrance'
+	| 'bed'
+	| 'desk'
+	| 'dining table'
+	| 'exit'
+	| 'couch'
+	| 'end table'
+	| 'bookcase'
+	| 'sink'
+	| 'dishwasher'
+	;
+
+name
+	=
+	| male
+	| female
+	;
+
+male
+	=
+	| 'alex'
+	| 'charlie'
+	| 'francis'
+	| 'james'
+	| 'john'
+	| 'michael'
+	| 'robert'
+	| 'robin'
+	| 'skyler'
+	| 'william'
+	;
+
+female
+	=
+	| 'alex'
+	| 'charlie'
+	| 'elizabeth'
+	| 'francis'
+	| 'jennifer'
+	| 'linda'
+	| 'mary'
+	| 'patricia'
+	| 'robin'
+	| 'skyler'
+	;
+
+category
+	=
+	| 'cleaning stuff'
+	| 'containers'
+	| 'cutlery'
+	| 'drinks'
+	| 'food'
+	| 'fruits'
+	| 'snacks'
+	| 'tableware'
+	;
+
+object
+	=
+	| kobject
+	| aobject 
+	| sobject
+	;
+
+kobject
+	=
+	| 'cloth'
+	| 'scrubby'
+	| 'sponge'
+	| 'cascade pod'
+	| 'fork'
+	| 'knife'
+	| 'spoon'
+	| 'chocolate drink'
+	| 'coke'
+	| 'grape juice'
+	| 'orange juice'
+	| 'sprite'
+	| 'cereal'
+	| 'noodles'
+	| 'sausages'
+	| 'pringles'
+	| 'crackers'
+	| 'potato chips'
+	| 'dish'
+	| 'bowl'
+	| 'cup'
+	;
+
+aobject
+	=
+	| 'apple'
+	| 'orange'
+	| 'paprika'
+	;
+
+sobject
+	=
+	| 'tray'
+	| 'basket'
+	| 'bag'
+	;
+
+question
+	=
+	'question'
+	;
+

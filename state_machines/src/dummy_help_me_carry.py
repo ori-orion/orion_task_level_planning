@@ -39,6 +39,7 @@ class StateJumperColour(GlobalStoreState):
 
     def execute(self, userdata):
         """ Executes the behaviour within the state."""
+        time.sleep(1)
         rospy.loginfo('Colour: ' + str(self.global_store['op_info']))
 
         return self._outcomes[0]
@@ -56,9 +57,10 @@ class FindItem(GlobalStoreState):
     
     def execute(self, userdata):
         """Executes find_item behaviour."""
+        time.sleep(1)
         item = self.global_store['item']
         messages = ['Found: ' + item, 'Could not find: ' + item]
-        probs = [0.9, 0.1]
+        probs = [0.6, 0.4]
 
 
         return dummy_behaviour(self._outcomes, probs, messages)
@@ -75,6 +77,7 @@ class MonitoredNav(GlobalStoreState):
     
     def execute(self, userdata):
         """Executes monitored navigation."""
+        time.sleep(0.5)
         destination = self.global_store['start_location']
         messages = ['Arrived back at: ' + destination, 'Navigation Failure']
         probs = [0.99, 0.01]
@@ -91,6 +94,7 @@ class StartBackgroundSystems(GlobalStoreState):
                                                      outcomes=outcomes)
     def execute(self, userdata):
         """Starts up base robot behaviours."""
+        time.sleep(1)
         messages = ['Started people tracking, object/hot-word detection',
                     'Failed to start up base systems.']
         probs = [0.99, 0.01]
@@ -109,6 +113,7 @@ class Memorise(GlobalStoreState):
 
     # It requires the userdata which indicates the Memorised_flag
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.1,0.9]
         msgs = ['Failed to memorise', 'Memorised']
         outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
@@ -135,6 +140,7 @@ class AskForOperator(GlobalStoreState):
 
 
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.1, 0.9]
         msgs = ['Failed to Find operator', 'Found Operator']
         
@@ -162,6 +168,7 @@ class WaitForRequest(GlobalStoreState):
 
     # It requires the userdata which indicates the request_flag
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.1, 0.9]
         msgs=['Time Out Waiting For Request', 'Request Received']
         outcome = dummy_behaviour(self._outcomes[0:2], probs, msgs)
@@ -185,6 +192,7 @@ class AskForRequest(GlobalStoreState):
 
     #It executes the dummy version of asking for request
     def execute(self,userdata):
+        time.sleep(1)
         rospy.loginfo('Asking for request')
         return 'Asked'
 
@@ -199,6 +207,7 @@ class WaitForOperator(GlobalStoreState):
     
     def execute(self, userdata):
         """ Looks for operator."""
+        time.sleep(1)
         messages = ['Operator Found', 'Time Out looking for operator']
         probs = [0.9, 0.1]
 
@@ -218,6 +227,7 @@ class DetectFollowSignal(GlobalStoreState):
                                                  outcomes=outcomes)
     def execute(self, userdata):
         """Waits for signal from operator."""
+        time.sleep(1)
         messages = ['Signal from operator wearing: ' + self.global_store['op_info'],
                     'Time Out waiting for signal']
         probs = [0.99, 0.01]
@@ -239,7 +249,7 @@ class FollowWithCamera(GlobalStoreState):
         colour = str(self.global_store['op_info'])
         rospy.loginfo('Following Operator wearing ' + colour)
         while np.random.rand() < 0.99:
-            time.sleep(0.01)
+            time.sleep(0.5)
             if self.preempt_requested():
                 return 'Preempted'
         
@@ -291,6 +301,7 @@ class GetItem(GlobalStoreState):
         self.try_allow = 5
 
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.1, 0.9]
         msgs=['Failed to pick up item: ' + self.global_store['item'],
               'Picked up item: ' + self.global_store['item']]
@@ -316,6 +327,7 @@ class ReturnToOperator(GlobalStoreState):
                                                outcomes=outcomes)
 
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.01, 0.99]
         msgs = ['Navigation Failure', 'Returned to operator']
         return dummy_behaviour(self._outcomes, probs, msgs)
@@ -329,6 +341,7 @@ class AskForAssistance(GlobalStoreState):
                                                outcomes=outcomes)
 
     def execute(self,userdata):
+        time.sleep(1)
         probs=[0.99, 0.01]
         msgs=['Assistance Given', 'Assistance Not Received']
         return dummy_behaviour(self._outcomes, probs, msgs)
@@ -341,6 +354,7 @@ class PutOnFloor(GlobalStoreState):
                                          outcomes=outcomes)
 
     def execute(self,userdata):
+        time.sleep(1)
         probs = [0.99, 0.01]
         msgs = [str(self.global_store['grasp']) + ' put on floor',
                 'Failed to put ' + str(self.global_store['grasp']) + ' down']
