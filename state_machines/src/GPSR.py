@@ -16,6 +16,8 @@ import time
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation
+from GPSR_parser import GPSRParser
+from GPSR_utils import parse_string
 
 
 class ExecuteTaskState(ActionServiceState):
@@ -28,8 +30,23 @@ class ExecuteTaskState(ActionServiceState):
                                                outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Execute state machine formed by grammar
+        
+        parser = GPSRParser()
+        task_string = self.global_store['last_response']
+
+        # Get the state machine by parsing the string
+        sm = parse_string(parser, task_string)
+
+        # If something has gone wrong with the parsing
+        if not isinstance(sm, smach.StateMachine):
+            return self._outcomes[1]
+        
+        # Execute the state machine
+        outcome = sm.execute()
+
+        # If we've failed then stop so we don't make things worse
+        if outcome == 'TASK_FAILURE':
+            return self._outcomes[1]
 
         self.global_store['tasks_completed'] += 1
         if self.global_store['tasks_completed'] == 3:
