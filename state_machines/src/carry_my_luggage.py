@@ -15,39 +15,6 @@ import actionlib
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 
-class NavigateToStartState(ActionServiceState):
-    """ A state to navigate the robot back to the start location.
-
-    This state navigates the robot back to its start location.
-    """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
-        super(NavigateToStartState, self).__init__(action_dict=action_dict,
-                                                   global_store=global_store,
-                                                   outcomes=outcomes)
-        
-        if 'nav_failure' not in self.global_store:
-            self.global_store['nav_failure'] = 0
-    
-    def execute(self, userdata):
-        nav_goal = NavigateGoal()
-        nav_goal.x = self.global_store['stored_location'][0]
-        nav_goal.y = self.global_store['stored_location'][1]
-        nav_goal.theta = self.global_store['stored_location'][2]
-
-        self.action_dict['Navigate'].send_goal(nav_goal)
-        self.action_dict['Navigate'].wait_for_result()
-
-        success = self.action_dict['Navigate'].get_result().succeeded
-        if success:
-            del self.global_store['nav_failure']
-            return self._outcomes[0]
-        else:
-            self.global_store['nav_failure'] += 1
-            if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
-                return self._outcomes[2]
-            return self._outcomes[1]
-
 
 def create_state_machine(action_dict):
     """ This function builds the state machine for the carry my luggage task.
@@ -86,7 +53,7 @@ def create_state_machine(action_dict):
                                                    global_store,
                                                    question,
                                                    ['My name is'],
-                                                   [],
+                                                   NAMES,
                                                    20),
                                transitions={'SUCCESS': 'DetectOperator',
                                             'FAILURE':'StartTalking',
@@ -125,7 +92,7 @@ def create_state_machine(action_dict):
                                                    ['I am ready'],
                                                    [],
                                                    20),
-                               transitions={'SUCCESS':'Handover',
+                               transitions={'SUCCESS':'HandoverLuggage',
                                             'FAILURE':'AskForHelp',
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
 
@@ -179,12 +146,19 @@ def create_state_machine(action_dict):
                   "bearing with me, have a nice day!")
         smach.StateMachine.add('ThankOperator',
                                SpeakState(action_dict, global_store, phrase),
-                               transitions={'SUCCESS':'NavToStart',
-                                            'FAILURE':'NavToStart'})
+                               transitions={'SUCCESS':'SetNavToStart',
+                                            'FAILURE':'SetNavToStart'})
         
-        # Navigate back to the start!   
+        
+        # Set Nav Back To Start
+        func = lambda : global_store['stored_location']  
+        smach.StateMachine.add('SetNavToStart',
+                               SetNavGoalState(action_dict, global_store, func),
+                               transitions={'SUCCESS':'NavToStart'}) 
+
+        # Navigate back to the start!
         smach.StateMachine.add('NavToStart',
-                               NavigateToStartState(action_dict, global_store),
+                               NavigateState(action_dict, global_store),
                                transitions={'SUCCESS': 'Finish',
                                             'FAILURE': 'NavToStart',
                                             'REPEAT_FAILURE': 'TASK_FAILURE'})

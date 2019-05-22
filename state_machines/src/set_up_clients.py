@@ -14,6 +14,7 @@ import rospy
 import actionlib
 from orion_actions.srv import * # pylint: disable=unused-wildcard-import
 from orion_actions.msg import * # pylint: disable=unused-wildcard-import
+from move_base_msgs.msg import MoveBaseAction
 
 def create_stage_1_clients(task_number):
     """ Function returns the dictionary of all clients needed for task.
@@ -46,9 +47,9 @@ def create_stage_1_clients(task_number):
     action_dict['SOMQuery'] = rospy.ServiceProxy('som/query', SOMQuery)
 
     # Now add common action clients
-    action_dict['Navigate'] = actionlib.SimpleActionClient('navigate', 
-                                                           NavigateAction)
-    action_dict['Navigate'].wait_for_server()
+    action_dict['Navigate'] = actionlib.SimpleActionClient('move_base', 
+                                                           MoveBaseAction)
+    action_dict['Navigate'].wait_for_server() # TODO: Change if necessary
     action_dict['Speak'] = actionlib.SimpleActionClient('speak', SpeakAction)
     action_dict['Speak'].wait_for_server()
     action_dict['SpeakAndListen'] = \

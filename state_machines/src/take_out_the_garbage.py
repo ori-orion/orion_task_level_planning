@@ -41,18 +41,8 @@ class FindNearestBinState(ActionServiceState):
             if match.obj1.obj_id not in self.global_store['bins_taken_out']:
                 pose = match.obj1.pose_estimate.most_likely_pose
 
-                x = pose.position.x
-                y = pose.position.y
-
-                quat = [pose.orientation.x, pose.orientation.y, 
-                        pose.orientation.z, pose.orientation.w]
-                
-                (_, _, yaw) = euler_from_quaternion(quat)
-
-                theta = yaw
-
                 self.global_store['current_bin'] = match.obj1.obj_id
-                self.global_store['nav_location'] = (x, y, theta)
+                self.global_store['nav_location'] = pose
                 return self._outcomes[0]
 
         if self.global_store['current_bin'] == None:

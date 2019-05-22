@@ -60,13 +60,13 @@ def go_to_bar(action_dict):
                                   Relation(), SOMObservation())
 
 
-def go_to_last_person(action_dict):
+def go_to_last_person(action_dict, global_store):
     """ Function gets location of last person met. """
-    obj1 = SOMObservation()
-    obj1.obj_id = self.global_store['people_found'][-1]
 
-    return get_location_of_object(action_dict, obj1, 
-                                  Relation(), SOMObservation())
+    person_object = action_dict['SOMLookup'](global_store['people_found'][-1])
+
+    pose = person_object.pose_estimate.most_recent_pose
+    return pose
 
 
 def create_state_machine(action_dict):
@@ -219,7 +219,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelp'})
         
         # Set navigation goal back to person
-        func = lambda : go_to_last_person(action_dict)
+        func = lambda : go_to_last_person(action_dict, global_store)
         smach.StateMachine.add('SetNavToPerson',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToPerson'})
