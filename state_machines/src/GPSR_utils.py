@@ -8,6 +8,7 @@ Author: Charlie Street
 Owner: Charlie Street
 """
 
+from GPSR_semantic_actions import GPSRSemanticActions
 from GPSR_parser import GPSRParser
 
 # Grako doesn't seem to deal with whitespace characters the way I imagined
@@ -41,4 +42,6 @@ def parse_string(parser, string):
     # Could you please causes an issue, probably with lookahead...
     if filtered.lower().find('could you please') == 0:
         filtered = filtered[10:]
-    return parser.parse(filtered, rule_name='s')
+    return parser.parse(filtered, 
+                        rule_name='s', 
+                        semantics=GPSRSemanticActions())

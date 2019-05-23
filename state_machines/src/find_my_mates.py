@@ -135,25 +135,13 @@ def go_to_instruction_point(action_dict):
                                   Relation(), SOMObservation())
 
 
-def get_operator_location(action_dict):
+def get_operator_location(action_dict, global_store):
     """ Gets the location of our operator. """
 
-    obj1 = SOMObservation()
-    obj1.type = 'person'
+    operator = action_dict['SOMLookup'](global_store['operator'])
 
-    matches = action_dict['SOMQuery'](obj1, Relation(), SOMObservation())
+    return operator.pose_estimate.most_recent_pose
 
-    for match in matches:
-        if match.obj1.task_role == 'operator': # If we've found the operator
-            x = match.obj1.pose_estimate.most_recent_pose.position.x
-            y = match.obj1.pose_estimate.most_recent_pose.position.y
-
-            quart = match.obj1.pose_estimate.most_recent_pose.orientation
-            quart_list = [quart.x, quart.y, quart.z, quart.w]
-            (_, _, yaw) = euler_from_quaternion(quart_list)
-            return (x, y, yaw)
-
-    raise Exception('Unable to find operator!')
 
 def create_state_machine(action_dict):
     """ This function creates and returns the state machine for the task. """
@@ -196,12 +184,12 @@ def create_state_machine(action_dict):
         
         # Ask for an operator
         question = ("Hi, nice to meet you! Are you the operator who is looking "+
-                   "for their friends!")
+                   "for their friends! If so, please tell me your name.")
         smach.StateMachine.add('AskForOperator',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Find my mates'],
+                                                   NAMES,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'MemoriseOperator',
@@ -235,7 +223,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['My name is'],
+                                                   NAMES,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'MemorisePerson',
@@ -263,7 +251,7 @@ def create_state_machine(action_dict):
                                             'NO':'SetOpDestination'})
         
         # Set operator destination
-        function = lambda : get_operator_location(action_dict)
+        function = lambda : get_operator_location(action_dict, global_store)
         smach.StateMachine.add('SetOpDestination',
                                SetNavGoalState(action_dict, 
                                                global_store, 

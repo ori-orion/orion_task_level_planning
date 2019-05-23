@@ -24,7 +24,27 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                     NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, PointToObjectGoal
 
+from orion_actions.msg import SOMObservation
+from geometry_msgs.msg import Pose
+from move_base_msgs.msg import MoveBaseGoal
+from actionlib_msgs.msg import GoalStatus
+from tmc_msgs.msg import TalkRequestGoal, Voice
+
 FAILURE_THRESHOLD = 3
+
+# TODO: Update nearer the time!
+NAMES = ['Alex', 'Charlie', 'Elizabeth', 'Francis', 'Jennifer', 'Linda',
+         'Mary', 'Patricia', 'Robin', 'Skyler', 'James', 'John', 'Michael',
+         'Robert', 'William', 'Mark', 'Chia-Man', 'Dennis', 'Matt', 'Shu', 
+         'Mia']
+
+READY = ['I am ready', 'ready', "let's go", "I'm ready"]
+DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
+COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
+           "Black", "White", "Grey", "Brown", "Beige"]
+
+RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
+OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: Fill in
 
 class ActionServiceState(smach.State):
     """ A subclass of Smach States which gives access to actions/services.
@@ -55,28 +75,15 @@ class ActionServiceState(smach.State):
         self._outcomes = outcomes
 
 
-def get_location_of_object(action_dict, obj_1, rel, obj_2):
-    """ Function returns the location of an object in terms of (x,y,theta). 
-    
-    This function uses the semantic mapping to get the closest location of an
-    object.
+def pose_to_xy_theta(pose):
+    """ Function converts a pose to an (x,y,theta) triple.
 
     Args:
-        action_dict: our action dictionary to be able to use the services.
-        obj_1: The first SOMObservation message
-        rel: The Relation message between the objects
-        obj_2: The second SOMObservation message
-    
-    Returns: nav_goal: The (x,y,theta triple)
+        pose: The pose msg
 
+    Return:
+        triple: A triple consisting of (x,y,theta)
     """
-    matches = action_dict['SOMQuery'](obj_1, rel, obj_2)
-    
-    if len(matches) == 0:
-        raise Exception("No matches found in Semantic Map")
-    
-    pose = matches[0].obj1.pose_estimate.most_likely_pose
-
     x = pose.position.x
     y = pose.position.y
 
@@ -87,7 +94,33 @@ def get_location_of_object(action_dict, obj_1, rel, obj_2):
 
     theta = yaw
 
-    return (x, y, theta)
+    return (x,y,theta)
+
+
+def get_location_of_object(action_dict, obj_1, rel, obj_2):
+    """ Function returns the location of an object in terms of a pose. 
+    
+    This function uses the semantic mapping to get the closest location of an
+    object.
+
+    Args:
+        action_dict: our action dictionary to be able to use the services.
+        obj_1: The first SOMObservation message
+        rel: The Relation message between the objects
+        obj_2: The second SOMObservation message
+    
+    Returns: 
+        pose: The pose of the object
+
+    """
+    matches = action_dict['SOMQuery'](obj_1, rel, obj_2)
+    
+    if len(matches) == 0:
+        raise Exception("No matches found in Semantic Map")
+    
+    pose = matches[0].obj1.pose_estimate.most_likely_pose
+
+    return pose
 
 
 class SpeakState(ActionServiceState):
@@ -107,17 +140,15 @@ class SpeakState(ActionServiceState):
                                          outcomes=outcomes)
     
     def execute(self, userdata):
-        action_goal = SpeakGoal()
-        action_goal.sentence = self.phrase
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish
+        action_goal.data.sentence = self.phrase
         self.action_dict['Speak'].send_goal(action_goal)
         self.action_dict['Speak'].wait_for_result()
 
-        # Boolean value returned
-        result = self.action_dict['Speak'].get_result().succeeded
-        if result:
-            return self._outcomes[0]
-        else:
-            return self._outcomes[1]
+        # Can only succeed
+        return self._outcomes[0]
+
 
 class CheckDoorIsOpenState(ActionServiceState):
     """ Smach state for robot to check if door is open. This is a common
@@ -309,9 +340,9 @@ class GetRobotLocationState(ActionServiceState):
                                                     outcomes=outcomes)
         
     def execute(self, userdata):
-        # TODO: Get location!
-        # Should be a triple (x,y,theta)
-        self.global_store['stored_location'] = 'DUMMY_LOCATION'
+        # Wait for one message on topic and then set as the location
+        pose = rospy.wait_for_message('/global_pose', Pose)
+        self.global_store['stored_location'] = pose
 
 
 class SpeakAndListenState(ActionServiceState):
@@ -397,7 +428,6 @@ class HotwordListenState(ActionServiceState):
         result = self.action_dict['HotwordListen'].get_result()
 
         if result.succeeded:
-            self.global_store['last_response'] = result.answer
             return self._outcomes[0]
         else:
             return self._outcomes[1]
@@ -450,10 +480,28 @@ class OperatorDetectState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in, this will likely do stuff with the semantic map
-        # Make sure to store location too!
-        # Update people_found
-        pass
+        operator = SOMObservation()
+        operator.type = 'person'
+        operator.task_role = 'operator'
+        # TODO: Pose observation of person
+        operator.robot_pose = rospy.wait_for_message('/global_pose', Pose)
+        # TODO: Room name (what room are we in)
+        
+        for name in NAMES:
+            if name in self.global_store['last_response']:
+                operator.name = name
+                break
+
+        # TODO: Age
+        # TODO: Gender
+        # TODO: Shirt Colour 
+        result = self.action_dict['SOMObserve'](operator)
+        if not result.result:
+            return self._outcomes[1]
+        else:
+            self.global_store['operator'] = result.obj_id
+            self.global_store['people_found'].append(result.obj_id)
+            return self._outcomes[0]
 
 
 class MemorisePersonState(ActionServiceState):
@@ -466,11 +514,24 @@ class MemorisePersonState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in !
-        # Should memorise like in operator detect but in list for this task
-        # Should take drink information if possible/appropriate
-        # Update people found
-        pass
+        person = SOMObservation()
+        person.type = 'person'
+        # TODO: Pose observation of person
+        person.robot_pose = rospy.wait_for_message('/global_pose', Pose)
+        # TODO: Room name (what room are we in)
+        for name in NAMES:
+            if name in self.global_store['last_response']:
+                person.name = name
+                break
+        # TODO: Age
+        # TODO: Gender
+        # TODO: Shirt colour
+        result = self.action_dict['SOMObserve'](person)
+        if not result.result:
+            return self._outcomes[1]
+        else:
+            self.global_store['people_found'].append(result.obj_id)
+            return self._outcomes[0]
 
 
 #--- Code for following while listening for a hotword    
@@ -488,7 +549,7 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = self.global_store['operator'] # TODO: Fix
+        follow_goal.object_name = 'person' # TODO: Fix later!
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
@@ -538,7 +599,7 @@ def make_follow_hotword_state(action_dict, global_store):
     con = Concurrence(outcomes=['SUCCESS', 'FAILURE', 'REPEAT_FAILURE'],
                       default_outcome='FAILURE',
                       child_termination_cb=follow_child_cb,
-                      outcome_map=follow_out_cb)
+                      outcome_cb=follow_out_cb)
     
     with con:
         Concurrence.add('Follow', FollowState(action_dict, global_store))
@@ -552,7 +613,7 @@ def make_follow_hotword_state(action_dict, global_store):
 class NavigateState(ActionServiceState):
     """ State for navigating to location on map.
 
-    This state is given a triple (x,y,theta) and navigates there.
+    This state is given a pose and navigates there.
     """
 
     def __init__(self, action_dict, global_store):
@@ -565,19 +626,19 @@ class NavigateState(ActionServiceState):
             self.global_store['nav_failure'] = 0
     
     def execute(self, userdata):
-        triple = self.global_store['nav_location']
+        pose = self.global_store['nav_location']
 
-        nav_goal = NavigateGoal()
-        nav_goal.x = triple[0]
-        nav_goal.y = triple[1]
-        nav_goal.theta = triple[2]
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = pose
 
-        self.action_dict['Navigate'].send_goal(nav_goal)
+        self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
 
-        result = self.action_dict['Navigate'].get_result().succeeded
+        result = self.action_dict['Navigate'].get_result().status
 
-        if result:
+        if result == GoalStatus.SUCCEEDED:
             del self.global_store['nav_failure']
             return self._outcomes[0]
         else:

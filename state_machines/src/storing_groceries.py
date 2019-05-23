@@ -154,7 +154,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Opened'],
+                                                   ['Opened', 'I have'],
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'SetNavToTable',
@@ -182,13 +182,13 @@ def create_state_machine(action_dict):
                                             'NO_ITEMS':'TASK_SUCCESS'})
         
         # Ask for help
-        question = ("Could someone please put the item closest to me in my " +
-                    "hand please?")
+        question = ("Could someone please get the item closest to me and " +
+                    "tell me when you're ready to hand it to me?")
         smach.StateMachine.add('AskForPickupHelp',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   READY,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
@@ -217,8 +217,9 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['i will'],
-                                                   [],
+                                                   map(RELATIONS, 
+                                                   (lambda x: x + ' <param>')),
+                                                   OBJECTS,
                                                    20),
                                transitions={'SUCCESS':'UpdateItemInfo',
                                             'FAILURE':'AskForPosHelp',
@@ -257,7 +258,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   ['I will', 'yes'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverObject',

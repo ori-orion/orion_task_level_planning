@@ -49,7 +49,7 @@ def choose_task():
             print("Carry My Luggage Selected.")
             rospy.init_node('carry_my_luggage_state_machine')
             action_dict = create_stage_1_clients(task)
-            sm = carry_my_luggage.create_state_machine(action_dict)
+            sm = carry_my_luggage.create_state_machine({})
             outcome = sm.execute()
             print("OUTCOME: " + str(outcome))
 

@@ -58,8 +58,12 @@ class UpdateWithDrinkState(ActionServiceState):
                                                    outcomes=outcomes)
 
     def execute(self, userdata):
-        drink_index = self.global_store['last_response'].rfind(' ')
-        drink = self.global_store['last_response'][drink_index+1:]
+
+        drink = ""
+        for avail_drink in DRINKS:
+            if avail_drink in self.global_store['last_response']:
+                drink = avail_drink
+                break
 
         # Get last person memorised
         last_person = self.global_store['people_found'][-1]
@@ -266,7 +270,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['door is open'],
+                                                   ['door is open', 'I have'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'CheckDoorOpen',
@@ -300,7 +304,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['my name is'],
+                                                   NAMES,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'MemorisePerson',
@@ -319,8 +323,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I like drinking'],
-                                                   ['wine', 'beer', 'coke'],
+                                                   DRINKS,
+                                                   [],
                                                    20),
                                transitions={'SUCCESS':'UpdateWithDrink',
                                             'FAILURE':'AskDrink',

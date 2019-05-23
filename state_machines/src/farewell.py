@@ -57,8 +57,11 @@ class UpdateCoatInfoState(ActionServiceState):
     
     def execute(self, userdata):
         # Get the last word of the last response
-        last_word_index = self.global_store['last_response'].rfind(' ')
-        colour = self.global_store['last_response'][last_word_index+1:]
+        colour = ""
+        for coat_colour in COLOURS:
+            if coat_colour in self.global_store['last_response']:
+                colour = coat_colour
+                break
 
         person_update = SOMObservation()
         person_update.obj_id = self.global_store['people_found'][-1]
@@ -171,8 +174,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['my name is'],
-                                                   ['kyle'],
+                                                   NAMES,
+                                                   [],
                                                    20),
                                transitions={'SUCCESS':'MemorisePerson',
                                             'FAILURE':'AskName',
@@ -190,8 +193,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['my coat is'],
-                                                   ['red'],
+                                                   COLOURS,
+                                                   [],
                                                    20),
                                transitions={'SUCCESS':'UpdateCoatInfo',
                                             'FAILURE':'AskCoat',
@@ -229,7 +232,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'ReceiveCoat',
@@ -263,7 +266,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverCoat',
@@ -284,7 +287,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'SetNavToDoor',
@@ -344,7 +347,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverUmbrella',
@@ -378,7 +381,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'ToHighViz',
@@ -427,7 +430,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandUmbrellaBack',

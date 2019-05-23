@@ -41,18 +41,8 @@ class FindNearestBinState(ActionServiceState):
             if match.obj1.obj_id not in self.global_store['bins_taken_out']:
                 pose = match.obj1.pose_estimate.most_likely_pose
 
-                x = pose.position.x
-                y = pose.position.y
-
-                quat = [pose.orientation.x, pose.orientation.y, 
-                        pose.orientation.z, pose.orientation.w]
-                
-                (_, _, yaw) = euler_from_quaternion(quat)
-
-                theta = yaw
-
                 self.global_store['current_bin'] = match.obj1.obj_id
-                self.global_store['nav_location'] = (x, y, theta)
+                self.global_store['nav_location'] = pose
                 return self._outcomes[0]
 
         if self.global_store['current_bin'] == None:
@@ -172,7 +162,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will help'],
+                                                   ['I will help', 'Done', 
+                                                    "I've removed the lid"],
                                                    [],
                                                    20),
                                 transitions={'SUCCESS':'GrabGarbage',
@@ -188,12 +179,12 @@ def create_state_machine(action_dict):
 
         # Ask for help putting bin lid on floor
         question = ("Please could someone take the bin lid from me and " +
-                   "let me know?")
+                   "let me know once they're ready?")
         smach.StateMachine.add('AskForHandover',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   READY,
                                                    [],
                                                    20),
                                 transitions={'SUCCESS':'HandoverLid',
@@ -214,13 +205,13 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelpWithGarbage'})
         
         # Ask for help with garbage
-        question = ("Could someone pass me the garbage bag please and " +
-                   "let me know once you have?")
+        question = ("Could someone pick up the garbage bag please and " +
+                   "let me know when you're ready to hand it to me?")
         smach.StateMachine.add('AskForHelpWithGarbage',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   READY,
                                                    [],
                                                    timeout=30),
                                transitions={'SUCCESS':'HandoverGarbage',
@@ -253,13 +244,13 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHelpDropping'})
         
         # Ask for help dropping
-        question = ("Will someone help me put this bag on the floor and let me "+
-                   "know once they have?")
+        question = ("Will someone help me put this bag on the floor, letting "+
+                   "me know when they're ready to take it from me?")
         smach.StateMachine.add('AskForHelpDropping',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'GiveGarbage',
