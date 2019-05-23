@@ -30,7 +30,7 @@ def create_stage_1_clients(task_number):
     """
 
     action_dict = {}
-
+    rospy.loginfo('Setting up SOM service proxies...')
     # Start with semantic mapping stuff
     rospy.wait_for_service('som/clear_database')
     action_dict['SOMClearDatabase'] = rospy.ServiceProxy('som/clear_database',
@@ -46,41 +46,59 @@ def create_stage_1_clients(task_number):
     action_dict['SOMObserve'] = rospy.ServiceProxy('som/observe', SOMObserve)
     rospy.wait_for_service('som/query')
     action_dict['SOMQuery'] = rospy.ServiceProxy('som/query', SOMQuery)
-
+    rospy.loginfo('SOM service proxies set up...')
     # Now add common action clients
+    rospy.loginfo('Setting up Move Base client...')
     action_dict['Navigate'] = actionlib.SimpleActionClient('move_base', 
                                                            MoveBaseAction)
     action_dict['Navigate'].wait_for_server() # TODO: Change if necessary
+    rospy.loginfo('Move Base ready...')
+    rospy.loginfo('Can I speak?...')
     action_dict['Speak'] = actionlib.SimpleActionClient('talk_request_action', 
                                                         TalkRequestAction)
     action_dict['Speak'].wait_for_server()
+    rospy.loginfo('I can speak!...')
+    rospy.loginfo('Can I listen?...')
     action_dict['SpeakAndListen'] = \
         actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
     action_dict['SpeakAndListen'].wait_for_server()
+    rospy.loginfo('I can listen!...')
 
     # Now do task specific stuff
     if task_number == 1: # Carry My Luggage
+        rospy.loginfo('Can I pick up objects?...')
         action_dict['PickUpObject'] = \
             actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         action_dict['PickUpObject'].wait_for_server()
+        rospy.loginfo('I can pick up objects!...')
+        rospy.loginfo('Can I get pointed objects?...')
         action_dict['GetPointedObject'] = \
             actionlib.SimpleActionClient('get_pointed_object', 
                                          GetPointedObjectAction)
         action_dict['GetPointedObject'].wait_for_server()
+        rospy.loginfo('I can get pointed objects!')
+        rospy.loginfo('Can I receive objects?...')
         action_dict['ReceiveObjectFromOperator'] = \
             actionlib.SimpleActionClient('receive_object_from_operator',
                                          ReceiveObjectFromOperatorAction)
         action_dict['ReceiveObjectFromOperator'].wait_for_server()
+        rospy.loginfo('I can receive objects!...')
+        rospy.loginfo('Can I follow you to the end of the earth?...')
         action_dict['Follow'] = actionlib.SimpleActionClient('follow', 
                                                              FollowAction)
         action_dict['Follow'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I listen for a hothothotword?...')
         action_dict['HotwordListen'] = \
             actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
         action_dict['HotwordListen'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I give you objects?...')
         action_dict['GiveObjectToOperator'] = \
             actionlib.SimpleActionClient('give_object_to_operator', 
                                          GiveObjectToOperatorAction)
         action_dict['GiveObjectToOperator'].wait_for_server()
+        rospy.loginfo('I can!...')
 
     elif task_number == 2: # Clean Up
         action_dict['PickUpObject'] = \
