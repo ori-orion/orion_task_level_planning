@@ -397,8 +397,8 @@ class SpeakAndListenState(ActionServiceState):
         result = self.action_dict['SpeakAndListen'].get_result()
         if result.succeeded:
             self.global_store['last_response'] = result.answer
-
-            del self.global_store['speak_listen_failure']
+            if 'speak_listen_failure' in self.global_store:
+                del self.global_store['speak_listen_failure']
             return self._outcomes[0]
         else:
             self.global_store['speak_listen_failure'] += 1
@@ -458,7 +458,7 @@ class PickUpPointedObject(ActionServiceState):
         pickup_goal.goal_tf = obj""" # TODO: Change later when we can do pointed objects
 
         pickup_goal = PickUpObjectGoal()
-        pickup_goal.goal_tf = 'tomato'
+        pickup_goal.goal_tf = 'ar_marker/201'
 
         self.action_dict['PickUpObject'].send_goal(pickup_goal)
         self.action_dict['PickUpObject'].wait_for_result()
@@ -570,7 +570,8 @@ class FollowState(ActionServiceState):
                 return self._outcomes[2]
             return self._outcomes[1]
         else:
-            del self.global_store['follow_failure']
+            if 'follow_failure' in self.global_store:
+                del self.global_store['follow_failure']
             return self._outcomes[0]
 
 
@@ -644,7 +645,8 @@ class NavigateState(ActionServiceState):
         result = self.action_dict['Navigate'].get_result().status
 
         if result == GoalStatus.SUCCEEDED:
-            del self.global_store['nav_failure']
+            if 'nav_failure' in self.global_store:
+                del self.global_store['nav_failure']
             return self._outcomes[0]
         else:
             self.global_store['nav_failure'] += 1
