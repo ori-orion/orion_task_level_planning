@@ -32,6 +32,7 @@ def create_state_machine(action_dict):
 
     # Initialise global store
     global_store = {}
+    global_store['people_found'] = []
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
