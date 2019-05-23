@@ -37,8 +37,12 @@ class CheckDrinkState(ActionServiceState):
                                               outcomes=outcomes)
     
     def execute(self, userdata):
-        drink_index = self.global_store['last_response'].rfind(' ')
-        drink = self.global_store['last_response'][drink_index+1:]
+
+        drink = ""
+        for avail_drink in DRINKS:
+            if avail_drink in self.global_store['last_response']:
+                drink = avail_drink
+                break
 
         if drink in self.global_store['drinks']:
             # Update drink in person SOM object
@@ -131,7 +135,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['My name is'],
+                                                   NAMES,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'MemorisePerson',
@@ -150,7 +154,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ["I'd like"],
+                                                   DRINKS,
                                                    [],
                                                    20),
                                 transitions={'SUCCESS':'CheckDrink',
@@ -204,7 +208,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Ready'],
+                                                   READY,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'HandoverDrink',
@@ -238,7 +242,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverDrinkToGuest',

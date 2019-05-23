@@ -64,7 +64,7 @@ def set_nav_goal_to_kitchen_item(item, action_dict):
     """
 
     obj1 = SOMObservation()
-    obj2.type = item
+    obj1.type = item
     obj1.room_name = 'kitchen'
 
     rel = Relation()
@@ -147,7 +147,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I am ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'ReceiveObject',
@@ -197,7 +197,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverBowl',
@@ -226,7 +226,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverPourable',
@@ -255,7 +255,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverSpoon',

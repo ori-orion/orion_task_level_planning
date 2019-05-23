@@ -52,8 +52,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['My name is'],
                                                    NAMES,
+                                                   [],
                                                    20),
                                transitions={'SUCCESS': 'DetectOperator',
                                             'FAILURE':'StartTalking',
@@ -74,7 +74,7 @@ def create_state_machine(action_dict):
         # Talk to the operator pre-follow
         phrase = ("I've picked up the luggage. I'm ready to follow you " +
                  "whenever you're ready! When you want me to stop following, " +
-                 "please say my name.")
+                 "please say stop.")
         # Regardless of failure, keep pushing on
         smach.StateMachine.add('ConfirmPickup',
                                SpeakState(action_dict, global_store, phrase),
@@ -89,7 +89,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict, 
                                                    global_store,
                                                    question, 
-                                                   ['I am ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'HandoverLuggage',
@@ -127,7 +127,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict, 
                                                    global_store, 
                                                    question, 
-                                                   ['I am ready'],
+                                                   READY,
                                                    [],
                                                    20),
                                 transitions={'SUCCESS':'GiveLuggageBack',

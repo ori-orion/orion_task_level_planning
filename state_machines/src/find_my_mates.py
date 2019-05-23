@@ -184,12 +184,12 @@ def create_state_machine(action_dict):
         
         # Ask for an operator
         question = ("Hi, nice to meet you! Are you the operator who is looking "+
-                   "for their friends!")
+                   "for their friends! If so, please tell me your name.")
         smach.StateMachine.add('AskForOperator',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Find my mates'],
+                                                   NAMES,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'MemoriseOperator',
@@ -223,7 +223,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['My name is'],
+                                                   NAMES,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'MemorisePerson',

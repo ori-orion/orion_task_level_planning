@@ -28,6 +28,7 @@ from orion_actions.msg import SOMObservation
 from geometry_msgs.msg import Pose
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
+from tmc_msgs.msg import TalkRequestGoal, Voice
 
 FAILURE_THRESHOLD = 3
 
@@ -36,6 +37,14 @@ NAMES = ['Alex', 'Charlie', 'Elizabeth', 'Francis', 'Jennifer', 'Linda',
          'Mary', 'Patricia', 'Robin', 'Skyler', 'James', 'John', 'Michael',
          'Robert', 'William', 'Mark', 'Chia-Man', 'Dennis', 'Matt', 'Shu', 
          'Mia']
+
+READY = ['I am ready', 'ready', "let's go", "I'm ready"]
+DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
+COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
+           "Black", "White", "Grey", "Brown", "Beige"]
+
+RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
+OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: Fill in
 
 class ActionServiceState(smach.State):
     """ A subclass of Smach States which gives access to actions/services.
@@ -131,17 +140,14 @@ class SpeakState(ActionServiceState):
                                          outcomes=outcomes)
     
     def execute(self, userdata):
-        action_goal = SpeakGoal()
-        action_goal.sentence = self.phrase
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish
+        action_goal.data.sentence = self.phrase
         self.action_dict['Speak'].send_goal(action_goal)
         self.action_dict['Speak'].wait_for_result()
 
-        # Boolean value returned
-        result = self.action_dict['Speak'].get_result().succeeded
-        if result:
-            return self._outcomes[0]
-        else:
-            return self._outcomes[1]
+        # Can only succeed
+        return self._outcomes[0]
 
 
 class CheckDoorIsOpenState(ActionServiceState):
@@ -422,7 +428,6 @@ class HotwordListenState(ActionServiceState):
         result = self.action_dict['HotwordListen'].get_result()
 
         if result.succeeded:
-            self.global_store['last_response'] = result.answer
             return self._outcomes[0]
         else:
             return self._outcomes[1]
@@ -481,8 +486,12 @@ class OperatorDetectState(ActionServiceState):
         # TODO: Pose observation of person
         operator.robot_pose = rospy.wait_for_message('/global_pose', Pose)
         # TODO: Room name (what room are we in)
-        last_space = self.global_store['last_response'].rfind(' ')
-        operator.name = self.global_store['last_response'][last_space+1:]
+        
+        for name in NAMES:
+            if name in self.global_store['last_response']:
+                operator.name = name
+                break
+
         # TODO: Age
         # TODO: Gender
         # TODO: Shirt Colour 
@@ -510,8 +519,10 @@ class MemorisePersonState(ActionServiceState):
         # TODO: Pose observation of person
         person.robot_pose = rospy.wait_for_message('/global_pose', Pose)
         # TODO: Room name (what room are we in)
-        last_space = self.global_store['last_response'].rfind(' ')
-        person.name = self.global_store['last_response'][last_space+1:]
+        for name in NAMES:
+            if name in self.global_store['last_response']:
+                person.name = name
+                break
         # TODO: Age
         # TODO: Gender
         # TODO: Shirt colour
@@ -538,7 +549,7 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = self.global_store['operator'] # TODO: Fix
+        follow_goal.object_name = 'person' # TODO: Fix later!
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True

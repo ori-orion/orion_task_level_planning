@@ -103,12 +103,12 @@ def create_state_machine(action_dict):
         
         # Ask For help opening the door
         question = ("I can't open the door. Can someone please help me and " + 
-                   "let me know?")
+                   "let me know when they've opened it?")
         smach.StateMachine.add('AskForDoorHelp',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['I will'],
+                                                   ['open'],
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'CheckDoorOpen',
@@ -141,12 +141,12 @@ def create_state_machine(action_dict):
         
         # Ask for help if can't grasp object
         question = ("I can't pick up this object. Can someone help me please " +
-                    "and let me know once they have?")
+                    "and let me know once they ready to hand it to me?")
         smach.StateMachine.add('AskForHelpGrasping',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ["Done"],
+                                                   READY,
                                                    [],
                                                    20),
                                transitions={'SUCCESS':'ReceiveObject',
@@ -173,8 +173,9 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['The item goes here'],
-                                                   [],
+                                                   map(RELATIONS, 
+                                                   (lambda x: x + ' <param>')),
+                                                   OBJECTS,
                                                    30),
                                transitions={'SUCCESS':'UpdateItemLocation',
                                             'FAILURE':'AskForHelpLocation',
@@ -203,13 +204,13 @@ def create_state_machine(action_dict):
         
         # Ask for help Placing
         question = ("Could someone please take the item I'm holding and place " +
-                   "it on the surface in front of me and let me know when " +
-                   "they have? Thank you.")
+                   "it on the surface in front of me, letting me know when " +
+                   "they're ready for me to have it over? Thank you.")
         smach.StateMachine.add('AskForHelpPlacing',
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['Its placed'],
+                                                   READY,
                                                    [],
                                                    30),
                                transitions={'SUCCESS':'HandoverObject',
