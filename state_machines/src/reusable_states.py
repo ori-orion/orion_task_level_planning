@@ -341,8 +341,10 @@ class GetRobotLocationState(ActionServiceState):
         
     def execute(self, userdata):
         # Wait for one message on topic and then set as the location
-        pose = rospy.wait_for_message('/global_pose', Pose)
+        pose = rospy.wait_for_message('/robot_pose', Pose) # TODO: Weird?
         self.global_store['stored_location'] = pose
+
+        return self._outcomes[0]
 
 
 class SpeakAndListenState(ActionServiceState):
