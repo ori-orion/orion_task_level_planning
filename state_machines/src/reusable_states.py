@@ -554,7 +554,7 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = 'person' # TODO: Fix later!
+        follow_goal.object_name = 'tomato' # TODO: Fix later!
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
@@ -611,7 +611,7 @@ def make_follow_hotword_state(action_dict, global_store):
         Concurrence.add('Follow', FollowState(action_dict, global_store))
         Concurrence.add('Hotword', HotwordListenState(action_dict, 
                                                       global_store,
-                                                      120))
+                                                      30))
     
     return con
 # --- End of follow code
