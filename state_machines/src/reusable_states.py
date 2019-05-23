@@ -458,7 +458,7 @@ class PickUpPointedObject(ActionServiceState):
         pickup_goal.goal_tf = obj""" # TODO: Change later when we can do pointed objects
 
         pickup_goal = PickUpObjectGoal()
-        puckup_goal.goal_tf = 'plant'
+        pickup_goal.goal_tf = 'plant'
 
         self.action_dict['PickUpObject'].send_goal(pickup_goal)
         self.action_dict['PickUpObject'].wait_for_result()
