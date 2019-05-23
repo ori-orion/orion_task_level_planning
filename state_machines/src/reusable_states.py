@@ -447,13 +447,16 @@ class PickUpPointedObject(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        self.action_dict['GetPointedObject'].send_goal(GetPointedObjectGoal())
+        """self.action_dict['GetPointedObject'].send_goal(GetPointedObjectGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
         
         obj = self.action_dict['GetPointedObject'].get_result()
 
         pickup_goal = PickUpObjectGoal()
-        pickup_goal.goal_tf = obj
+        pickup_goal.goal_tf = obj""" # TODO: Change later when we can do pointed objects
+
+        pickup_goal = PickUpObjectGoal()
+        puckup_goal.goal_tf = 'plant'
 
         self.action_dict['PickUpObject'].send_goal(pickup_goal)
         self.action_dict['PickUpObject'].wait_for_result()

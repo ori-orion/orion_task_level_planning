@@ -72,10 +72,10 @@ def create_stage_1_clients(task_number):
         action_dict['PickUpObject'].wait_for_server()
         rospy.loginfo('I can pick up objects!...')
         rospy.loginfo('Can I get pointed objects?...')
-        action_dict['GetPointedObject'] = \
+        """action_dict['GetPointedObject'] = \
             actionlib.SimpleActionClient('get_pointed_object', 
                                          GetPointedObjectAction)
-        action_dict['GetPointedObject'].wait_for_server()
+        action_dict['GetPointedObject'].wait_for_server()""" # TODO: Bring back later
         rospy.loginfo('I can get pointed objects!')
         rospy.loginfo('Can I receive objects?...')
         action_dict['ReceiveObjectFromOperator'] = \
