@@ -397,8 +397,7 @@ class SpeakAndListenState(ActionServiceState):
         result = self.action_dict['SpeakAndListen'].get_result()
         if result.succeeded:
             self.global_store['last_response'] = result.answer
-            if 'speak_listen_failure' in self.global_store:
-                del self.global_store['speak_listen_failure']
+            self.global_store['speak_listen_failure'] = 0
             return self._outcomes[0]
         else:
             self.global_store['speak_listen_failure'] += 1
@@ -425,12 +424,21 @@ class HotwordListenState(ActionServiceState):
         hotword_goal = HotwordListenGoal()
         hotword_goal.timeout = self.timeout
         self.action_dict['HotwordListen'].send_goal(hotword_goal)
-        self.action_dict['HotwordListen'].wait_for_result()
-        
-        result = self.action_dict['HotwordListen'].get_result()
 
-        if result.succeeded:
-            return self._outcomes[0]
+        goal_finished = False
+        while not self.preempt_requested() and not goal_finished:
+            timeout = rospy.Duration(secs=2)
+            goal_finished = \
+                self.action_dict['HotwordListen'].wait_for_result(timeout=
+                                                                  timeout)
+        
+        if goal_finished:
+            result = self.action_dict['HotwordListen'].get_result()
+
+            if result.succeeded:
+                return self._outcomes[0]
+            else:
+                return self._outcomes[1]
         else:
             return self._outcomes[1]
 
@@ -570,8 +578,7 @@ class FollowState(ActionServiceState):
                 return self._outcomes[2]
             return self._outcomes[1]
         else:
-            if 'follow_failure' in self.global_store:
-                del self.global_store['follow_failure']
+            self.global_store['follow_failure'] = 0
             return self._outcomes[0]
 
 
@@ -645,8 +652,7 @@ class NavigateState(ActionServiceState):
         result = self.action_dict['Navigate'].get_result().status
 
         if result == GoalStatus.SUCCEEDED:
-            if 'nav_failure' in self.global_store:
-                del self.global_store['nav_failure']
+            self.global_store['nav_failure'] = 0
             return self._outcomes[0]
         else:
             self.global_store['nav_failure'] += 1

@@ -71,6 +71,7 @@ def create_state_machine(action_dict):
     global_store = {}
     global_store['start_time'] = time.time()
     global_store['tasks_completed'] = 0
+    global_store['people_found'] = []
 
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
 
