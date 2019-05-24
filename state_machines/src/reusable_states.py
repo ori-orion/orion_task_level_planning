@@ -440,6 +440,7 @@ class HotwordListenState(ActionServiceState):
             else:
                 return self._outcomes[1]
         else:
+            self.action_dict['HotwordListen'].cancel_all_goals()
             return self._outcomes[1]
 
 
