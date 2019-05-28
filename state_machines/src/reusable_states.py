@@ -643,7 +643,7 @@ class NavigateState(ActionServiceState):
         pose = self.global_store['nav_location']
 
         goal = MoveBaseGoal()
-        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.frame_id = "/map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose = pose
 
