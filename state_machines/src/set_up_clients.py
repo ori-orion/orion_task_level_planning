@@ -49,7 +49,7 @@ def create_stage_1_clients(task_number):
     rospy.loginfo('SOM service proxies set up...')
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')
-    action_dict['Navigate'] = actionlib.SimpleActionClient('move_base', 
+    action_dict['Navigate'] = actionlib.SimpleActionClient('move_base/move', 
                                                            MoveBaseAction)
     action_dict['Navigate'].wait_for_server() # TODO: Change if necessary
     rospy.loginfo('Move Base ready...')
