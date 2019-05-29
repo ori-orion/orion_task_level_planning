@@ -569,9 +569,11 @@ class FollowState(ActionServiceState):
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
-        while not self.preempt_requested() and current_result != False:
-            time.sleep(1)
-            current_result = self.action_dict['Follow'].get_result().succeeded
+        while not self.preempt_requested():
+            finished = self.action_dict['Follow'].wait_for_result(timeout=rospy.Duration(secs=1))
+            if finished:
+                current_result = self.action_dict['Follow'].get_result().succeeded
+                break
         
         self.action_dict['Follow'].cancel_all_goals()
     
