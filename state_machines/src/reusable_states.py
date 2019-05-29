@@ -654,9 +654,9 @@ class NavigateState(ActionServiceState):
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
 
-        result = self.action_dict['Navigate'].get_result().status
+        status = self.action_dict['Navigate'].get_state()
 
-        if result == GoalStatus.SUCCEEDED:
+        if status == GoalStatus.SUCCEEDED:
             self.global_store['nav_failure'] = 0
             return self._outcomes[0]
         else:
