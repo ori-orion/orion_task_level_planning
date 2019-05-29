@@ -25,7 +25,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, PointToObjectGoal
 
 from orion_actions.msg import SOMObservation
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 from tmc_msgs.msg import TalkRequestGoal, Voice
@@ -341,8 +341,8 @@ class GetRobotLocationState(ActionServiceState):
         
     def execute(self, userdata):
         # Wait for one message on topic and then set as the location
-        pose = rospy.wait_for_message('/global_pose', Pose) # TODO: Weird?
-        self.global_store['stored_location'] = pose
+        pose = rospy.wait_for_message('/global_pose', PoseStamped) # TODO: Weird?
+        self.global_store['stored_location'] = pose.pose
 
         return self._outcomes[0]
 
@@ -498,7 +498,8 @@ class OperatorDetectState(ActionServiceState):
         operator.type = 'person'
         operator.task_role = 'operator'
         # TODO: Pose observation of person
-        operator.robot_pose = rospy.wait_for_message('/global_pose', Pose) # TODO: pose
+        operator.robot_pose = rospy.wait_for_message('/global_pose', 
+                                                     PoseStamped).pose # TODO: pose
         # TODO: Room name (what room are we in)
         
         for name in NAMES:
@@ -531,7 +532,8 @@ class MemorisePersonState(ActionServiceState):
         person = SOMObservation()
         person.type = 'person'
         # TODO: Pose observation of person
-        person.robot_pose = rospy.wait_for_message('/global_pose', Pose) # TODO: Fix
+        person.robot_pose = rospy.wait_for_message('/global_pose', 
+                                                   PoseStamped).pose # TODO: Fix
         # TODO: Room name (what room are we in)
         for name in NAMES:
             if name in self.global_store['last_response']:
