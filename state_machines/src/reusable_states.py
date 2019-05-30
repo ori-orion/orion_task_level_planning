@@ -565,7 +565,7 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = 'tomato' # TODO: Fix later!
+        follow_goal.object_name = 'ar_marker/201' # TODO: Fix later!
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
@@ -655,6 +655,7 @@ class NavigateState(ActionServiceState):
         self.action_dict['Navigate'].wait_for_result()
 
         status = self.action_dict['Navigate'].get_state()
+        rospy.loginfo('status = ' + str(status))
 
         if status == GoalStatus.SUCCEEDED:
             self.global_store['nav_failure'] = 0
