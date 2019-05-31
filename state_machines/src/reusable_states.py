@@ -587,11 +587,15 @@ class FollowState(ActionServiceState):
             return self._outcomes[0]
 
 
-def follow_child_cb(outcome_map):
+def follow_child_cb(outcome_map, global_store):
     """Executed whenever a child in the concurrent state is terminated."""
     if outcome_map['Hotword'] == 'SUCCESS':
         return True
     if outcome_map['Hotword'] == 'FAILURE':
+        if 'follow_failure' in global_store:
+            global_store['follow_failure'] += 1
+        else:
+            global_store['follow_faulure'] = 1
         return True
     if outcome_map['Follow'] == 'FAILURE':
         return True
@@ -600,10 +604,12 @@ def follow_child_cb(outcome_map):
     
     return False
 
-def follow_out_cb(outcome_map):
+def follow_out_cb(outcome_map, global_store):
     if outcome_map['Hotword'] == 'SUCCESS':
         return 'SUCCESS'
     elif outcome_map['Follow'] == 'REPEAT_FAILURE':
+        return 'REPEAT_FAILURE'
+    elif ('follow_failure' in global_store and global_store['follow_failure'] >= FAILURE_THRESHOLD):
         return 'REPEAT_FAILURE'
     else:
         return 'FAILURE'
@@ -616,8 +622,8 @@ def make_follow_hotword_state(action_dict, global_store):
     """
     con = Concurrence(outcomes=['SUCCESS', 'FAILURE', 'REPEAT_FAILURE'],
                       default_outcome='FAILURE',
-                      child_termination_cb=follow_child_cb,
-                      outcome_cb=follow_out_cb)
+                      child_termination_cb=(lambda om: (follow_child_cb(om, global_store))),
+                      outcome_cb=(lambda om: follow_out_cb(om, global_store)))
     
     with con:
         Concurrence.add('Follow', FollowState(action_dict, global_store))
