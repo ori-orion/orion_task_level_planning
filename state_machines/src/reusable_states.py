@@ -565,7 +565,7 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = 'ar_marker/201' # TODO: Fix later!
+        follow_goal.object_name = 'person' # TODO: Fix later!
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
