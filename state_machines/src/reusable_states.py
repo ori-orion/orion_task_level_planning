@@ -623,7 +623,7 @@ def make_follow_hotword_state(action_dict, global_store):
         Concurrence.add('Follow', FollowState(action_dict, global_store))
         Concurrence.add('Hotword', HotwordListenState(action_dict, 
                                                       global_store,
-                                                      30))
+                                                      180))
     
     return con
 # --- End of follow code
