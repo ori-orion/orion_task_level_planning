@@ -343,7 +343,7 @@ class GetRobotLocationState(ActionServiceState):
         # Wait for one message on topic and then set as the location
         pose = rospy.wait_for_message('/global_pose', PoseStamped) # TODO: Weird?
         self.global_store['stored_location'] = pose.pose
-
+        rospy.loginfo(pose)
         return self._outcomes[0]
 
 
@@ -650,7 +650,7 @@ class NavigateState(ActionServiceState):
         goal.target_pose.header.frame_id = "/map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose = pose
-
+        rospy.loginfo(pose)
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
 
