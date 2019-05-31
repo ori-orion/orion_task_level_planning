@@ -650,7 +650,7 @@ class NavigateState(ActionServiceState):
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose = pose
-        goal.target_pose.pose.orientation.z = 0.0
+        #goal.target_pose.pose.orientation.z = 0.0
         rospy.loginfo(goal.target_pose.pose)
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
