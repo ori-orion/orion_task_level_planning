@@ -199,7 +199,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'AskForHandover'})
         
         # Grab the Garbage
-        smach.StateMachine.add('GrabGrabage',
+        smach.StateMachine.add('GrabGarbage',
                                PickUpObjectState(action_dict, global_store),
                                transitions={'SUCCESS':'SetCollectZone',
                                             'FAILURE':'AskForHelpWithGarbage'})

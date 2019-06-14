@@ -22,9 +22,11 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
                     NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
-                        PlaceObjectRelativeGoal, PourIntoGoal, PointToObjectGoal
+                        PlaceObjectRelativeGoal, PourIntoGoal, \
+                            PointToObjectGoal, OpenFurnitureDoorGoal
 
-from orion_actions.msg import SOMObservation
+from orion_actions.msg import DetectionArray, FaceDetectionArray
+from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
@@ -45,6 +47,8 @@ COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
 
 RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
 OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: Fill in
+FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
+          'nectarine'] # TODO: Fill in!
 
 class ActionServiceState(smach.State):
     """ A subclass of Smach States which gives access to actions/services.
@@ -206,6 +210,26 @@ class CheckAndOpenDoorState(ActionServiceState):
             return self._outcomes[0]
 
 
+class OpenFurnitureDoorState(ActionServiceState):
+    """ Smach state to open furniture door. """
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(OpenFurnitureDoorState, self).__init__(action_dict=action_dict,
+                                                     global_store=global_store,
+                                                     outcomes=outcomes)
+    
+    def execute(self, userdata):
+        goal = OpenFurnitureDoorGoal()
+        goal.goal_tf = self.global_store['furniture_door']
+        self.action_dict['OpenFurnitureDoor'].send_goal(goal)
+        self.action_dict['OpenFurnitureDoor'].wait_for_result()
+
+        if self.action_dict['OpenFurnitureDoor'].get_result().result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
+
 class HandoverObjectToOperatorState(ActionServiceState):
     """ Smach state for handing a grasped object to an operator.
 
@@ -341,7 +365,7 @@ class GetRobotLocationState(ActionServiceState):
         
     def execute(self, userdata):
         # Wait for one message on topic and then set as the location
-        pose = rospy.wait_for_message('/global_pose', PoseStamped) # TODO: Weird?
+        pose = rospy.wait_for_message('/global_pose', PoseStamped)
         self.global_store['stored_location'] = pose.pose
         rospy.loginfo(pose)
         return self._outcomes[0]
@@ -494,12 +518,13 @@ class OperatorDetectState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
+        failed = 0
         operator = SOMObservation()
         operator.type = 'person'
         operator.task_role = 'operator'
         # TODO: Pose observation of person
         operator.robot_pose = rospy.wait_for_message('/global_pose', 
-                                                     PoseStamped).pose # TODO: pose
+                                                     PoseStamped).pose
         # TODO: Room name (what room are we in)
         
         for name in NAMES:
@@ -507,9 +532,30 @@ class OperatorDetectState(ActionServiceState):
                 operator.name = name
                 break
 
-        # TODO: Age
-        # TODO: Gender
-        # TODO: Shirt Colour 
+        try:
+            person_msg = rospy.wait_for_message('/vision/bbox_detections', 
+                                                DetectionArray, timeout=5)
+            for detection in person_msg.detections:
+                if 'person' in detection.label.name:
+                    operator.shirt_colour = detection.colour
+                    break
+        except:
+            failed += 1
+        
+        try:
+            face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
+                                              FaceDetectionArray, 
+                                              timeout=5)
+            
+            face = face_msg.detections[0]
+            operator.age = face.age
+            operator.gender = face.gender
+        except:
+            failed += 1
+
+        if failed >= 3:
+            return self._outcomes[1]
+
         result = self.action_dict['SOMObserve'](operator)
         if not result.result:
             return self._outcomes[1]
@@ -529,19 +575,42 @@ class MemorisePersonState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
+        failed = 0
         person = SOMObservation()
         person.type = 'person'
         # TODO: Pose observation of person
         person.robot_pose = rospy.wait_for_message('/global_pose', 
-                                                   PoseStamped).pose # TODO: Fix
+                                                   PoseStamped).pose
         # TODO: Room name (what room are we in)
         for name in NAMES:
             if name in self.global_store['last_response']:
                 person.name = name
                 break
-        # TODO: Age
-        # TODO: Gender
-        # TODO: Shirt colour
+        
+        try:
+            person_msg = rospy.wait_for_message('/vision/bbox_detections', 
+                                                DetectionArray, timeout=5)
+            for detection in person_msg.detections:
+                if 'person' in detection.label.name:
+                    person.shirt_colour = detection.colour
+                    break
+        except:
+            failed += 1
+        
+        try:
+            face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
+                                              FaceDetectionArray, 
+                                              timeout=5)
+            
+            face = face_msg.detections[0]
+            person.age = face.age
+            person.gender = face.gender
+        except:
+            failed += 1
+
+        if failed >= 3:
+            return self._outcomes[1]
+
         result = self.action_dict['SOMObserve'](person)
         if not result.result:
             return self._outcomes[1]
@@ -565,7 +634,15 @@ class FollowState(ActionServiceState):
     
     def execute(self, userdata):
         follow_goal = FollowGoal()
-        follow_goal.object_name = 'person' # TODO: Fix later!
+
+        obs = SOMObservation()
+        obs.type = 'person'
+        obs.task_role = 'operator'
+        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation())
+        op = matches[0].obj1
+        colour = op.shirt_colour
+
+        follow_goal.object_name = 'person_' + colour
         self.action_dict['Follow'].send_goal(follow_goal)
 
         current_result = True
