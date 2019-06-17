@@ -77,6 +77,7 @@ def create_state_machine(action_dict):
     """ Function creates and returns the state machine for this task. """
 
     global_store = {}
+    global_store['people_found'] = []
 
 
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])

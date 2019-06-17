@@ -35,7 +35,7 @@ class PickUpClosestItemState(ActionServiceState):
     """ State for picking up the closest item to us. """
     
     def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
+        outcomes = ['SUCCESS', 'FAILURE', 'NO_ITEMS']
         super(PickUpClosestItemState, self).__init__(action_dict=action_dict,
                                                      global_store=global_store,
                                                      outcomes=outcomes)
@@ -217,8 +217,8 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   map(RELATIONS, 
-                                                   (lambda x: x + ' <param>')),
+                                                   map((lambda x: x+' <param>'),
+                                                   RELATIONS),
                                                    OBJECTS,
                                                    20),
                                transitions={'SUCCESS':'UpdateItemInfo',

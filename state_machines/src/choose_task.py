@@ -130,7 +130,34 @@ def choose_task():
             choose_task()
 
     elif stage == 2:
-        print("Not Implemented Yet!")
+        print("Please enter the number (1-9) of the task you want to run:")
+        print("[1]: Clean The Table (Housekeeper)")
+        print("[2]: Enhanced GPSR (Housekeeper)")
+        print("[3]: Find My Disk (Housekeeper)")
+        print("[4]: Hand Me That (Party Host)")
+        print("[5]: Set The Table (Housekeeper)")
+        print("[6]: Restaurant (Party Host)")
+        print("[7]: Smoothie Chef (Party Host)")
+        print("[8]: Stickler For The Rules (Party Host)")
+        print("[9]: Where Is This? (Party Host)")
+        task = input()
+
+        if task == 1:
+            print("Clean The Table Selected.")
+            # TODO: Sort out
+        elif task == 4:
+            print("Hand Me That Selected.")
+            # TODO: Sort out
+        elif task == 5:
+            print("Set The Table Selected.")
+            # TODO: Sort out
+        elif task == 7:
+            print("Smoothie Chef Selected.")
+            # TODO: Sort out
+        else:
+            print("Invalid Task Entered. Please try again.")
+            choose_task()
+
     elif stage == 3:
         print("Not Implemented Yet!")
     else:

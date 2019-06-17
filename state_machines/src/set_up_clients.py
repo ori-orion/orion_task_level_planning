@@ -49,7 +49,7 @@ def create_stage_1_clients(task_number):
     rospy.loginfo('SOM service proxies set up...')
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')
-    action_dict['Navigate'] = actionlib.SimpleActionClient('move_base', 
+    action_dict['Navigate'] = actionlib.SimpleActionClient('/move_base/move', 
                                                            MoveBaseAction)
     action_dict['Navigate'].wait_for_server() # TODO: Change if necessary
     rospy.loginfo('Move Base ready...')
@@ -148,7 +148,6 @@ def create_stage_1_clients(task_number):
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
                                                                IsDoorOpenAction)
         action_dict['IsDoorOpen'].wait_for_server()
-        # TODO: Loads more to add here later
 
     elif task_number == 6: # Receptionist
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
@@ -259,7 +258,21 @@ def create_stage_1_clients(task_number):
 
 def create_stage_2_clients(task_number):
     """ Same as create_stage_1_clients but for stage 2. """
-    return {}
+    if task_number == 1: # Clean the table
+        # TODO: Sort out
+        return {}
+    elif task_number == 4:
+        # TODO: Sort out
+        return {}
+    elif task_number == 5:
+        # TODO: Sort out
+        return {}
+    elif task_number == 7:
+        # TODO: Sort out
+        return {}
+    else:
+        raise Exception("Invalid Task Number Passed In!")
+
 
 
 def create_final_clients(task_number):

@@ -97,8 +97,8 @@ def create_state_machine(action_dict):
         # Wait for door to open
         smach.StateMachine.add('WaitForDoor',
                                CheckDoorIsOpenState(action_dict, global_store),
-                               transitions={'SUCCESS':'SetNavToKitchen',
-                                            'FAILURE':'WaitForDoor'})
+                               transitions={'OPEN':'SetNavToKitchen',
+                                            'CLOSED':'WaitForDoor'})
                     
         # Set nav goal to kitchen
         func = lambda : None # TODO: fix!
