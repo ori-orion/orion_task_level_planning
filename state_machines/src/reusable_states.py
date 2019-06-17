@@ -697,6 +697,7 @@ def make_follow_hotword_state(action_dict, global_store):
     This concurrent state machine follows someone while waiting for a hot
     word to be spoken.
     """
+    # TODO: Fix, this still isn't quite right
     con = Concurrence(outcomes=['SUCCESS', 'FAILURE', 'REPEAT_FAILURE'],
                       default_outcome='FAILURE',
                       child_termination_cb=(lambda om: (follow_child_cb(om, global_store))),
