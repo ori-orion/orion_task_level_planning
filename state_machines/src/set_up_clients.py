@@ -46,6 +46,9 @@ def create_stage_1_clients(task_number):
     action_dict['SOMObserve'] = rospy.ServiceProxy('som/observe', SOMObserve)
     rospy.wait_for_service('som/query')
     action_dict['SOMQuery'] = rospy.ServiceProxy('som/query', SOMQuery)
+    rospy.wait_for_service('som/check_similarity')
+    action_dict['SOMCheckSimilarity'] = \
+        rospy.ServiceProxy('som/check_similarity', SOMCheckSimilarity)
     rospy.loginfo('SOM service proxies set up...')
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')

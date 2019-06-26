@@ -10,6 +10,7 @@ Owner: Charlie Street
 import rospy
 import smach
 import actionlib
+import numpy as np
 import time
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
@@ -60,7 +61,110 @@ class DecideItemPositionState(ActionServiceState):
         # This should set the relative pos where the item should go
         # on the shelf, and also update our current state of the shelf
         # for future items being placed
-        pass
+        # find leftmost or rightmost items on shelf to get bounds
+        # Put all items within that
+        # Find most similar item in cupboard
+        # Then place next to that in whatever direction we can do it!
+        
+        # Get objects near the cupboard
+        rel = Relation()
+        rel.near = True
+        cupboard = SOMObservation()
+        cupboard.type = 'cupboard'
+        pose = rospy.wait_for_message('/global_pose', PoseStamped)
+        pose = pose.pose
+
+        matches = self.action_dict['SOMQuery'](SOMObservation(), rel, 
+                                               cupboard, pose)
+        matches = matches.matches
+
+        # Find the most similar item
+        closest_item = None
+        obj_loc = None
+        sim = float('inf')
+        link = None
+
+        for match in matches:
+            obj_type = match.obj1.type
+
+            obj1 = SOMObservation(type=self.global_store['pick_up'])
+            obj2 = SOMObservation(type=obj_type)
+
+            sim_result = self.action_dict['SOMCheckSimilarity'](obj1, obj2)
+            current_sim = sim_result.similarity
+            common_type = sim_result.common_type
+
+            if current_sim < sim:
+                closest_item = obj_type
+                sim = current_sim
+                link = common_type
+                obj_loc = match.obj1.pose_estimate.most_likely_pose
+
+        if closest_item == None:
+            return self._outcomes[1]
+
+        # Find the leftmost and rightmost items in the cupboard
+        rel_left = Relation()
+        rel_left.near = True
+        rel_left.left_most = True
+        left_result = self.action_dict['SOMQuery'](SOMObservation(), rel_left,
+                                                   cupboard, pose)
+        left_result = left_result.matches[0].obj1
+        left_pose = left_result.pose_estimate.most_likely_pose
+
+        rel_right = Relation()
+        rel_right.near = True
+        rel_right.right_most = True
+        right_result = self.action_dict['SOMQuery'](SOMObservation(), rel_right,
+                                                    cupboard, pose)
+        
+        right_result = right_result.matches[0].obj1
+        right_pose = right_result.pose_estimate.most_likely_pose
+
+        # Decide rel pos
+        left_to_right = (right_pose.position.x - left_pose.position.x, 
+                         right_pose.position.y - left_pose.position.y)
+        mag = np.sqrt(np.power(left_to_right[0], 2), 
+                      np.power(left_to_right[1], 2))
+        left_to_right = (left_to_right[0]/mag, left_to_right[1]/mag)
+        
+        distance_to_left = np.sqrt(np.power(left_pose.position.x - \
+                                          obj_loc.position.x ,2) + 
+                                          np.power(left_pose.position.y - \
+                                                 obj_loc.position.y,2) +
+                                                 np.power(left_pose.position.z-\
+                                                        obj_loc.position.z, 2))
+                    
+        distance_to_right = np.sqrt(np.power(right_pose.position.x - \
+                                          obj_loc.position.x ,2) + 
+                                          np.power(right_pose.position.y - \
+                                                 obj_loc.position.y,2) +
+                                                 np.power(right_pose.position.z-\
+                                                        obj_loc.position.z, 2))
+
+        if distance_to_left < distance_to_right: # Place to right of object
+            rel_pos = (closest_item,left_to_right[0]*0.2, 
+                       left_to_right[1]*0.2,0.0)
+        else: # Place to left of object
+            rel_pos = (closest_item,left_to_right[0]*-0.2, 
+                       left_to_right[1]*-0.2,0.0)
+
+        self.global_store['rel_pos'] = rel_pos
+
+        # Speak to state intentions
+        obj = self.global_store['pick_up']
+        obj.replace('_', ' ')
+        closest = closest_item.replace('_', ' ')
+        link = link.replace('_', ' ')
+        sentence = ('I will put the ' + obj + ' next to the ' + closest + 
+                    ' as they are both ' + link)
+        speak_goal = TalkRequestGoal()
+        speak_goal.data.language = Voice.kEnglish
+        speak_goal.data.sentence = sentence
+        self.action_dict['Speak'].send_goal(speak_goal)
+        self.action_dict['Speak'].wait_for_result()
+
+        return self._outcomes[0]
 
 
 class UpdateItemInfoState(ActionServiceState):
@@ -73,12 +177,50 @@ class UpdateItemInfoState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill In!
-        # This should parse the speech we have received to get the info
-        # This should set the relative pos where the item should go
-        # on the shelf, and also update our current state of the shelf
-        # for future items being placed
-        pass
+        response = self.global_store['last_response']
+
+        relation = None
+        for rel in RELATIONS:
+            if rel in response:
+                relation = rel
+                break
+        
+        if relation is None:
+            return self._outcomes[1]
+
+        obj = None
+        for o in OBJECTS:
+            if o in response:
+                obj = o
+                break
+        
+        if obj is None:
+            return self._outcomes[1]
+        
+        obj = obj.replace(' ', '_') # For tf frames
+
+        x = 0
+        y = 0
+        z = 0
+
+        if relation == 'left':
+            y = 0.2
+        elif relation == 'right':
+            y = -0.2
+        elif relation == 'above':
+            z = 0.3
+        elif relation == 'below':
+            z = -0.3
+        elif relation == 'front':
+            x = -0.2
+        elif relation == 'behind':
+            x = 0.2
+        elif relation == 'near':
+            y = 0.2
+        else:
+            return self._outcomes[1]
+        
+        self.global_store['rel_pos'] = (obj,x,y,z)
 
 
 def go_to_shelf(action_dict):
