@@ -17,18 +17,9 @@ from orion_actions.msg import * # pylint: disable=unused-wildcard-import
 from move_base_msgs.msg import MoveBaseAction
 from tmc_msgs.msg import TalkRequestAction
 
-def create_stage_1_clients(task_number):
-    """ Function returns the dictionary of all clients needed for task.
 
-    This function returns a dictionary of names to clients.
-
-    Args:
-        task_number: The number of the task in stage 1.
-    
-    Returns:
-        action_dict: The dictionary from service names to clients for them.
-    """
-
+def create_common_clients():
+    """ Returns dictionary of common clients. """
     action_dict = {}
     rospy.loginfo('Setting up SOM service proxies...')
     # Start with semantic mapping stuff
@@ -49,7 +40,11 @@ def create_stage_1_clients(task_number):
     rospy.wait_for_service('som/check_similarity')
     action_dict['SOMCheckSimilarity'] = \
         rospy.ServiceProxy('som/check_similarity', SOMCheckSimilarity)
+    rospy.wait_for_service('som/get_room')
+    action_dict['SOMGetRoom'] = \
+        rospy.ServiceProxy('som/get_room', SOMGetRoom)
     rospy.loginfo('SOM service proxies set up...')
+    
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')
     action_dict['Navigate'] = actionlib.SimpleActionClient('/move_base/move', 
@@ -67,6 +62,23 @@ def create_stage_1_clients(task_number):
     action_dict['SpeakAndListen'].wait_for_server()
     rospy.loginfo('I can listen!...')
 
+    return action_dict
+
+
+def create_stage_1_clients(task_number):
+    """ Function returns the dictionary of all clients needed for task.
+
+    This function returns a dictionary of names to clients.
+
+    Args:
+        task_number: The number of the task in stage 1.
+    
+    Returns:
+        action_dict: The dictionary from service names to clients for them.
+    """
+
+    action_dict = create_common_clients()
+
     # Now do task specific stuff
     if task_number == 1: # Carry My Luggage
         rospy.loginfo('Can I pick up objects?...')
@@ -75,10 +87,10 @@ def create_stage_1_clients(task_number):
         action_dict['PickUpObject'].wait_for_server()
         rospy.loginfo('I can pick up objects!...')
         rospy.loginfo('Can I get pointed objects?...')
-        """action_dict['GetPointedObject'] = \
+        action_dict['GetPointedObject'] = \
             actionlib.SimpleActionClient('get_pointed_object', 
                                          GetPointedObjectAction)
-        action_dict['GetPointedObject'].wait_for_server()""" # TODO: Bring back later
+        action_dict['GetPointedObject'].wait_for_server()
         rospy.loginfo('I can get pointed objects!')
         rospy.loginfo('Can I receive objects?...')
         action_dict['ReceiveObjectFromOperator'] = \
@@ -146,6 +158,10 @@ def create_stage_1_clients(task_number):
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
                                                                IsDoorOpenAction)
         action_dict['IsDoorOpen'].wait_for_server()
+        action_dict['SearchPersonNotMet'] = \
+            actionlib.SimpleActionClient('search_person_not_met',
+                                         SearchPersonNoDrinkAction)
+        action_dict['SearchPersonNotMet'].wait_for_server()
 
     elif task_number == 5: # GPSR
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
@@ -179,6 +195,10 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('check_for_bar_drinks',
                                          CheckForBarDrinksAction)
         action_dict['CheckForBarDrinks'].wait_for_server()
+        action_dict['SearchPersonNoDrink'] = \
+            actionlib.SimpleActionClient('search_person_no_drink',
+                                         SearchPersonNoDrinkAction)
+        action_dict['SearchPersonNoDrink'].wait_for_server()
 
     elif task_number == 8: # Serve The Breakfast
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
@@ -261,18 +281,159 @@ def create_stage_1_clients(task_number):
 
 def create_stage_2_clients(task_number):
     """ Same as create_stage_1_clients but for stage 2. """
+
+    action_dict = create_common_clients()
+
     if task_number == 1: # Clean the table
-        # TODO: Sort out
-        return {}
+        rospy.loginfo('Can I open furniture doors?...')
+        action_dict['OpenFurnitureDoor'] = \
+            actionlib.SimpleActionClient('open_furniture_door', 
+                                         OpenFurnitureDoorAction)
+        action_dict['OpenFurnitureDoor'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I open drawers?')
+        action_dict['OpenDrawer'] = actionlib.SimpleActionClient('open_drawer',
+                                                               OpenDrawerAction)
+        action_dict['OpenDrawer'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I pick up objects?...')
+        action_dict['PickUpObject'] = \
+            actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+        action_dict['PickUpObject'].wait_for_server()
+        rospy.loginfo('I can pick up objects!...')
+        rospy.loginfo('Can I receive objects?...')
+        action_dict['ReceiveObjectFromOperator'] = \
+            actionlib.SimpleActionClient('receive_object_from_operator',
+                                         ReceiveObjectFromOperatorAction)
+        action_dict['ReceiveObjectFromOperator'].wait_for_server()
+        rospy.loginfo('I can receive objects!...')
+        rospy.loginfo('Can I put objects on a surface?...')
+        action_dict['PutObjectOnSurface'] = \
+            actionlib.SimpleActionClient('put_object_on_surface',
+                                         PutObjectOnSurfaceAction)
+        action_dict['PutObjectOnSurface'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I give you objects?...')
+        action_dict['GiveObjectToOperator'] = \
+            actionlib.SimpleActionClient('give_object_to_operator', 
+                                         GiveObjectToOperatorAction)
+        action_dict['GiveObjectToOperator'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I place objects relative to each other?...')
+        action_dict['PlaceObjectRelative'] = \
+            actionlib.SimpleActionClient('place_object_relative',
+                                         PlaceObjectRelativeAction)
+        action_dict['PlaceObjectRelative'].wait_for_server()
+        rospy.loginfo('I can!')
+        return action_dict
+
     elif task_number == 4:
-        # TODO: Sort out
-        return {}
+        rospy.loginfo('Can I follow you to the end of the earth?...')
+        action_dict['Follow'] = actionlib.SimpleActionClient('follow', 
+                                                             FollowAction)
+        action_dict['Follow'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I listen for a hothothotword?...')
+        action_dict['HotwordListen'] = \
+            actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
+        action_dict['HotwordListen'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I detect pointed objects?')
+        action_dict['GetPointedObject'] = \
+            actionlib.SimpleActionClient('get_pointed_object', 
+                                         GetPointedObjectAction)
+        action_dict['GetPointedObject'].wait_for_server()
+        rospy.loginfo('I can get pointed objects!')
+        return action_dict
+
     elif task_number == 5:
-        # TODO: Sort out
-        return {}
+        rospy.loginfo('Can I open furniture doors?...')
+        action_dict['OpenFurnitureDoor'] = \
+            actionlib.SimpleActionClient('open_furniture_door', 
+                                         OpenFurnitureDoorAction)
+        action_dict['OpenFurnitureDoor'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I listen for a hothothotword?...')
+        action_dict['HotwordListen'] = \
+            actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
+        action_dict['HotwordListen'].wait_for_server()
+        rospy.loginfo('I can!...')
+        # TODO: Cupboard observe
+        rospy.loginfo('Can I pick up objects?...')
+        action_dict['PickUpObject'] = \
+            actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+        action_dict['PickUpObject'].wait_for_server()
+        rospy.loginfo('I can pick up objects!...')
+        rospy.loginfo('Can I receive objects?...')
+        action_dict['ReceiveObjectFromOperator'] = \
+            actionlib.SimpleActionClient('receive_object_from_operator',
+                                         ReceiveObjectFromOperatorAction)
+        action_dict['ReceiveObjectFromOperator'].wait_for_server()
+        rospy.loginfo('I can receive objects!...')
+        rospy.loginfo('Can I put objects on a surface?...')
+        action_dict['PutObjectOnSurface'] = \
+            actionlib.SimpleActionClient('put_object_on_surface',
+                                         PutObjectOnSurfaceAction)
+        action_dict['PutObjectOnSurface'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I give you objects?...')
+        action_dict['GiveObjectToOperator'] = \
+            actionlib.SimpleActionClient('give_object_to_operator', 
+                                         GiveObjectToOperatorAction)
+        action_dict['GiveObjectToOperator'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I place objects relative to each other?...')
+        action_dict['PlaceObjectRelative'] = \
+            actionlib.SimpleActionClient('place_object_relative',
+                                         PlaceObjectRelativeAction)
+        action_dict['PlaceObjectRelative'].wait_for_server()
+        rospy.loginfo('I can!')
+        return action_dict
+
     elif task_number == 7:
-        # TODO: Sort out
-        return {}
+        rospy.loginfo('Can I check doors are open?...')
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
+                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'].wait_for_server()
+        rospy.loginfo('I can!')
+        # TODO: Memorise recipe
+        rospy.loginfo('Can I listen for a hothothotword?...')
+        action_dict['HotwordListen'] = \
+            actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
+        action_dict['HotwordListen'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I pick up objects?...')
+        action_dict['PickUpObject'] = \
+            actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+        action_dict['PickUpObject'].wait_for_server()
+        rospy.loginfo('I can pick up objects!...')
+        rospy.loginfo('Can I give you objects?...')
+        action_dict['GiveObjectToOperator'] = \
+            actionlib.SimpleActionClient('give_object_to_operator', 
+                                         GiveObjectToOperatorAction)
+        action_dict['GiveObjectToOperator'].wait_for_server()
+        rospy.loginfo('I can!...')
+        rospy.loginfo('Can I place objects relative to each other?...')
+        action_dict['PlaceObjectRelative'] = \
+            actionlib.SimpleActionClient('place_object_relative',
+                                         PlaceObjectRelativeAction)
+        action_dict['PlaceObjectRelative'].wait_for_server()
+        rospy.loginfo('I can!')
+        rospy.loginfo('Can I receive objects?...')
+        action_dict['ReceiveObjectFromOperator'] = \
+            actionlib.SimpleActionClient('receive_object_from_operator',
+                                         ReceiveObjectFromOperatorAction)
+        action_dict['ReceiveObjectFromOperator'].wait_for_server()
+        rospy.loginfo('I can receive objects!...')
+        # TODO: Pour sugar
+        rospy.loginfo('Can I pour liquids?...')
+        action_dict['PourInto'] = actionlib.SimpleActionClient('pour_into',
+                                                               PourIntoAction)
+        action_dict['PourInto'].wait_for_server()
+        rospy.loginfo('I can!')
+        
+        return action_dict
+
     else:
         raise Exception("Invalid Task Number Passed In!")
 

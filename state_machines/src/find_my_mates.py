@@ -15,7 +15,7 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
-from orion_actions.msg import SOMObservation, Relation
+from orion_actions.msg import SOMObservation, Relation, SearchPersonNotMetGoal
 
 import time
 
@@ -30,10 +30,25 @@ class LookForPeopleState(ActionServiceState):
                                                  outcomes=outcomes)
         
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Should explore, looking for people who aren't the operator
-        # And haven't been found already
-        pass
+        goal = SearchPersonNotMetGoal()
+        goal.met_before = list(map(lambda x: str(x), 
+                               self.global_store['people_found']))
+                               
+        pose = rospy.wait_for_message('/global_pose', PoseStamped)
+        pose = pose.pose
+
+        goal.room_name = self.action_dict['SOMGetRoom'](pose).room_name
+
+        self.action_dict['SearchPersonNotMet'].send_goal(goal)
+        self.action_dict['SearchPersonNotMet'].wait_for_result()
+
+        result = self.action_dict['SearchPersonNotMet'].get_result()
+
+        if result.success:
+            self.global_store['last_person'] = result.obj_id
+        else:
+            return self._outcomes[1]
+
 
 
 class GiveOperatorInfoState(ActionServiceState):
@@ -149,6 +164,7 @@ def create_state_machine(action_dict):
     # Initialise the global store
     global_store = {}
     global_store['start_time'] = time.time()
+    global_store['last_person'] = None
     global_store['people_found'] = []
 
     # Create the state machine

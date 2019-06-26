@@ -57,14 +57,6 @@ class DecideItemPositionState(ActionServiceState):
                                                       outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill In!
-        # This should set the relative pos where the item should go
-        # on the shelf, and also update our current state of the shelf
-        # for future items being placed
-        # find leftmost or rightmost items on shelf to get bounds
-        # Put all items within that
-        # Find most similar item in cupboard
-        # Then place next to that in whatever direction we can do it!
         
         # Get objects near the cupboard
         rel = Relation()

@@ -520,12 +520,18 @@ class OperatorDetectState(ActionServiceState):
     def execute(self, userdata):
         failed = 0
         operator = SOMObservation()
+
+        if self.global_store['last_person'] is not None:
+            operator.obj_id = self.global_store['last_person']
+
         operator.type = 'person'
         operator.task_role = 'operator'
         # TODO: Pose observation of person
-        operator.robot_pose = rospy.wait_for_message('/global_pose', 
-                                                     PoseStamped).pose
-        # TODO: Room name (what room are we in)
+
+        pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+        operator.robot_pose = pose
+        
+        operator.room_name = self.action_dict['SOMGetRoom'](pose).room_name
         
         for name in NAMES:
             if name in self.global_store['last_response']:
@@ -577,11 +583,18 @@ class MemorisePersonState(ActionServiceState):
     def execute(self, userdata):
         failed = 0
         person = SOMObservation()
+
+        if self.global_store['last_person'] is not None:
+            person.obj_id = self.global_store['last_person']
+
         person.type = 'person'
         # TODO: Pose observation of person
-        person.robot_pose = rospy.wait_for_message('/global_pose', 
-                                                   PoseStamped).pose
-        # TODO: Room name (what room are we in)
+
+        pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+        person.robot_pose = pose
+        
+        person.room_name = self.action_dict['SOMGetRoom'](pose).room_name
+
         for name in NAMES:
             if name in self.global_store['last_response']:
                 person.name = name

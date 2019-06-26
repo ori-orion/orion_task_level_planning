@@ -22,6 +22,10 @@ import serving_drinks
 import serve_the_breakfast
 import storing_groceries
 import take_out_the_garbage
+import clean_the_table
+import set_the_table
+import smoothie_chef
+import hand_me_that
 
 def choose_task():
     print("Please enter the number (1-3) for the stage you are in:")
@@ -144,16 +148,35 @@ def choose_task():
 
         if task == 1:
             print("Clean The Table Selected.")
-            # TODO: Sort out
+            rospy.init_node('clean_the_table_state_machine')
+            action_dict = create_stage_2_clients(task)
+            sm = clean_the_table.create_state_machine(action_dict)
+            outcome = sm.execute()
+            print("OUTCOME: " + str(outcome))
+
         elif task == 4:
             print("Hand Me That Selected.")
-            # TODO: Sort out
+            rospy.init_node('hand_me_that_state_machine')
+            action_dict = create_stage_2_clients(task)
+            sm = hand_me_that.create_state_machine(action_dict)
+            outcome = sm.execute()
+            print("OUTCOME: " + str(outcome))
+
         elif task == 5:
             print("Set The Table Selected.")
-            # TODO: Sort out
+            rospy.init_node('set_the_table_state_machine')
+            action_dict = create_stage_2_clients(task)
+            sm = set_the_table.create_state_machine(action_dict)
+            outcome = sm.execute()
+            print("OUTCOME: " + str(outcome))
+
         elif task == 7:
             print("Smoothie Chef Selected.")
-            # TODO: Sort out
+            rospy.init_node('smoothie_chef_state_machine')
+            action_dict = create_stage_2_clients(task)
+            sm = smoothie_chef.create_state_machine(action_dict)
+            outcome = sm.execute()
+            print("OUTCOME: " + str(outcome))
         else:
             print("Invalid Task Entered. Please try again.")
             choose_task()

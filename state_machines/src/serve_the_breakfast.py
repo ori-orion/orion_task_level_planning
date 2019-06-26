@@ -49,7 +49,7 @@ class ItemDecisionState(ActionServiceState):
         if self.global_store['current_item'] == 'bowl':
             return self._outcomes[0]
         elif self.global_store['current_item'] == 'spoon':
-            self.global_store['rel_pos'] = ('bowl', 0.0, -0.2, 0.0)
+            self.global_store['rel_pos'] = ('bowl', 0.0, 0.2, 0.0)
             return self._outcomes[2]
         else: # Pour relative to the bowl
             self.global_store['pour_into'] = 'bowl'
