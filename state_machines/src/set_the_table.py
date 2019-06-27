@@ -45,12 +45,55 @@ class ObserveCupboardState(ActionServiceState):
     def execute(self, userdata):
         # TODO: Fill in!
         # Should set a list of observed items, make sure placemat, then dish!
+        # This should give an ordered list of items to place
         # Should also populate semantic map
+        # Should fill in to_place in global_store
+        items = [] # TODO: Items should be the list of items observed
+
+        if 'placemat' in items: # TODO: Spelling
+            self.global_store['to_place'].append('placemat')
+        
+        if 'plate' in items or 'dish' in items:
+            item = None
+            if 'plate' in items:
+                item = 'plate'
+            else:
+                item = 'dish'
+            self.global_store['to_place'].append(item)
+        
+        if 'bowl' in items:
+            self.global_store['to_place'].append('bowl')
+
+        if 'knife' in items:
+            self.global_store['to_place'].append('knife')
+
+        if 'spoon' in items:
+            self.global_store['to_place'].append('spoon')
+        
+        if 'fork' in items:
+            self.global_store['to_place'].append('fork')
+
+        if 'cloth' in items or 'napkin' in items:
+            item = None
+            if 'cloth' in items:
+                item = 'cloth'
+            else:
+                item = 'napkin'
+            self.global_store['to_place'].append(item)
+
+        if 'cup' in items or 'mug' in items:
+            item = None
+            if 'cup' in items:
+                item = 'cup'
+            else:
+                item = 'mug'
+            self.global_store['to_place'].append(item)
+
         return self._outcomes[0]
 
 
 class ChooseItemState(ActionServiceState):
-    """ State chooses te next item to pick up. """
+    """ State chooses the next item to pick up. """
     def __init__(self, action_dict, global_store):
         outcomes = ['PLACEMAT', 'ITEM', 'NONE_LEFT']
         super(ChooseItemState, self).__init__(action_dict=action_dict,
@@ -62,7 +105,46 @@ class ChooseItemState(ActionServiceState):
         # Should set pick_up, rel_pos appropriately etc.
         # Remember, everything relative to bowl, except bowl
         # bowl is relative to placemat!
-        return self._outcomes[2]
+
+        next_item_index = self.global_store['next_item']
+        items = self.global_store['to_place']
+
+        if next_item_index >= len(items): # We're done!
+            return self._outcomes[2]
+        
+        new_item = items[next_item_index]
+        self.global_store['pick_up'] = new_item
+
+        if new_item == 'placemat': # TODO: Check spelling
+            return self._outcomes[0]
+        elif (new_item == 'dish' or new_item == 'plate'):
+            self.global_store['dish'] = new_item
+            self.global_store['rel_pos'] = ('placemat', 0, 0, 0.1)
+
+        elif new_item == 'bowl':
+            self.global_store['rel_pos'] = (self.global_store['dish'],0,0,0.1)
+
+        elif new_item == 'fork':
+            self.global_store['rel_pos'] = (self.global_store['dish'],0,0.1,0)
+
+        elif new_item == 'spoon':
+            self.global_store['rel_pos'] = (self.global_store['dish'],0,-0.2,0)
+
+        elif new_item == 'knife':
+            self.global_store['rel_pos'] = (self.global_store['dish'],0,-0.1,0)
+
+        elif new_item == 'cup' or new_item == 'mug':
+            self.global_store['rel_pos'] = (self.global_store['dish'],
+                                            0.15,-0.15,0)
+
+        elif new_item == 'cloth' or new_item == 'napkin':
+            self.global_store['rel_pos'] = (self.global_store['dish'],0,0.2,0)
+
+        else: # Default: put left of bowl
+            self.global_store['rel_pos'] = (self.global_store['dish'], 
+                                            0, 0.2, 0)
+
+        return self._outcomes[1]
 
 
 def create_state_machine(action_dict):
@@ -74,6 +156,7 @@ def create_state_machine(action_dict):
     global_store['drawer_handle'] = 'cupboard' # TODO: Sort out!
     global_store['next_item'] = 0
     global_store['furniture_door'] = 'cupboard'
+    global_store['dish'] = None
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
@@ -178,7 +261,7 @@ def create_state_machine(action_dict):
                                NavigateState(action_dict, global_store),
                                transitions={'SUCCESS':'PlacePlacemat',
                                             'FAILURE':'NavToTable',
-                                            'REPEAT_FAILURE':'TASK_FAILLURE'})
+                                            'REPEAT_FAILURE':'TASK_FAILURE'})
         
         # Place down placemat
         smach.StateMachine.add('PlacePlacemat',
@@ -261,7 +344,7 @@ def create_state_machine(action_dict):
                                NavigateState(action_dict, global_store),
                                transitions={'SUCCESS':'PlaceItem',
                                             'FAILURE':'NavToTableItem',
-                                            'REPEAT_FAILURE':'TASK_FAILLURE'})
+                                            'REPEAT_FAILURE':'TASK_FAILURE'})
 
         # Place down placemat
         smach.StateMachine.add('PlaceItem',

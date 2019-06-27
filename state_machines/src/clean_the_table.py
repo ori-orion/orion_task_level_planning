@@ -44,6 +44,7 @@ class DecideNextItemState(ActionServiceState):
     
     def execute(self, userdata):
         # TODO: Fill in! and organise how to do this
+        # TODO: I'm thinking just do the closest item again like groceries task
         self.global_store['rel_pos'] = ('tray', 0.0, 0.0, 0.2)
         return self._outcomes[1]
 
@@ -71,7 +72,7 @@ def create_state_machine(action_dict):
         smach.StateMachine.add('StartTalking',
                                SpeakState(action_dict, global_store, phrase),
                                transitions={'SUCCESS':'SetNavToDishwasher',
-                                            'FAILURE':'SetNavtoDishwasher'})
+                                            'FAILURE':'SetNavToDishwasher'})
         
         # Set nav to dishwasher
         func = lambda : go_to_dishwasher(action_dict)
@@ -353,7 +354,7 @@ def create_state_machine(action_dict):
                                NavigateState(action_dict, global_store),
                                transitions={'SUCCESS':'TASK_SUCCESS',
                                             'FAILURE':'NavBackToStart',
-                                            'TASK_FAILURE':'TASK_FAILURE'})
+                                            'REPEAT_FAILURE':'TASK_FAILURE'})
 
     return sm
 

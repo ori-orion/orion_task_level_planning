@@ -13,8 +13,10 @@ import rospy
 import smach
 import actionlib
 import time
+import numpy as np
 from smach import Concurrence
 from tf.transformations import euler_from_quaternion
+import tf
 
 from orion_actions.msg import GiveObjectToOperatorGoal, \
     SpeakGoal, IsDoorOpenGoal, OpenDoorGoal, GiveObjectToOperatorGoal, \
@@ -23,14 +25,18 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                 HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
                     NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
-                            PointToObjectGoal, OpenFurnitureDoorGoal
-
+                            PointToObjectGoal, OpenFurnitureDoorGoal, \
+                                PointingGoal
+from orion_door_pass.msg import DoorCheckGoal
 from orion_actions.msg import DetectionArray, FaceDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 from tmc_msgs.msg import TalkRequestGoal, Voice
+from strands_navigation_msgs.srv import GetTaggedNodesResponse
+from strands_navigation_msgs.msg import TopologicalMap
+from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
 
 FAILURE_THRESHOLD = 3
 
@@ -127,6 +133,64 @@ def get_location_of_object(action_dict, obj_1, rel, obj_2):
     return pose
 
 
+def distance_between_poses(pose_1, pose_2):
+    """Given two poses, this finds the Euclidean distance between them. """
+
+    pos_1 = pose_1.position
+    pos_2 = pose_2.position
+
+    delta_x_sq = np.power(pos_2.x - pos_1.x, 2)
+    delta_y_sq = np.power(pos_2.y - pos_1.y, 2)
+    delta_z_sq = np.power(pos_2.z - pos_1.z, 2)
+
+    return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq)
+
+
+def get_node_with_label(action_dict, label):
+    """ Returns the name of the waypoint with a given label. """
+
+    response = action_dict['GetTaggedNodes'](label)
+
+    if response.nodes == []:
+        return None
+    else:
+        return response.nodes[0]
+
+
+def get_pose_of_node(waypoint):
+    """ Gets the pose of a node in the topological map. """
+
+    # Get the topological map
+    top_map = rospy.wait_for_message('/topological_map', TopologicalMap)
+
+    nodes = top_map.nodes
+
+    for node in top_map.nodes:
+        if node.name == waypoint:
+            return node.pose
+
+    return None
+
+
+def get_closest_node(dest_pose):
+    """ Get the closest node to a destination pose. Returns name and pose. """
+
+    top_map = rospy.wait_for_message('/topological_map', TopologicalMap)
+
+    nodes = top_map.nodes
+
+    best_dist = float('inf')
+    best_node_pose = (None, None)
+
+    for node in top_map.nodes:
+        new_dist = distance_between_poses(node.pose, dest_pose)
+        if new_dist < best_dist:
+            best_dist = new_dist
+            best_node_pose = (node.name, node.pose)
+
+    return best_node_pose
+
+
 class SpeakState(ActionServiceState):
     """ Smach state for the robot to say stuff.
 
@@ -165,12 +229,13 @@ class CheckDoorIsOpenState(ActionServiceState):
                                                    outcomes=outcomes)
     
     def execute(self, userdata):
-        is_door_open_goal = IsDoorOpenGoal()
+        is_door_open_goal = DoorCheckGoal()
+        is_door_open_goal.n_closed_door = 20 # Same as Bruno's code
         self.action_dict['IsDoorOpen'].send_goal(is_door_open_goal)
         self.action_dict['IsDoorOpen'].wait_for_result()
 
         # Boolean value returned
-        is_door_open = self.action_dict['IsDoorOpen'].get_result().is_open
+        is_door_open = self.action_dict['IsDoorOpen'].get_result().open
         if is_door_open:
             return self._outcomes[0]
         else:
@@ -189,12 +254,13 @@ class CheckAndOpenDoorState(ActionServiceState):
                                                     outcomes=outcomes)
     
     def execute(self, userdata):
-        is_door_open_goal = IsDoorOpenGoal()
+        is_door_open_goal = DoorCheckGoal()
+        is_door_open_goal.n_closed_door = 20
         self.action_dict['IsDoorOpen'].send_goal(is_door_open_goal)
         self.action_dict['IsDoorOpen'].wait_for_result()
 
         # Boolean value returned
-        is_door_open = self.action_dict['IsDoorOpen'].get_result().is_open
+        is_door_open = self.action_dict['IsDoorOpen'].get_result().open
         if not is_door_open:
             door_goal = OpenDoorGoal()
             self.action_dict['OpenDoor'].send_goal(door_goal)
@@ -482,16 +548,30 @@ class PickUpPointedObject(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        """self.action_dict['GetPointedObject'].send_goal(GetPointedObjectGoal())
+        self.action_dict['GetPointedObject'].send_goal(PointingGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
         
-        obj = self.action_dict['GetPointedObject'].get_result()
+        result_point = self.action_dict['GetPointedObject'].get_result()
+        if not result_point.is_present:
+            return self._outcomes[1]
+        
+        objects = result_point.pointing_array[0].pointings.detections
+
+        # specified to luggage!
+        detected_obj = None
+        options = ['luggage', 'bag', 'rucksack', 'suitcase'] # TODO: sort out at competition!
+        for obj in objects:
+            for option in options:
+                if option in obj.label:
+                    detected_obj = obj.label
+                    break
+
+        if detected_obj is None:
+            return self._outcomes[1]
 
         pickup_goal = PickUpObjectGoal()
-        pickup_goal.goal_tf = obj""" # TODO: Change later when we can do pointed objects
+        pickup_goal.goal_tf = detected_obj
 
-        pickup_goal = PickUpObjectGoal()
-        pickup_goal.goal_tf = 'potted plant'
 
         self.action_dict['PickUpObject'].send_goal(pickup_goal)
         self.action_dict['PickUpObject'].wait_for_result()
@@ -526,7 +606,7 @@ class OperatorDetectState(ActionServiceState):
 
         operator.type = 'person'
         operator.task_role = 'operator'
-        # TODO: Pose observation of person
+        
 
         pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         operator.robot_pose = pose
@@ -548,6 +628,19 @@ class OperatorDetectState(ActionServiceState):
         except:
             failed += 1
         
+        try:
+            listen = tf.TransformListener()
+            tf_frame = 'person_' + operator.shirt_colour
+            t = listen.getLatestCommonTime("map", tf_frame)
+            (trans, rot) = listen.lookupTransform("map", tf_frame, t)
+            pose = Pose()
+            pose.position = trans
+            pose.orientation = rot
+            operator.pose_observation = pose
+
+        except:
+            failed += 1
+
         try:
             face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
                                               FaceDetectionArray, 
@@ -588,7 +681,6 @@ class MemorisePersonState(ActionServiceState):
             person.obj_id = self.global_store['last_person']
 
         person.type = 'person'
-        # TODO: Pose observation of person
 
         pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         person.robot_pose = pose
@@ -610,6 +702,19 @@ class MemorisePersonState(ActionServiceState):
         except:
             failed += 1
         
+        try:
+            listen = tf.TransformListener()
+            tf_frame = 'person_' + operator.shirt_colour
+            t = listen.getLatestCommonTime("map", tf_frame)
+            (trans, rot) = listen.lookupTransform("map", tf_frame, t)
+            pose = Pose()
+            pose.position = trans
+            pose.orientation = rot
+            person.pose_observation = pose
+
+        except:
+            failed += 1
+
         try:
             face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
                                               FaceDetectionArray, 
@@ -741,20 +846,38 @@ class NavigateState(ActionServiceState):
             self.global_store['nav_failure'] = 0
     
     def execute(self, userdata):
-        pose = self.global_store['nav_location']
+        dest_pose = self.global_store['nav_location']
+
+        # Find closest node
+        (closest_node, wp_pose) = get_closest_node(dest_pose)
+
+        current_pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+        dist_to_wp = distance_between_poses(current_pose, wp_pose)
+        dist_to_dest = distance_between_poses(current_pose, dest_pose)
+
+        if dist_to_wp < dist_to_dest: # Just go directly
+            ltl_task = 'F "' + closest_node + '"'
+            policy_goal = ExecutePolicyGoal()
+            policy_goal.spec = MdpDomainSpec()
+            policy_goal.spec.ltl_task = ltl_task
+            self.action_dict['ExecutePolicy'].send_goal(policy_goal)
+            self.action_dict['ExecutePolicy'].wait_for_result()
+            status = self.action_dict['ExecutePolicy'].get_state()
+            if status != GoalStatus.SUCCEEDED: # If nav failed
+                self.global_store['nav_failure'] += 1
+                if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
+                    return self._outcomes[2]
+                return self._outcomes[1]
 
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose = pose
-        #goal.target_pose.pose.orientation.z = 0.0
         rospy.loginfo(goal.target_pose.pose)
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
-
         status = self.action_dict['Navigate'].get_state()
         rospy.loginfo('status = ' + str(status))
-
         if status == GoalStatus.SUCCEEDED:
             self.global_store['nav_failure'] = 0
             return self._outcomes[0]

@@ -128,7 +128,8 @@ def create_state_machine(action_dict):
                                transitions={'IDENTIFIED':'SetNavToLivingRoom'})
         
         # Set nav goal to living room
-        func = lambda : None # TODO: Needs to be sorted out
+        func = lambda : (get_pose_of_node(get_node_with_label(action_dict, 
+                                                              'living_room')))
         smach.StateMachine.add('SetNavToLivingRoom',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToLivingRoom'})

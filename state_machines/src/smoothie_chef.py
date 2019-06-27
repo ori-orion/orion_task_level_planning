@@ -114,8 +114,8 @@ def create_state_machine(action_dict):
         phrase = "Hi, I'm Bam Bam, lets make some smoothies!"
         smach.StateMachine.add('StartTalking',
                                SpeakState(action_dict, global_store, phrase),
-                               transitions={'OPEN':'WaitForDoor',
-                                            'CLOSED':'WaitForDoor'})
+                               transitions={'SUCCESS':'WaitForDoor',
+                                            'FAILURE':'WaitForDoor'})
 
         # Wait for the door to open
         smach.StateMachine.add('WaitForDoor',
@@ -276,7 +276,7 @@ def create_state_machine(action_dict):
         smach.StateMachine.add('PourSugar',
                                PourSugarState(action_dict, global_store),
                                transitions={'SUCCESS':'ChooseIngredient',
-                                            'FAILURE':'AskForSugarPourHelp'})
+                                            'FAILURE':'AskForSugarHelp'})
         
         # Ask for sugar based help
         question = ("I can't get this sugar in the blender. Can you do it for "+

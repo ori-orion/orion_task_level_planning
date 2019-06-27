@@ -14,8 +14,11 @@ import rospy
 import actionlib
 from orion_actions.srv import * # pylint: disable=unused-wildcard-import
 from orion_actions.msg import * # pylint: disable=unused-wildcard-import
+from orion_door_pass.msg import DoorCheckAction
 from move_base_msgs.msg import MoveBaseAction
 from tmc_msgs.msg import TalkRequestAction
+from strands_navigation_msgs.srv import GetTaggedNodes
+from strands_executive_msgs.msg import ExecutePolicyAction
 
 
 def create_common_clients():
@@ -45,6 +48,17 @@ def create_common_clients():
         rospy.ServiceProxy('som/get_room', SOMGetRoom)
     rospy.loginfo('SOM service proxies set up...')
     
+    # Add top nav stuff
+    rospy.loginfo('Setting up top nav stuff')
+    rospy.wait_for_service('/topological_map_manager/get_tagged_nodes')
+    action_dict['GetTaggedNodes'] = \
+        rospy.ServiceProxy('/topological_map_manager/get_tagged_nodes',
+                           GetTaggedNodes)
+    action_dict['ExecutePolicy'] = \
+        actionlib.SimpleActionClient('/mdp_plan_exec/execute_policy', 
+                                     ExecutePolicyAction)
+    action_dict['ExecutePolicy'].wait_for_server()
+
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')
     action_dict['Navigate'] = actionlib.SimpleActionClient('/move_base/move', 
@@ -88,8 +102,8 @@ def create_stage_1_clients(task_number):
         rospy.loginfo('I can pick up objects!...')
         rospy.loginfo('Can I get pointed objects?...')
         action_dict['GetPointedObject'] = \
-            actionlib.SimpleActionClient('get_pointed_object', 
-                                         GetPointedObjectAction)
+            actionlib.SimpleActionClient('Pointing', 
+                                         PointingAction)
         action_dict['GetPointedObject'].wait_for_server()
         rospy.loginfo('I can get pointed objects!')
         rospy.loginfo('Can I receive objects?...')
@@ -127,8 +141,8 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('give_object_to_operator', 
                                          GiveObjectToOperatorAction)
         action_dict['GiveObjectToOperator'].wait_for_server()
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['OpenDoor'] = actionlib.SimpleActionClient('open_door',
                                                                OpenDoorAction)
@@ -139,8 +153,8 @@ def create_stage_1_clients(task_number):
         action_dict['PutObjectOnSurface'].wait_for_server()
 
     elif task_number == 3: # Farewell
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['PickUpObject'] = \
             actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
@@ -155,8 +169,8 @@ def create_stage_1_clients(task_number):
         action_dict['GiveObjectToOperator'].wait_for_server()
 
     elif task_number == 4: # Find my mates
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['SearchPersonNotMet'] = \
             actionlib.SimpleActionClient('search_person_not_met',
@@ -164,13 +178,13 @@ def create_stage_1_clients(task_number):
         action_dict['SearchPersonNotMet'].wait_for_server()
 
     elif task_number == 5: # GPSR
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
 
     elif task_number == 6: # Receptionist
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['OpenDoor'] = actionlib.SimpleActionClient('open_door',
                                                                OpenDoorAction)
@@ -201,8 +215,8 @@ def create_stage_1_clients(task_number):
         action_dict['SearchPersonNoDrink'].wait_for_server()
 
     elif task_number == 8: # Serve The Breakfast
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['ReceiveObjectFromOperator'] = \
             actionlib.SimpleActionClient('receive_object_from_operator',
@@ -243,8 +257,8 @@ def create_stage_1_clients(task_number):
         action_dict['PickUpObject'] = \
             actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         action_dict['PickUpObject'].wait_for_server()
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['OpenDrawer'] = actionlib.SimpleActionClient('open_drawer',
                                                                OpenDrawerAction)
@@ -262,8 +276,8 @@ def create_stage_1_clients(task_number):
         action_dict['PickUpObject'] = \
             actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         action_dict['PickUpObject'].wait_for_server()
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         action_dict['PutObjectOnFloor'] = \
             actionlib.SimpleActionClient('put_object_on_floor', 
@@ -340,8 +354,8 @@ def create_stage_2_clients(task_number):
         rospy.loginfo('I can!...')
         rospy.loginfo('Can I detect pointed objects?')
         action_dict['GetPointedObject'] = \
-            actionlib.SimpleActionClient('get_pointed_object', 
-                                         GetPointedObjectAction)
+            actionlib.SimpleActionClient('Pointing', 
+                                         PointingAction)
         action_dict['GetPointedObject'].wait_for_server()
         rospy.loginfo('I can get pointed objects!')
         return action_dict
@@ -392,8 +406,8 @@ def create_stage_2_clients(task_number):
 
     elif task_number == 7:
         rospy.loginfo('Can I check doors are open?...')
-        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('is_door_open',
-                                                               IsDoorOpenAction)
+        action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         rospy.loginfo('I can!')
         # TODO: Memorise recipe

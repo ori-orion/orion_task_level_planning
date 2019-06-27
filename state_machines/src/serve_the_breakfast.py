@@ -101,7 +101,8 @@ def create_state_machine(action_dict):
                                             'CLOSED':'WaitForDoor'})
                     
         # Set nav goal to kitchen
-        func = lambda : None # TODO: fix!
+        func = lambda : (get_pose_of_node(get_node_with_label(action_dict, 
+                                                              'kitchen')))
         smach.StateMachine.add('SetNavToKitchen',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToKitchen'})

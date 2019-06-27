@@ -27,8 +27,16 @@ class DetectPointedObjectsState(ActionServiceState):
                                                         outcomes=outcomes)
 
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Needs to call action server, but should return array of things?
+        self.action_dict['GetPointedObject'].send_goal(PointingGoal())
+        self.action_dict['GetPointedObject'].wait_for_result()
+        
+        result_point = self.action_dict['GetPointedObject'].get_result()
+        if not result_point.is_present:
+            return self._outcomes[1]
+        
+        objects = result_point.pointing_array[0].pointings.detections
+        self.global_store['pointed_objects'] = objects
+
         return self._outcomes[0] 
 
 
@@ -53,7 +61,7 @@ class NextQuestionState(ActionServiceState):
         # Look at the list of pointed objects
         # If only one possibility, say that this is the object
         # Speak and listen, yes and no,
-        # If yes, correct, if no, incorrect
+        # If yes, correct (reset pointed objects), if no, incorrect
         # If multiple possibilities, generate question and ask it
         # Get yes or no response.
         # If too many guesses, give up
@@ -67,6 +75,7 @@ def create_state_machine(action_dict):
 
     # Initialise global_store
     global_store = {}
+    global_store['pointed_objects'] = None
     global_store['question'] = []
 
     # Create the state machine
