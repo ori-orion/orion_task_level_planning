@@ -43,10 +43,18 @@ class DecideNextItemState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in! and organise how to do this
-        # TODO: I'm thinking just do the closest item again like groceries task
+        
+        goal = GetClosestObjectNameGoal()
+        self.action_dict['GetClosestObjectName'].send_goal(goal)
+        self.action_dict['GetClosestObjectName'].wait_for_result()
+        obj = self.action_dict['GetClosestObjectName'].get_result().object
+
+        if obj == '':
+            return self._outcomes[1]
+
+        self.global_store['pick_up'] = obj
         self.global_store['rel_pos'] = ('tray', 0.0, 0.0, 0.2)
-        return self._outcomes[1]
+        return self._outcomes[0]
 
 
 def create_state_machine(action_dict):

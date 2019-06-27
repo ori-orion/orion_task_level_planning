@@ -16,6 +16,7 @@ import time
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation
+from orion_actions.msg import GetClosestObjectNameGoal
 
 
 class FindHandleState(ActionServiceState):
@@ -42,9 +43,29 @@ class PickUpClosestItemState(ActionServiceState):
                                                      outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill In!
-        # This should as well as picking up, store the info of the item too
-        pass
+        
+        goal = GetClosestObjectNameGoal()
+        self.action_dict['GetClosestObjectName'].send_goal(goal)
+        self.action_dict['GetClosestObjectName'].wait_for_result()
+        obj = self.action_dict['GetClosestObjectName'].get_result().object
+
+        if obj == '':
+            return self._outcomes[2]
+
+        self.global_store['pick_up'] = obj
+
+        pick_up_goal = PickUpObjectGoal()
+        pick_up_goal.goal_tf = self.global_store['pick_up']
+
+        self.action_dict['PickUpObject'].send_goal(pick_up_goal)
+        self.action_dict['PickUpObject'].wait_for_result()
+
+        result = self.action_dict['PickUpObject'].get_result().goal_complete
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
 
 
 class DecideItemPositionState(ActionServiceState):

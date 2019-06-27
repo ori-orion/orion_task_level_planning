@@ -263,6 +263,10 @@ def create_stage_1_clients(task_number):
         action_dict['OpenDrawer'] = actionlib.SimpleActionClient('open_drawer',
                                                                OpenDrawerAction)
         action_dict['OpenDrawer'].wait_for_server()
+        action_dict['GetClosestObjectName'] = \
+            actionlib.SimpleActionClient('get_closest_object_name', 
+                                         GetClosestObjectNameAction)
+        action_dict['GetClosestObjectName'].wait_for_server()
 
     elif task_number == 10: # Take Out The Garbage
         action_dict['ReceiveObjectFromOperator'] = \
@@ -339,6 +343,13 @@ def create_stage_2_clients(task_number):
                                          PlaceObjectRelativeAction)
         action_dict['PlaceObjectRelative'].wait_for_server()
         rospy.loginfo('I can!')
+        rospy.loginfo('Can I find nearby objects?...')
+        action_dict['GetClosestObjectName'] = \
+            actionlib.SimpleActionClient('get_closest_object_name', 
+                                         GetClosestObjectNameAction)
+        action_dict['GetClosestObjectName'].wait_for_server()
+        rospy.loginfo('I can!')
+        
         return action_dict
 
     elif task_number == 4:

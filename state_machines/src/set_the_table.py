@@ -101,10 +101,6 @@ class ChooseItemState(ActionServiceState):
                                               outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Should set pick_up, rel_pos appropriately etc.
-        # Remember, everything relative to bowl, except bowl
-        # bowl is relative to placemat!
 
         next_item_index = self.global_store['next_item']
         items = self.global_store['to_place']

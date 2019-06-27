@@ -165,7 +165,7 @@ def get_pose_of_node(waypoint):
 
     nodes = top_map.nodes
 
-    for node in top_map.nodes:
+    for node in nodes:
         if node.name == waypoint:
             return node.pose
 
@@ -182,7 +182,7 @@ def get_closest_node(dest_pose):
     best_dist = float('inf')
     best_node_pose = (None, None)
 
-    for node in top_map.nodes:
+    for node in nodes:
         new_dist = distance_between_poses(node.pose, dest_pose)
         if new_dist < best_dist:
             best_dist = new_dist
@@ -872,7 +872,7 @@ class NavigateState(ActionServiceState):
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose = pose
+        goal.target_pose.pose = dest_pose
         rospy.loginfo(goal.target_pose.pose)
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
