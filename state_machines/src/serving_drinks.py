@@ -13,7 +13,8 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
-from orion_actions.msg import SOMObservation, Relation
+from orion_actions.msg import SOMObservation, Relation, SearchPersonNoDrinkGoal
+
 
 class FindPersonState(ActionServiceState):
     """ State to find someone without a drink. """
@@ -24,9 +25,23 @@ class FindPersonState(ActionServiceState):
                                               outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Fill in !
-        pass
+        goal = SearchPersonNoDrinkGoal()
 
+        pose = rospy.wait_for_message('/global_pose', PoseStamped)
+        pose = pose.pose
+
+        goal.room_name = self.action_dict['SOMGetRoom'](pose).room_name
+
+        self.action_dict['SearchPersonNoDrink'].send_goal(goal)
+        self.action_dict['SearchPersonNoDrink'].wait_for_result()
+
+        result = self.action_dict['SearchPersonNoDrink'].get_result()
+
+        if result.success:
+            self.global_store['last_person'] = result.obj_id
+        else:
+            return self._outcomes[1]
+        
 
 class CheckDrinkState(ActionServiceState):
     """ State to check if a drink is available and set its info if so. """
@@ -77,6 +92,7 @@ def create_state_machine(action_dict):
     """ Function creates and returns the state machine for this task. """
 
     global_store = {}
+    global_store['last_person'] = None
     global_store['people_found'] = []
 
 
@@ -112,7 +128,8 @@ def create_state_machine(action_dict):
                                transitions={'IDENTIFIED':'SetNavToLivingRoom'})
         
         # Set nav goal to living room
-        func = lambda : None # TODO: Needs to be sorted out
+        func = lambda : (get_pose_of_node(get_node_with_label(action_dict, 
+                                                              'living_room')))
         smach.StateMachine.add('SetNavToLivingRoom',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToLivingRoom'})

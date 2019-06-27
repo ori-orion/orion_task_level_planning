@@ -11,6 +11,7 @@ import rospy
 import smach
 import actionlib
 import time
+import random
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_2_clients
@@ -27,9 +28,104 @@ class DetectPointedObjectsState(ActionServiceState):
                                                         outcomes=outcomes)
 
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Needs to call action server, but should return array of things?
+        self.action_dict['GetPointedObject'].send_goal(PointingGoal())
+        self.action_dict['GetPointedObject'].wait_for_result()
+        
+        result_point = self.action_dict['GetPointedObject'].get_result()
+        if not result_point.is_present:
+            return self._outcomes[1]
+        
+        objects = result_point.pointing_array[0].pointings.detections
+        self.global_store['pointed_objects'] = objects
+        self.global_store['remaining_objects'] = objects
+
         return self._outcomes[0] 
+
+
+def get_question(objects, already_asked):
+    """ Gets a question to ask person and splits up objects into yes/no. """
+
+    if already_asked == 0: # tall
+        question = "Is the object relatively tall?"
+        avg_height = 0.0
+        for obj in objects:
+            avg_height += obj.height 
+        avg_height /= len(objects)
+
+        yes = []
+        no = []
+        for obj in objects:
+            if obj.height > avg_height:
+                yes.append(obj)
+            else:
+                no.append(obj)
+        return question, yes, no
+
+    elif already_asked == 1: # wide
+        question = "Is the object relatively wide?"
+        avg_width = 0.0
+        for obj in objects:
+            avg_width += obj.width 
+        avg_width /= len(objects)
+
+        yes = []
+        no = []
+        for obj in objects:
+            if obj.width > avg_width:
+                yes.append(obj)
+            else:
+                no.append(obj)
+        return question, yes, no
+
+    elif already_asked == 2: # left
+        question = "Is the object more to my left?"
+        avg_pos = 0.0
+        for obj in objects:
+            avg_pos += obj.y
+        avg_pos /= len(objects)
+        yes = []
+        no = []
+        for obj in objects:
+            if obj.y > avg_pos:
+                yes.append(obj)
+            else:
+                no.append(obj)
+        return question, yes, no
+
+    elif already_asked == 3: # right
+        question = "Is the object more to my right?"
+        avg_pos = 0.0
+        for obj in objects:
+            avg_pos += obj.y
+        avg_pos /= len(objects)
+        yes = []
+        no = []
+        for obj in objects:
+            if obj.y < avg_pos:
+                yes.append(obj)
+            else:
+                no.append(obj)
+        return question, yes, no
+    elif already_asked < 6: # colour (ask a few times)
+        colours = []
+        for obj in objects:
+            colours.append(obj.color)
+        least_common = min(set(colours), key = colours.count) 
+
+        question = "Is the object " + least_common
+
+        yes = []
+        no = []
+        for obj in objects:
+            if obj.color == least_common:
+                yes.append(obj)
+            else:
+                no.append(obj)
+        
+        return question, yes, no
+        
+    else:
+        return None, None, None
 
 
 class NextQuestionState(ActionServiceState):
@@ -46,20 +142,110 @@ class NextQuestionState(ActionServiceState):
         super(NextQuestionState, self).__init__(action_dict=action_dict,
                                                 global_store=global_store,
                                                 outcomes=outcomes)
+        self.questions_right = 0
+        self.wrong_guesses = 0
+        self.already_asked = 0
     
     def execute(self, userdata):
-        # TODO: Fill in!
-        # Should do the following:
-        # Look at the list of pointed objects
-        # If only one possibility, say that this is the object
-        # Speak and listen, yes and no,
-        # If yes, correct, if no, incorrect
-        # If multiple possibilities, generate question and ask it
-        # Get yes or no response.
-        # If too many guesses, give up
-        # If all 5 objects done, return finished
-        return self._outcomes[0]
 
+        remaining_objects = self.global_store['remaining_objects']
+
+        if len(remaining_objects) == 1: # Robot knows what it is!
+
+            guess = remaining_objects[0].label
+            guess = guess.replace('_', ' ')
+
+            question = 'You are pointing at an ' + guess + '. Am I correct?'
+
+            answered = False
+
+            while not answered:
+                speak_goal = SpeakAndListenGoal()
+                speak_goal.question = question
+                speak_goal.candidates = ['yes', 'no']
+                speak_goal.params = []
+                speak_goal.timeout = 25
+
+                self.action_dict['SpeakAndListen'].send_goal(speak_goal)
+                self.action_dict['SpeakAndListen'].wait_for_result()
+
+                result = self.action_dict['SpeakAndListen'].get_result()
+                if result.succeeded:
+                    self.global_store['last_response'] = result.answer
+                    answered = True
+
+            if self.global_store['last_response'] == 'yes':
+                self.questions_right += 1
+                self.global_store['remaining_objects'] = []
+                self.global_store['pointed_objects'] = []
+                self.already_asked = 0
+
+                speak_goal = TalkRequestGoal()
+                speak_goal.data.language = Voice.kEnglish
+                speak_goal.data.sentence = 'Yay, I got it right!'
+                self.action_dict['Speak'].send_goal(speak_goal)
+                self.action_dict['Speak'].wait_for_result()
+
+                if self.questions_right == 5:
+                    return self._outcomes[4] # Finished
+                else:
+                    return self._outcomes[0] # Correct
+            else:
+                self.wrong_guesses += 1
+                self.global_store['remaining_objects'] = \
+                    self.global_store['pointed_objects']
+                self.already_asked = 0
+                if self.wrong_guesses == 4:
+                    speak_goal = TalkRequestGoal()
+                    speak_goal.data.language = Voice.kEnglish
+                    speak_goal.data.sentence = 'I give up.'
+                    self.action_dict['Speak'].send_goal(speak_goal)
+                    self.action_dict['Speak'].wait_for_result()  
+                    self.global_store['remaining_objects'] = []
+                    self.global_store['pointed_objects'] = []
+                    return self._outcomes[3] # Give up
+                else:
+                    speak_goal = TalkRequestGoal()
+                    speak_goal.data.language = Voice.kEnglish
+                    speak_goal.data.sentence = "Oh no! I'll have to try again!"
+                    self.action_dict['Speak'].send_goal(speak_goal)
+                    self.action_dict['Speak'].wait_for_result()  
+                    return self._outcomes[1] # Incorrect
+
+        else: # We need to ask a question
+
+            question, yes_obj, no_obj = get_question(remaining_objects, 
+                                                     self.already_asked)
+            self.already_asked += 1
+
+            if question == None: 
+                self.global_store['remaining_objects'] = \
+                    random.choice(remaining_objects)
+                return self._outcomes[2]
+
+            answered = False
+
+            while not answered:
+                speak_goal = SpeakAndListenGoal()
+                speak_goal.question = question
+                speak_goal.candidates = ['yes', 'no']
+                speak_goal.params = []
+                speak_goal.timeout = 25
+
+                self.action_dict['SpeakAndListen'].send_goal(speak_goal)
+                self.action_dict['SpeakAndListen'].wait_for_result()
+
+                result = self.action_dict['SpeakAndListen'].get_result()
+                if result.succeeded:
+                    self.global_store['last_response'] = result.answer
+                    answered = True
+
+            if self.global_store['last_response'] == 'yes':
+                self.global_store['remaining_objects'] = yes_obj
+            else:
+                self.global_store['remaining_objects'] = no_obj
+            
+            return self._outcomes[2]
 
 
 def create_state_machine(action_dict):
@@ -67,6 +253,7 @@ def create_state_machine(action_dict):
 
     # Initialise global_store
     global_store = {}
+    global_store['pointed_objects'] = None
     global_store['question'] = []
 
     # Create the state machine
