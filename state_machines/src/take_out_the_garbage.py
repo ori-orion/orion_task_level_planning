@@ -14,7 +14,8 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
-from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal
+from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
+    OpenBinLidGoal
 from geometry_msgs.msg import Point
 
 
@@ -150,17 +151,17 @@ def create_state_machine(action_dict):
     # Observe bins
     trash_obs = SOMObservation()
     trash_obs.type = 'trash_bin'
-    trash_obs.pose_observation.position = Point(3.46,-14.77,0.0)
+    trash_obs.pose_observation.position = Point(3.34,-14.88,0.0)
     action_dict['SOMObserve'](trash_obs)
 
     trash_obs = SOMObservation()
     trash_obs.type = 'trash_bin'
-    trash_obs.pose_observation.position = Point(1.69,-10.96,0.0)
+    trash_obs.pose_observation.position = Point(1.78,-11.13,0.0)
     action_dict['SOMObserve'](trash_obs)
 
     poi_obs = SOMObservation()
     poi_obs.type = 'take_out_the_garbage_point_of_interest'
-    poi_obs.pose_observation.position = Point(-2.25, -11.4,0.0)
+    poi_obs.pose_observation.position = Point(-1.76, -12.44,0.0)
     action_dict['SOMObserve'](poi_obs)
 
 
