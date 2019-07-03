@@ -14,7 +14,7 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
-from orion_actions.msg import SOMObservation, Relation
+from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal
 from geometry_msgs.msg import Point
 
 
@@ -71,6 +71,25 @@ class OpenBinState(ActionServiceState):
         else:
             return self._outcomes[1]
 
+
+class PickUpBinBagState(ActionServiceState):
+    """ State for picking up bin bag"""
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PickUpBinBagState, self).__init__(action_dict=action_dict, 
+                                                global_store=global_store, 
+                                                outcomes=outcomes)
+
+    def execute(self, userdata):
+        goal = PickUpBinBagGoal()
+        self.action_dict['PickUpBinBag'].send_goal(goal)
+        self.action_dict['PickUpBinBag'].wait_for_result()
+
+        result = self.action_dict['PickUpBinBag'].get_result().result
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
 
 class SetCollectZoneState(ActionServiceState):
     """ State that sets the collection zone as the navigation destination. """
@@ -168,7 +187,7 @@ def create_state_machine(action_dict):
         
         # Grab the Garbage
         smach.StateMachine.add('GrabGarbage',
-                               PickUpObjectState(action_dict, global_store),
+                               PickUpBinBagState(action_dict, global_store),
                                transitions={'SUCCESS':'SetCollectZone',
                                             'FAILURE':'AskForHelpWithGarbage'})
         

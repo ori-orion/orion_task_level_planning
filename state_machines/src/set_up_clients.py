@@ -267,7 +267,6 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('get_closest_object_name', 
                                          GetClosestObjectNameAction)
         action_dict['GetClosestObjectName'].wait_for_server()
-
     elif task_number == 10: # Take Out The Garbage
         action_dict['ReceiveObjectFromOperator'] = \
             actionlib.SimpleActionClient('receive_object_from_operator',
@@ -287,6 +286,11 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('put_object_on_floor', 
                                          PutObjectOnFloorAction)
         action_dict['PutObjectOnFloor'].wait_for_server()
+        action_dict['PickUpBinBag'] = \
+            actionlib.SimpleActionClient('pick_up_bin_bag', 
+                                         PickUpBinBagAction)
+        action_dict['PickUpBinBag'].wait_for_server()
+
     else:
         raise Exception("Invalid Task Number Passed In!")
 
