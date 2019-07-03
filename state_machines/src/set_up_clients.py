@@ -287,10 +287,6 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('put_object_on_floor', 
                                          PutObjectOnFloorAction)
         action_dict['PutObjectOnFloor'].wait_for_server()
-        action_dict['OpenBinLid'] = actionlib.SimpleActionClient('open_bin_lid',
-                                                               OpenBinLidAction)
-        action_dict['OpenBinLid'].wait_for_server()
-
     else:
         raise Exception("Invalid Task Number Passed In!")
 
