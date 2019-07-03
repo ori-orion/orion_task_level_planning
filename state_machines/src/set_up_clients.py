@@ -268,24 +268,26 @@ def create_stage_1_clients(task_number):
                                          GetClosestObjectNameAction)
         action_dict['GetClosestObjectName'].wait_for_server()
     elif task_number == 10: # Take Out The Garbage
+        rospy.loginfo('receiving')
         action_dict['ReceiveObjectFromOperator'] = \
             actionlib.SimpleActionClient('receive_object_from_operator',
                                          ReceiveObjectFromOperatorAction)
         action_dict['ReceiveObjectFromOperator'].wait_for_server()
+        rospy.loginfo('handover')
         action_dict['GiveObjectToOperator'] = \
             actionlib.SimpleActionClient('give_object_to_operator', 
                                          GiveObjectToOperatorAction)
         action_dict['GiveObjectToOperator'].wait_for_server()
-        action_dict['PickUpObject'] = \
-            actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
-        action_dict['PickUpObject'].wait_for_server()
+        rospy.loginfo('door check')
         action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
                                                                DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
+        rospy.loginfo('put on floor')
         action_dict['PutObjectOnFloor'] = \
             actionlib.SimpleActionClient('put_object_on_floor', 
                                          PutObjectOnFloorAction)
         action_dict['PutObjectOnFloor'].wait_for_server()
+        rospy.loginfo('pick up bin bag')
         action_dict['PickUpBinBag'] = \
             actionlib.SimpleActionClient('pick_up_bin_bag', 
                                          PickUpBinBagAction)
