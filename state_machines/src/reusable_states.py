@@ -437,6 +437,58 @@ class GetRobotLocationState(ActionServiceState):
         return self._outcomes[0]
 
 
+class SpeakAndHotwordState(ActionServiceState):
+    """ Smach state for speaking and then listening for a hotword. """
+    def __init__(self, action_dict, global_store, question, hotwords, timeout):
+        """ Constructor initialises fields. 
+
+        Args:
+            action_dict: A dictionary of action clients
+            global_store: All globally useful data
+            question: The question to speak
+            hotwords: A list of hotwords to detect
+            timeout: The timeout for the hotword
+        """
+        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
+        self.question = question
+        self.hotwords = hotwords
+        self.timeout = timeout
+        super(SpeakAndHotwordState, self).__init__(action_dict=action_dict,
+                                                   global_store=global_store,
+                                                   outcomes=outcomes)
+
+        if 'speak_hotword_failure' not in self.global_store:
+            self.global_store['speak_hotword_faillure'] = 0
+
+    def execute(self, userdata):
+
+        speak_goal = TalkRequestGoal()
+        speak_goal.data.language = Voice.kEnglish
+        speak_goal.data.sentence = self.question
+        self.action_dict['Speak'].send_goal(speak_goal)
+        self.action_dict['Speak'].wait_for_result()
+
+        hotword_goal = HotwordListenGoal()
+        hotword_goal.hotwords = self.hotwords
+        hotword_goal.timeout = self.timeout
+
+        self.action_dict['HotwordListen'].send_goal(hotword_goal)
+        self.action_dict['HotwordListen'].wait_for_result()
+
+        success = self.action_dict['HotwordListen'].get_result().succeeded
+
+        if success:
+            self.global_store['speak_hotword_failure'] = 0
+            return self._outcomes[0]
+        else:
+            self.global_store['speak_hotword_failure'] += 1
+            if self.global_store['speak_hotword_failure'] >= FAILURE_THRESHOLD:
+                return self._outcomes[2]
+            else:
+                return self._outcomes[1]
+
+
+
 class SpeakAndListenState(ActionServiceState):
     """ Smach state for speaking and then listening for a response.
 
@@ -503,15 +555,17 @@ class HotwordListenState(ActionServiceState):
     captured speech.
     """
 
-    def __init__(self, action_dict, global_store, timeout):
+    def __init__(self, action_dict, global_store, hotwords, timeout):
         outcomes = ['SUCCESS', 'FAILURE']
         self.timeout = timeout
+        self.hotwords = hotwords
         super(HotwordListenState, self).__init__(action_dict=action_dict,
                                                  global_store=global_store,
                                                  outcomes=outcomes)
     
     def execute(self, userdata):
         hotword_goal = HotwordListenGoal()
+        hotword_goal.hotwords = self.hotwords
         hotword_goal.timeout = self.timeout
         self.action_dict['HotwordListen'].send_goal(hotword_goal)
 
@@ -825,6 +879,7 @@ def make_follow_hotword_state(action_dict, global_store):
         Concurrence.add('Follow', FollowState(action_dict, global_store))
         Concurrence.add('Hotword', HotwordListenState(action_dict, 
                                                       global_store,
+                                                      ['bambam'],
                                                       180))
     
     return con

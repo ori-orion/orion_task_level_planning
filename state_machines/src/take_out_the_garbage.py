@@ -181,11 +181,10 @@ def create_state_machine(action_dict):
         question = ("Please could someone take the bin lid from me and " +
                    "let me know once they're ready?")
         smach.StateMachine.add('AskForHandover',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                 transitions={'SUCCESS':'HandoverLid',
                                              'FAILURE':'AskForHandover',
@@ -208,11 +207,10 @@ def create_state_machine(action_dict):
         question = ("Could someone pick up the garbage bag please and " +
                    "let me know when you're ready to hand it to me?")
         smach.StateMachine.add('AskForHelpWithGarbage',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    timeout=30),
                                transitions={'SUCCESS':'HandoverGarbage',
                                             'FAILURE':'AskForHelpWithGarbage',
@@ -247,11 +245,10 @@ def create_state_machine(action_dict):
         question = ("Will someone help me put this bag on the floor, letting "+
                    "me know when they're ready to take it from me?")
         smach.StateMachine.add('AskForHelpDropping',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GiveGarbage',
                                             'FAILURE':'AskForHelpDropping',
