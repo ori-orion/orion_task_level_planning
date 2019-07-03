@@ -19,11 +19,11 @@ from tf.transformations import euler_from_quaternion
 import tf
 
 from orion_actions.msg import GiveObjectToOperatorGoal, \
-    SpeakGoal, IsDoorOpenGoal, OpenDoorGoal, GiveObjectToOperatorGoal, \
+    OpenDoorGoal, GiveObjectToOperatorGoal, \
         ReceiveObjectFromOperatorGoal, PutObjectOnFloorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
-                HotwordListenGoal, GetPointedObjectGoal, PickUpObjectGoal, \
-                    NavigateGoal, FollowGoal, OpenBinLidGoal, OpenDrawerGoal, \
+                HotwordListenGoal, PickUpObjectGoal, \
+                    FollowGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
                                 PointingGoal
