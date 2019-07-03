@@ -195,7 +195,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverTray',
                                             'FAILURE':'AskForTrayPlaceHelp',
@@ -227,7 +227,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
                                             'FAILURE':'AskForHelpPickupItem',
@@ -254,7 +254,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverItem',
                                             'FAILURE':'AskForHelpItemPlace',
@@ -325,7 +325,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   ['hotword']
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverTrayToPlace',
                                             'FAILURE':'AskForHelpTrayPlace',
