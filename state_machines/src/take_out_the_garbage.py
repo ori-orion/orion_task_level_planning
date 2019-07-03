@@ -34,7 +34,7 @@ class FindNearestBinState(ActionServiceState):
         rel = Relation()
         obj2 = SOMObservation()
 
-        matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose())
+        matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
 
         if len(matches) == 0:
             return self._outcomes[1]
