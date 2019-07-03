@@ -910,20 +910,20 @@ class NavigateState(ActionServiceState):
         dist_to_wp = distance_between_poses(current_pose, wp_pose)
         dist_to_dest = distance_between_poses(current_pose, dest_pose)
 
-        if dist_to_wp < dist_to_dest: # Just go directly
-            rospy.loginfo('Using top nav to navigate')
-            ltl_task = 'F "' + closest_node + '"'
-            policy_goal = ExecutePolicyGoal()
-            policy_goal.spec = MdpDomainSpec()
-            policy_goal.spec.ltl_task = ltl_task
-            self.action_dict['ExecutePolicy'].send_goal(policy_goal)
-            self.action_dict['ExecutePolicy'].wait_for_result()
-            status = self.action_dict['ExecutePolicy'].get_state()
-            if status != GoalStatus.SUCCEEDED: # If nav failed
-                self.global_store['nav_failure'] += 1
-                if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
-                    return self._outcomes[2]
-                return self._outcomes[1]
+        #if dist_to_wp < dist_to_dest: # Just go directly
+        rospy.loginfo('Using top nav to navigate')
+        ltl_task = 'F "' + closest_node + '"'
+        policy_goal = ExecutePolicyGoal()
+        policy_goal.spec = MdpDomainSpec()
+        policy_goal.spec.ltl_task = ltl_task
+        self.action_dict['ExecutePolicy'].send_goal(policy_goal)
+        self.action_dict['ExecutePolicy'].wait_for_result()
+        status = self.action_dict['ExecutePolicy'].get_state()
+        if status != GoalStatus.SUCCEEDED: # If nav failed
+            self.global_store['nav_failure'] += 1
+            if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
+                return self._outcomes[2]
+            return self._outcomes[1]
 
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
