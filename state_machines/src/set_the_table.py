@@ -273,7 +273,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GivePlacemat',
                                             'FAILURE':'AskForPlacingMatHelp',
@@ -313,7 +313,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
                                             'FAILURE':'AskForItemHelp',
@@ -354,7 +354,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   ['ready']
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GiveItem',
                                             'FAILURE':'AskForPlacingItemHelp',
