@@ -914,7 +914,7 @@ class NavigateState(ActionServiceState):
         dist_to_dest = distance_between_poses(current_pose, dest_pose)
 
         #if dist_to_wp < dist_to_dest: # Just go directly
-        rospy.loginfo('Using top nav to navigate to: ' + str(closest_node))
+        """rospy.loginfo('Using top nav to navigate to: ' + str(closest_node))
         ltl_task = 'F "' + closest_node + '"'
         policy_goal = ExecutePolicyGoal()
         policy_goal.spec = MdpDomainSpec()
@@ -927,7 +927,7 @@ class NavigateState(ActionServiceState):
             self.global_store['nav_failure'] += 1
             if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
                 return self._outcomes[2]
-            return self._outcomes[1]
+            return self._outcomes[1]"""
 
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
