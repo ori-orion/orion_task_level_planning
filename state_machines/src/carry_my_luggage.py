@@ -125,12 +125,11 @@ def create_state_machine(action_dict):
         question = ("Yay, we've arrived! Please tell me when you're ready "
                     "for me to give you your luggage?")
         smach.StateMachine.add('ArrivalQuestion',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store, 
                                                    question, 
-                                                   READY,
-                                                   [],
-                                                   20),
+                                                   ['ready'],
+                                                   7),
                                 transitions={'SUCCESS':'GiveLuggageBack',
                                              'FAILURE':'ArrivalQuestion',
                                              'REPEAT_FAILURE':'TASK_FAILURE'})

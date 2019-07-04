@@ -922,6 +922,7 @@ class NavigateState(ActionServiceState):
         self.action_dict['ExecutePolicy'].send_goal(policy_goal)
         self.action_dict['ExecutePolicy'].wait_for_result()
         status = self.action_dict['ExecutePolicy'].get_state()
+        self.action_dict['ExecutePolicy'].cancel_all_goals()
         if status != GoalStatus.SUCCEEDED: # If nav failed
             self.global_store['nav_failure'] += 1
             if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
