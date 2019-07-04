@@ -153,25 +153,25 @@ def create_state_machine(action_dict):
     # Observe bins
     trash_obs = SOMObservation()
     trash_obs.type = 'trash_bin'
-    #trash_obs.pose_observation.position = Point(3.34,-14.88,0.0)
-    #trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.9463, -0.3232)
-    trash_obs.pose_observation.position = Point(-0.01,0.19,0.0)
-    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.682, 0.732)
+    trash_obs.pose_observation.position = Point(3.52,-14.75,0.0)
+    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.952, -0.304)
+    #trash_obs.pose_observation.position = Point(-0.01,0.19,0.0)
+    #trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.682, 0.732)
 
     action_dict['SOMObserve'](trash_obs)
 
     trash_obs = SOMObservation()
     trash_obs.type = 'trash_bin'
     #trash_obs.pose_observation.position = Point(1.78,-11.13,0.0)
-    trash_obs.pose_observation.position = Point(-0.01,0.19,0.0)
-    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.682, 0.732)
+    trash_obs.pose_observation.position = Point(1.62,-11.30,0.0)
+    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.3098165, 0.9507964)
     action_dict['SOMObserve'](trash_obs)
 
     poi_obs = SOMObservation()
     poi_obs.type = 'take_out_the_garbage_point_of_interest'
     #poi_obs.pose_observation.position = Point(-1.76, -12.44,0.0)
-    poi_obs.pose_observation.position = Point(-4.5, 0.6, 0.0)
-    poi_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 1.0, 0.0)
+    poi_obs.pose_observation.position = Point(-2.03, -12.47, 0.0)
+    poi_obs.pose_observation.orientation = Quaternion(0.0, 0.0, -0.7675435, 0.6409969)
     action_dict['SOMObserve'](poi_obs)
 
 
