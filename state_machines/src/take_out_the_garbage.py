@@ -170,7 +170,7 @@ def create_state_machine(action_dict):
     poi_obs = SOMObservation()
     poi_obs.type = 'take_out_the_garbage_point_of_interest'
     #poi_obs.pose_observation.position = Point(-1.76, -12.44,0.0)
-    poi_obs.pose_observation.position = Point(-2.03, -12.47, 0.0)
+    poi_obs.pose_observation.position = Point(-2.33, -12.47, 0.0)
     poi_obs.pose_observation.orientation = Quaternion(0.0, 0.0, -0.7675435, 0.6409969)
     action_dict['SOMObserve'](poi_obs)
 

@@ -932,7 +932,7 @@ class NavigateState(ActionServiceState):
 
         # Navigating without top nav
 
-        if dest_pose.position.x == -2.03:
+        if dest_pose.position.x == -2.33:
             rospy.loginfo('Lets be safe!!!!')
             goal = MoveBaseGoal()
             goal.target_pose.header.frame_id = "map"
