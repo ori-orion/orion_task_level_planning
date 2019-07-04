@@ -940,6 +940,7 @@ class NavigateState(ActionServiceState):
         self.action_dict['Navigate'].send_goal(goal)
         self.action_dict['Navigate'].wait_for_result()
         status = self.action_dict['Navigate'].get_state()
+        self.action_dict['Navigate'].cancel_all_goals()
         rospy.loginfo('status = ' + str(status))
         if status == GoalStatus.SUCCEEDED:
             self.global_store['nav_failure'] = 0

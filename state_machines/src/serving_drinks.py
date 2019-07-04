@@ -253,7 +253,7 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
 
         # Tell person of arrival
-        question = ("Hi! I'm back! And I have your drink. Please tell me " +
+        question = ("Hi! I'm back! And I have your drink. Please say ready " +
                     "when you are ready for me to hand it to you.")
         smach.StateMachine.add('DrinkArrival',
                                SpeakAndHotwordState(action_dict,
