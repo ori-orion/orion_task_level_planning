@@ -30,7 +30,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
 from orion_door_pass.msg import DoorCheckGoal
 from orion_actions.msg import DetectionArray, FaceDetectionArray
 from orion_actions.msg import SOMObservation, Relation
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 from tmc_msgs.msg import TalkRequestGoal, Voice
@@ -931,6 +931,28 @@ class NavigateState(ActionServiceState):
             return self._outcomes[1]"""
 
         # Navigating without top nav
+
+        if dest_pose.position.x == -2.03:
+            rospy.loginfo('Lets be safe!!!!')
+            goal = MoveBaseGoal()
+            goal.target_pose.header.frame_id = "map"
+            goal.target_pose.header.stamp = rospy.Time.now()
+            new_pose = Pose()
+            new_pose.orientation = Quaternion(0.0, 0.0, -0.7675435, 0.6409969)
+            new_pose.position = Point(-2.14, -11.36, 0.0)
+            goal.target_pose.pose = new_pose
+            self.action_dict['Navigate'].send_goal(goal)
+            self.action_dict['Navigate'].wait_for_result()
+            status = self.action_dict['Navigate'].get_state()
+            self.action_dict['Navigate'].cancel_all_goals()
+            rospy.loginfo('status = ' + str(status))
+            if status != GoalStatus.SUCCEEDED:
+                self.global_store['nav_failure'] += 1
+                if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
+                    return self._outcomes[2]
+                return self._outcomes[1]
+
+
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
