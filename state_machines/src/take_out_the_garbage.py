@@ -112,6 +112,7 @@ class SetCollectZoneState(ActionServiceState):
 
         self.global_store['nav_location'] = loc
 
+        return self._outcomes[0]
 
 class UpdateBinInfoState(ActionServiceState):
     """ State that updates our knowledge about the bin collection """
