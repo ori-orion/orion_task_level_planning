@@ -462,30 +462,33 @@ class SpeakAndHotwordState(ActionServiceState):
 
     def execute(self, userdata):
 
-        speak_goal = TalkRequestGoal()
-        speak_goal.data.language = Voice.kEnglish
-        speak_goal.data.sentence = self.question
-        self.action_dict['Speak'].send_goal(speak_goal)
-        self.action_dict['Speak'].wait_for_result()
+        try:
+            speak_goal = TalkRequestGoal()
+            speak_goal.data.language = Voice.kEnglish
+            speak_goal.data.sentence = self.question
+            self.action_dict['Speak'].send_goal(speak_goal)
+            self.action_dict['Speak'].wait_for_result()
 
-        hotword_goal = HotwordListenGoal()
-        hotword_goal.hotwords = self.hotwords
-        hotword_goal.timeout = self.timeout
+            hotword_goal = HotwordListenGoal()
+            hotword_goal.hotwords = self.hotwords
+            hotword_goal.timeout = self.timeout
 
-        self.action_dict['HotwordListen'].send_goal(hotword_goal)
-        self.action_dict['HotwordListen'].wait_for_result()
+            self.action_dict['HotwordListen'].send_goal(hotword_goal)
+            self.action_dict['HotwordListen'].wait_for_result()
 
-        success = self.action_dict['HotwordListen'].get_result().succeeded
+            success = self.action_dict['HotwordListen'].get_result().succeeded
 
-        if success:
-            self.global_store['speak_hotword_failure'] = 0
-            return self._outcomes[0]
-        else:
-            self.global_store['speak_hotword_failure'] += 1
-            if self.global_store['speak_hotword_failure'] >= FAILURE_THRESHOLD:
-                return self._outcomes[2]
+            if success:
+                self.global_store['speak_hotword_failure'] = 0
+                return self._outcomes[0]
             else:
-                return self._outcomes[1]
+                self.global_store['speak_hotword_failure'] += 1
+                if self.global_store['speak_hotword_failure'] >= FAILURE_THRESHOLD:
+                    return self._outcomes[2]
+                else:
+                    return self._outcomes[1]
+        except:
+            return self._outcomes[2]
 
 
 

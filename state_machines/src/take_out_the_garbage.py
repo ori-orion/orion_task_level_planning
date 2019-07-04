@@ -200,10 +200,10 @@ def create_state_machine(action_dict):
                                                    global_store,
                                                    question,
                                                    ['ready'],
-                                                   timeout=30),
+                                                   timeout=6),
                                transitions={'SUCCESS':'HandoverGarbage',
                                             'FAILURE':'AskForHelpWithGarbage',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+                                            'REPEAT_FAILURE':'HandoverGarbage'})
         
         # Recive garbage
         smach.StateMachine.add('HandoverGarbage',

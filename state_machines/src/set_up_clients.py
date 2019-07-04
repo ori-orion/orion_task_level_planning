@@ -292,6 +292,11 @@ def create_stage_1_clients(task_number):
             actionlib.SimpleActionClient('pick_up_bin_bag', 
                                          PickUpBinBagAction)
         action_dict['PickUpBinBag'].wait_for_server()
+        rospy.loginfo('Can I listen for a hothothotword?...')
+        action_dict['HotwordListen'] = \
+            actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
+        action_dict['HotwordListen'].wait_for_server()
+        rospy.loginfo('I can!...')
 
     else:
         raise Exception("Invalid Task Number Passed In!")
