@@ -194,7 +194,7 @@ def create_state_machine(action_dict):
         
         # Ask for help with garbage
         question = ("Could someone pick up the garbage bag please and " +
-                   "let me know when you're ready to hand it to me?")
+                   "please say the word ready when you're ready to hand it to me?")
         smach.StateMachine.add('AskForHelpWithGarbage',
                                SpeakAndHotwordState(action_dict,
                                                    global_store,
