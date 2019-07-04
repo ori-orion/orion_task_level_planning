@@ -145,6 +145,7 @@ def create_state_machine(action_dict):
     global_store['bins_taken_out'] = []
     global_store['current_bin'] = None
 
+    action_dict['SOMClearDatabase']()
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
