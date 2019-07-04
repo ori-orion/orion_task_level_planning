@@ -605,6 +605,7 @@ class PickUpPointedObject(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
+        return self._outcomes[1]
         self.action_dict['GetPointedObject'].send_goal(PointingGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
         
