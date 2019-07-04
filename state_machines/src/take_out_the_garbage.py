@@ -16,7 +16,7 @@ from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
     OpenBinLidGoal
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Quaternion
 
 
 class FindNearestBinState(ActionServiceState):
@@ -152,6 +152,8 @@ def create_state_machine(action_dict):
     trash_obs = SOMObservation()
     trash_obs.type = 'trash_bin'
     trash_obs.pose_observation.position = Point(3.34,-14.88,0.0)
+    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.9463, -0.3232)
+
     action_dict['SOMObserve'](trash_obs)
 
     trash_obs = SOMObservation()

@@ -123,7 +123,7 @@ def get_location_of_object(action_dict, obj_1, rel, obj_2):
         pose: The pose of the object
 
     """
-    matches = action_dict['SOMQuery'](obj_1, rel, obj_2)
+    matches = action_dict['SOMQuery'](obj_1, rel, obj_2, Pose()).matches
     
     if len(matches) == 0:
         raise Exception("No matches found in Semantic Map")
