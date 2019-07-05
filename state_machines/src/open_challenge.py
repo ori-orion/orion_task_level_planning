@@ -18,7 +18,7 @@ from pygame import mixer
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_open_clients
 from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
-    OpenBinLidGoal, PutObjectInBinGoal
+    OpenBinLidGoal, PutObjectInBinGoal, MemorizeGoal
 from geometry_msgs.msg import Point, Quaternion
 
 
@@ -71,7 +71,12 @@ class DetectObjectsState(ActionServiceState):
                                                  outcomes=outcomes)
     
     def execute(self, userdata):
-        # TODO: Run!
+        
+        goal = MemorizeGoal()
+        self.action_dict['Memorize'].send_goal(goal)
+        self.action_dict['Memorize'].wait_for_result()
+        self.global_store['shown_objects'] = self.action_dict['Memorize'].get_result().objects
+
         return self._outcomes[0]
 
 
@@ -217,15 +222,10 @@ def create_state_machine(action_dict):
                                                    NAMES,
                                                    [],
                                                    20),
-                               transitions={'SUCCESS': 'DetectOperator',
+                               transitions={'SUCCESS': 'PleaseShowObj',
                                             'FAILURE':'AskName',
                                             'REPEAT_FAILURE':'OldTownRoad'})
         
-        # Detect and memorise the operator
-        smach.StateMachine.add('DetectOperator',
-                               OperatorDetectState(action_dict, global_store),
-                               transitions={'SUCCESS': 'PleaseShowObj',
-                                            'FAILURE': 'AskName'})
 
         # Opening speach
         phrase = "Operator, please, could you show me some objects?"

@@ -502,6 +502,11 @@ def create_open_clients():
         actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
     action_dict['PickUpObject'].wait_for_server()
     rospy.loginfo('I can pick up objects!...')
+    rospy.loginfo('Can I memorize?...')
+    action_dict['Memorize'] = \
+        actionlib.SimpleActionClient('memorize', MemorizeAction)
+    action_dict['Memorize'].wait_for_server()
+    rospy.loginfo('I can!...')
 
 
 
