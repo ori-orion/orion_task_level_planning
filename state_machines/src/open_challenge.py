@@ -381,3 +381,7 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'TASK_SUCCESS'})
         
 
+if __name__ == '__main__':
+    action_dict = create_open_clients()
+    sm = create_state_machine(action_dict)
+    sm.execute()

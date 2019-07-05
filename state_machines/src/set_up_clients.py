@@ -469,6 +469,41 @@ def create_stage_2_clients(task_number):
     else:
         raise Exception("Invalid Task Number Passed In!")
 
+def create_open_clients(task_number):
+    """ Create clients for open challenge. """
+    action_dict = create_common_clients()
+    rospy.loginfo('Can I open bins?...')
+    action_dict['OpenBinLid'] = actionlib.SimpleActionClient('open_bin_lid',
+                                                           OpenBinLidAction)
+    action_dict['openBinLid'].wait_for_server()
+    rospy.loginfo('I can!')
+    rospy.loginfo('Can I put things in bins?...')
+    action_dict['PutObjectInBin'] = actionlib.SimpleActionClient('put_object_in_bin',
+                                                           PutObjectInBinAction)
+    action_dict['PutObjectInBin'].wait_for_server()
+    rospy.loginfo('I can!')
+    rospy.loginfo('Can I check doors are open?...')
+    action_dict['IsDoorOpen'] = actionlib.SimpleActionClient('door_check',
+                                                           DoorCheckAction)
+    action_dict['IsDoorOpen'].wait_for_server()
+    rospy.loginfo('I can!')
+    rospy.loginfo('Can I open doors?...')
+    action_dict['OpenDoor'] = actionlib.SimpleActionClient('open_door',
+                                                            OpenDoorAction)
+    action_dict['OpenDoor'].wait_for_server()
+    rospy.loginfo('I can!')
+    rospy.loginfo('Can I listen for a hothothotword?...')
+    action_dict['HotwordListen'] = \
+        actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
+    action_dict['HotwordListen'].wait_for_server()
+    rospy.loginfo('I can!...')
+    rospy.loginfo('Can I pick up objects?...')
+    action_dict['PickUpObject'] = \
+        actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+    action_dict['PickUpObject'].wait_for_server()
+    rospy.loginfo('I can pick up objects!...')
+
+
 
 
 def create_final_clients(task_number):
