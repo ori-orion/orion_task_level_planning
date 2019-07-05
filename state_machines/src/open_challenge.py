@@ -16,7 +16,7 @@ import time
 from pygame import mixer
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
-from set_up_clients import create_stage_1_clients
+from set_up_clients import create_open_clients
 from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
     OpenBinLidGoal, PutObjectInBinGoal
 from geometry_msgs.msg import Point, Quaternion
@@ -194,7 +194,7 @@ def create_state_machine(action_dict):
                                             'CLOSED':'IsDoorOpen'})
 
         # Set navigation go to table
-        func = lambda:None #TODO
+        func = lambda: table_pose
         smach.StateMachine.add('SetNavToTable',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavToTable'})
@@ -301,7 +301,10 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavBackToTable'})
 
         # Set Nav Back To Table
-        func = lambda:None #TODO
+        table_pose = Pose()
+        table_pose.position = Point(3.67,-13.5,0.0)
+        table_pose.orientation = Quaternion(0.99958, 0.00035, 0.01352, 0.02574)
+        func = lambda: table_pose
         smach.StateMachine.add('SetNavBackToTable',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavBackToTable'})
@@ -344,7 +347,10 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavToDoor'})
 
         # Set Nav to Door
-        func = lambda:None #TODO
+        door_pose = Pose()
+        door_pose.position = Point(3.42, -18.7, 0.0)
+        door_pose.orientation = Quaternion(0.99984,0.00016,0.01365,0.01187)
+        func = lambda: door_pose
         smach.StateMachine.add('SetNavToDoor',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavToDoor'})
@@ -363,7 +369,10 @@ def create_state_machine(action_dict):
                                             'FAILURE':'OldTownRoad'})
         
         # Set Nav Out
-        func = lambda:None #TODO
+        out_pose = Pose()
+        out_pose.position = Point(3.19, -20.0, 0.0)
+        out_pose.orientation = Quaternion(0.0,0.0,0.0,0.0)
+        func = lambda: out_pose
         smach.StateMachine.add('SetNavOut',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavOut'})

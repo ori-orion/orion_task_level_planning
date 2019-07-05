@@ -469,7 +469,7 @@ def create_stage_2_clients(task_number):
     else:
         raise Exception("Invalid Task Number Passed In!")
 
-def create_open_clients(task_number):
+def create_open_clients():
     """ Create clients for open challenge. """
     action_dict = create_common_clients()
     rospy.loginfo('Can I open bins?...')
