@@ -11,12 +11,16 @@ Owner: Charlie Street and Mia Mijovic
 import rospy
 import smach
 import actionlib
+import time
+
+from pygame import mixer
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
-    OpenBinLidGoal
+    OpenBinLidGoal, PutObjectInBinGoal
 from geometry_msgs.msg import Point, Quaternion
+
 
 class OpenBinState(ActionServiceState):
     """ State for opening a bin lid."""
@@ -40,6 +44,120 @@ class OpenBinState(ActionServiceState):
             return self._outcomes[1]
 
 
+class DuckSongState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS']
+        super(DuckSongState, self).__init__(action_dict=action_dict, 
+                                            global_store=global_store, 
+                                            outcomes=outcomes)
+    
+    def execute(self, userdata):
+        mixer.init()
+        mixer.music.load('../sound/birdie_song.mp3')
+        mixer.music.play()
+        time.sleep(20)
+        mixer.music.stop()
+
+        return self._outcomes[0]
+
+
+class DetectObjectsState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(DetectObjectsState, self).__init__(action_dict=action_dict, 
+                                                 global_store=global_store, 
+                                                 outcomes=outcomes)
+    
+    def execute(self, userdata):
+        # TODO: Run!
+        return self._outcomes[0]
+
+
+class ReciteObjectsState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(ReciteObjectsState, self).__init__(action_dict=action_dict, 
+                                                 global_store=global_store, 
+                                                 outcomes=outcomes)
+    
+    def execute(self, userdata):
+        objects = self.global_store['shown_objects']
+
+        sentence = ('You showed me the ' + str(objects[0]) + ', then the ' + 
+                    str(objects[1]) + ' and finally the ' + str(objects[2]))
+        
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish
+        action_goal.data.sentence = sentence
+        self.action_dict['Speak'].send_goal(action_goal)
+        self.action_dict['Speak'].wait_for_result()
+
+        return self._outcomes[0]
+
+
+class OldTownState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS']
+        super(OldTownState, self).__init__(action_dict=action_dict, 
+                                            global_store=global_store, 
+                                            outcomes=outcomes)
+    
+    def execute(self, userdata):
+        mixer.init()
+        mixer.music.load('../sound/old_town_road.mp3')
+        mixer.music.play()
+        time.sleep(45)
+        mixer.music.stop()
+
+        return self._outcomes[0]
+
+
+class GetChosenItemState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS']
+        super(GetChosenItemState, self).__init__(action_dict=action_dict, 
+                                                 global_store=global_store, 
+                                                 outcomes=outcomes)
+    
+
+    def execute(self, userdata):
+        response = self.global_store['last_response']
+
+        if response == 'first':
+            self.global_store['pick_up'] = self.global_store['shown_objects'][0]
+        elif response == 'second':
+            self.global_store['pick_up'] = self.global_store['shown_objects'][1]
+        elif response == 'third':
+            self.global_store['pick_up'] = self.global_store['shown_objects'][2]
+
+
+class PutInBinState(ActionServiceState):
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PutInBinState, self).__init__(action_dict=action_dict, 
+                                                 global_store=global_store, 
+                                                 outcomes=outcomes)
+    
+    def execute(self, userdata):
+
+        goal = PutObjectInBinGoal()
+        self.action_dict['PutObjectInBin'].send_goal(goal)
+        self.action_dict['PutObjectInBin'].wait_for_result()
+
+        result = self.action_dict['PutObjectInBin'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
+
 def create_state_machine(action_dict):
     """ Creates the state machine to be used for the task.
 
@@ -53,7 +171,8 @@ def create_state_machine(action_dict):
     #Initialise global store
     global_store = {}
     global_store['people_found'] = []
-
+    global_store['shown_objects'] = []
+    global_store['last_response'] = None
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
@@ -115,13 +234,13 @@ def create_state_machine(action_dict):
                                 transitions={'SUCCESS':'DetectObj',
                                              'FAILURE': 'DetectObj'})
 
-        # Detection of objects TODO
+        # Detection of objects
         smach.StateMachine.add('DetectObj',
                                DetectObjectsState(action_dict, global_store),
                                transitions={'SUCCESS':'ReciteObj',
                                             'FAILURE':'PleaseShowObj'})
 
-        # Recite the objects TODO
+        # Recite the objects
         smach.StateMachine.add('ReciteObj',
                                 ReciteObjectsState(action_dict, global_store),
                                 transitions={'SUCCESS':'DuckHotWord',
@@ -134,7 +253,7 @@ def create_state_machine(action_dict):
                                 transitions={'SUCCESS':'PlaySong',
                                              'FAILURE':'DuckHotWord'})
 
-        #Play Duck Song TODO
+        #Play Duck Song
         smach.StateMachine.add('PlaySong',
                                DuckSongState(action_dict, global_store),
                                transitions={'SUCCESS':'WhatNext'})
@@ -160,7 +279,10 @@ def create_state_machine(action_dict):
                                             'FAILURE': 'SetNavToBin'})
 
         # Set nav to bin
-        func = lambda:None #TODO
+        bin_pose = Pose()
+        bin_pose.position = Point(3.52,-14.75,0.0)
+        bin_pose.orientation = Quaternion(0.0, 0.0, 0.952, -0.304)
+        func = lambda: bin_pose
         smach.StateMachine.add('SetNavToBin',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavToBin'})
@@ -192,9 +314,8 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE': 'OldTownRoad'})
 
         # Set Pick Up
-        obj = None # TODO
         smach.StateMachine.add('SetPickUp',
-                               SetPickupState(action_dict, global_store, obj),
+                               GetChosenItemState(action_dict, global_store),
                                transitions={'SUCCESS':'PickUp'})
 
         # Pick Up
@@ -204,7 +325,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'SetNavBackToBin'})
 
         # Set Nav Back To Bin
-        func = lambda:None #TODO
+        func = lambda: bin_pose
         smach.StateMachine.add('SetNavBackToBin',
                                 SetNavGoalState(action_dict, global_store, func),
                                 transitions={'SUCCESS':'NavBackToBin'})
@@ -216,7 +337,7 @@ def create_state_machine(action_dict):
                                             'FAILURE': 'NavBackToBin',
                                             'REPEAT_FAILURE': 'OldTownRoad'})
 
-        # Put in Bin TODO
+        # Put in Bin
         smach.StateMachine.add('PutInBin',
                                PutInBinState(action_dict, global_store),
                                transitions={'SUCCESS':'SetNavToDoor',
@@ -235,9 +356,9 @@ def create_state_machine(action_dict):
                                             'FAILURE': 'NavToDoor',
                                             'REPEAT_FAILURE': 'OldTownRoad'})
 
-        # Open Door TODO
+        # Open Door
         smach.StateMachine.add('OpenDoor',
-                               OpenDoorState(action_dict, global_store),
+                               CheckAndOpenDoorState(action_dict, global_store),
                                transitions={'SUCCESS':'SetNavOut',
                                             'FAILURE':'OldTownRoad'})
         
@@ -254,7 +375,7 @@ def create_state_machine(action_dict):
                                             'FAILURE': 'NavToDoor',
                                             'REPEAT_FAILURE': 'OldTownRoad'})
 
-        #I've got my horses in the bacc TODO
+        #I've got my horses in the bacc
         smach.StateMachine.add('OldTownRoad',
                                OldTownState(action_dict, global_store),
                                transitions={'SUCCESS':'TASK_SUCCESS'})
