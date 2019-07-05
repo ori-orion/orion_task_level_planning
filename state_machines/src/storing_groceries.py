@@ -340,11 +340,10 @@ def create_state_machine(action_dict):
         question = ("Could someone please get the item closest to me and " +
                     "tell me when you're ready to hand it to me?")
         smach.StateMachine.add('AskForPickupHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
                                             'FAILURE':'AskForPickupHelp',

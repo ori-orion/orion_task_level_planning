@@ -14,7 +14,9 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
-from orion_actions.msg import SOMObservation, Relation
+from orion_actions.msg import SOMObservation, Relation, PickUpBinBagGoal, \
+    OpenBinLidGoal
+from geometry_msgs.msg import Point, Quaternion
 
 
 class FindNearestBinState(ActionServiceState):
@@ -28,11 +30,11 @@ class FindNearestBinState(ActionServiceState):
     
     def execute(self, userdata):
         obj1 = SOMObservation()
-        obj1.type = 'bin'
+        obj1.type = 'trash_bin'
         rel = Relation()
         obj2 = SOMObservation()
 
-        matches = self.action_dict['SOMQuery'](obj1, rel, obj2)
+        matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
 
         if len(matches) == 0:
             return self._outcomes[1]
@@ -71,6 +73,25 @@ class OpenBinState(ActionServiceState):
             return self._outcomes[1]
 
 
+class PickUpBinBagState(ActionServiceState):
+    """ State for picking up bin bag"""
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(PickUpBinBagState, self).__init__(action_dict=action_dict, 
+                                                global_store=global_store, 
+                                                outcomes=outcomes)
+
+    def execute(self, userdata):
+        goal = PickUpBinBagGoal()
+        self.action_dict['PickUpBinBag'].send_goal(goal)
+        self.action_dict['PickUpBinBag'].wait_for_result()
+
+        result = self.action_dict['PickUpBinBag'].get_result().result
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
 class SetCollectZoneState(ActionServiceState):
     """ State that sets the collection zone as the navigation destination. """
 
@@ -91,6 +112,7 @@ class SetCollectZoneState(ActionServiceState):
 
         self.global_store['nav_location'] = loc
 
+        return self._outcomes[0]
 
 class UpdateBinInfoState(ActionServiceState):
     """ State that updates our knowledge about the bin collection """
@@ -123,9 +145,35 @@ def create_state_machine(action_dict):
     global_store['bins_taken_out'] = []
     global_store['current_bin'] = None
 
+    action_dict['SOMClearDatabase']()
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
+
+    # Observe bins
+    trash_obs = SOMObservation()
+    trash_obs.type = 'trash_bin'
+    trash_obs.pose_observation.position = Point(3.52,-14.75,0.0)
+    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.952, -0.304)
+    #trash_obs.pose_observation.position = Point(-0.01,0.19,0.0)
+    #trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.682, 0.732)
+
+    action_dict['SOMObserve'](trash_obs)
+
+    trash_obs = SOMObservation()
+    trash_obs.type = 'trash_bin'
+    #trash_obs.pose_observation.position = Point(1.78,-11.13,0.0)
+    trash_obs.pose_observation.position = Point(1.62,-11.30,0.0)
+    trash_obs.pose_observation.orientation = Quaternion(0.0, 0.0, 0.3098165, 0.9507964)
+    action_dict['SOMObserve'](trash_obs)
+
+    poi_obs = SOMObservation()
+    poi_obs.type = 'take_out_the_garbage_point_of_interest'
+    #poi_obs.pose_observation.position = Point(-1.76, -12.44,0.0)
+    poi_obs.pose_observation.position = Point(-2.33, -12.47, 0.0)
+    poi_obs.pose_observation.orientation = Quaternion(0.0, 0.0, -0.7675435, 0.6409969)
+    action_dict['SOMObserve'](poi_obs)
+
 
     with sm:
 
@@ -135,7 +183,7 @@ def create_state_machine(action_dict):
                                transitions={'OPEN':'FindNearestBin',
                                             'CLOSED':'IsDoorOpen'})
 
-        # Find the nearest Bin
+         # Find the nearest Bin
         smach.StateMachine.add('FindNearestBin',
                                FindNearestBinState(action_dict, global_store),
                                transitions={'BIN_FOUND':'NavToBin',
@@ -144,79 +192,28 @@ def create_state_machine(action_dict):
         # Navigate to the nearest bin
         smach.StateMachine.add('NavToBin',
                                NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS':'GrabLid',
+                               transitions={'SUCCESS':'GrabGarbage',
                                             'FAILURE': 'NavToBin',
                                             'REPEAT_FAILURE': 'TASK_FAILURE'})
         
-        # Grab the lid of the bin
-        smach.StateMachine.add('GrabLid',
-                               OpenBinState(action_dict, global_store),
-                               transitions={'SUCCESS':'PlaceLidOnFloor',
-                                            'FAILURE':'AskForHelpWithLid'})
-
-
-        # Ask for help with lid
-        question = ("Please could someone remove the bin lid for me and " + 
-                   "let me know?")
-        smach.StateMachine.add('AskForHelpWithLid',
-                               SpeakAndListenState(action_dict,
-                                                   global_store,
-                                                   question,
-                                                   ['I will help', 'Done', 
-                                                    "I've removed the lid"],
-                                                   [],
-                                                   20),
-                                transitions={'SUCCESS':'GrabGarbage',
-                                             'FAILURE':'AskForHelpWithLid',
-                                             'REPEAT_FAILURE':'TASK_FAILURE'})
-        
-
-        # Place the bin lid on the floor
-        smach.StateMachine.add('PlaceLidOnFloor',
-                               PutObjectOnFloorState(action_dict, global_store),
-                               transitions={'SUCCESS':'GrabGarbage',
-                                            'FAILURE':'AskForHandover'})
-
-        # Ask for help putting bin lid on floor
-        question = ("Please could someone take the bin lid from me and " +
-                   "let me know once they're ready?")
-        smach.StateMachine.add('AskForHandover',
-                               SpeakAndListenState(action_dict,
-                                                   global_store,
-                                                   question,
-                                                   READY,
-                                                   [],
-                                                   20),
-                                transitions={'SUCCESS':'HandoverLid',
-                                             'FAILURE':'AskForHandover',
-                                             'REPEAT_FAILURE':'TASK_FAILURE'})
-        
-        # Handover lid
-        smach.StateMachine.add('HandoverLid',
-                               HandoverObjectToOperatorState(action_dict, 
-                                                             global_store),
-                               transitions={'SUCCESS':'GrabGarbage',
-                                            'FAILURE':'AskForHandover'})
-        
         # Grab the Garbage
         smach.StateMachine.add('GrabGarbage',
-                               PickUpObjectState(action_dict, global_store),
+                               PickUpBinBagState(action_dict, global_store),
                                transitions={'SUCCESS':'SetCollectZone',
                                             'FAILURE':'AskForHelpWithGarbage'})
         
         # Ask for help with garbage
         question = ("Could someone pick up the garbage bag please and " +
-                   "let me know when you're ready to hand it to me?")
+                   "please say the word ready when you're ready to hand it to me?")
         smach.StateMachine.add('AskForHelpWithGarbage',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
-                                                   timeout=30),
+                                                   ['ready'],
+                                                   timeout=6),
                                transitions={'SUCCESS':'HandoverGarbage',
                                             'FAILURE':'AskForHelpWithGarbage',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+                                            'REPEAT_FAILURE':'HandoverGarbage'})
         
         # Recive garbage
         smach.StateMachine.add('HandoverGarbage',
@@ -247,11 +244,10 @@ def create_state_machine(action_dict):
         question = ("Will someone help me put this bag on the floor, letting "+
                    "me know when they're ready to take it from me?")
         smach.StateMachine.add('AskForHelpDropping',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GiveGarbage',
                                             'FAILURE':'AskForHelpDropping',

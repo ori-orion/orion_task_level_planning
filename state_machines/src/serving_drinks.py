@@ -129,7 +129,7 @@ def create_state_machine(action_dict):
         
         # Set nav goal to living room
         func = lambda : (get_pose_of_node(get_node_with_label(action_dict, 
-                                                              'living_room')))
+                                                              'living room')))
         smach.StateMachine.add('SetNavToLivingRoom',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToLivingRoom'})
@@ -223,11 +223,10 @@ def create_state_machine(action_dict):
                    "If you can, tell me when you are ready to hand me the " +
                    "drink.")
         smach.StateMachine.add('AskForHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverDrink',
                                             'FAILURE':'AskForHelp',
@@ -254,14 +253,13 @@ def create_state_machine(action_dict):
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
 
         # Tell person of arrival
-        question = ("Hi! I'm back! And I have your drink. Please tell me " +
+        question = ("Hi! I'm back! And I have your drink. Please say ready " +
                     "when you are ready for me to hand it to you.")
         smach.StateMachine.add('DrinkArrival',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'HandoverDrinkToGuest',
                                             'FAILURE':'DrinkArrival',

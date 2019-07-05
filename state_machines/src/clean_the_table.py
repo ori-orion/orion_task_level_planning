@@ -152,11 +152,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please hand me the dishwasher tray and " +
                     "let me know when they're ready to hand it over?")
         smach.StateMachine.add('AskForTrayHelp',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveTray',
                                             'FAILURE':'AskForTrayHelp',
@@ -193,11 +192,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please take the tray from me? If so, can you" +
                     "let me know when you're ready to hand it over?")
         smach.StateMachine.add('AskForTrayPlaceHelp',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverTray',
                                             'FAILURE':'AskForTrayPlaceHelp',
@@ -226,11 +224,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please help me pick this up? If so, can you" +
                     "let me know when you're ready to hand it over?")
         smach.StateMachine.add('AskForHelpPickupItem',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
                                             'FAILURE':'AskForHelpPickupItem',
@@ -254,11 +251,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please put this in the tray for me? If so, " +
                     "can you let me know when you're ready to hand over?")
         smach.StateMachine.add('AskForHelpItemPlace',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverItem',
                                             'FAILURE':'AskForHelpItemPlace',
@@ -286,11 +282,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please help me pick up the tray? If so, " +
                     "can you let me know when you're ready to hand it over?")
         smach.StateMachine.add('AskForHelpTakeTray',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveTakeTray',
                                             'FAILURE':'AskForHelpTakeTray',
@@ -327,11 +322,10 @@ def create_state_machine(action_dict):
         question = ("Can someone please put the tray in the dishwasher? If " +
                     "so, can you let me know when you're ready to hand over?")
         smach.StateMachine.add('AskForHelpTrayPlace',
-                               SpeakAndListenState(action_dict, 
+                               SpeakAndHotwordState(action_dict, 
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'HandoverTrayToPlace',
                                             'FAILURE':'AskForHelpTrayPlace',

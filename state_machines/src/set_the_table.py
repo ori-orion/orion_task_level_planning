@@ -196,7 +196,7 @@ def create_state_machine(action_dict):
         
         # Wait till name said
         smach.StateMachine.add('WaitTillOpen',
-                               HotwordListenState(action_dict, global_store,30),
+                               HotwordListenState(action_dict, global_store, ['bambam'],30),
                                transitions={'SUCCESS':'ObserveCupboard',
                                             'FAILURE':'TASK_FAILURE'})
         
@@ -229,11 +229,10 @@ def create_state_machine(action_dict):
         question = ("I can't pick up the placemat. Can you hand it to me " +
                    "please? Let me know when you're ready to hand over!")
         smach.StateMachine.add('AskForPlacematHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceivePlacemat',
                                             'FAILURE':'AskForPlacematHelp',
@@ -271,11 +270,10 @@ def create_state_machine(action_dict):
                    "from me and put it down on the table for me? Let me know " +
                    "when you're ready for me to hand it to you.")
         smach.StateMachine.add('AskForPlacingMatHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GivePlacemat',
                                             'FAILURE':'AskForPlacingMatHelp',
@@ -312,11 +310,10 @@ def create_state_machine(action_dict):
         question = ("I can't pick up this item. Can you hand it to me " +
                    "please? Let me know when you're ready to hand over!")
         smach.StateMachine.add('AskForItemHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    30),
                                transitions={'SUCCESS':'ReceiveItem',
                                             'FAILURE':'AskForItemHelp',
@@ -354,11 +351,10 @@ def create_state_machine(action_dict):
                    "from me and put it down in the right place for me? " +
                    "Let me know when you're ready for me to hand it to you.")
         smach.StateMachine.add('AskForPlacingItemHelp',
-                               SpeakAndListenState(action_dict,
+                               SpeakAndHotwordState(action_dict,
                                                    global_store,
                                                    question,
-                                                   READY,
-                                                   [],
+                                                   ['ready'],
                                                    20),
                                transitions={'SUCCESS':'GiveItem',
                                             'FAILURE':'AskForPlacingItemHelp',
