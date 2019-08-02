@@ -605,7 +605,6 @@ class PickUpPointedObject(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        return self._outcomes[1]
         self.action_dict['GetPointedObject'].send_goal(PointingGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
         
@@ -932,47 +931,6 @@ class NavigateState(ActionServiceState):
 
         # Navigating without top nav
 
-        if dest_pose.position.x == -2.33:
-            rospy.loginfo('Lets be safe!!!!')
-            goal = MoveBaseGoal()
-            goal.target_pose.header.frame_id = "map"
-            goal.target_pose.header.stamp = rospy.Time.now()
-            new_pose = Pose()
-            new_pose.orientation = Quaternion(0.0, 0.0, -0.7675435, 0.6409969)
-            new_pose.position = Point(-2.14, -11.36, 0.0)
-            goal.target_pose.pose = new_pose
-            self.action_dict['Navigate'].send_goal(goal)
-            self.action_dict['Navigate'].wait_for_result()
-            status = self.action_dict['Navigate'].get_state()
-            self.action_dict['Navigate'].cancel_all_goals()
-            rospy.loginfo('status = ' + str(status))
-            if status != GoalStatus.SUCCEEDED:
-                self.global_store['nav_failure'] += 1
-                if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
-                    return self._outcomes[2]
-                return self._outcomes[1]
-
-        if dest_pose.position.x == 1.62:
-            rospy.loginfo('Lets be safe pt. 2!!!!')
-            goal = MoveBaseGoal()
-            goal.target_pose.header.frame_id = "map"
-            goal.target_pose.header.stamp = rospy.Time.now()
-            new_pose = Pose()
-            new_pose.orientation = Quaternion(1.0, 0.0, 0.0, 0.0)
-            new_pose.position = Point(-2.14, -11.36, 0.0)
-            goal.target_pose.pose = new_pose
-            self.action_dict['Navigate'].send_goal(goal)
-            self.action_dict['Navigate'].wait_for_result()
-            status = self.action_dict['Navigate'].get_state()
-            self.action_dict['Navigate'].cancel_all_goals()
-            rospy.loginfo('status = ' + str(status))
-            if status != GoalStatus.SUCCEEDED:
-                self.global_store['nav_failure'] += 1
-                if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
-                    return self._outcomes[2]
-                return self._outcomes[1]
-
-
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
@@ -1038,7 +996,7 @@ class SetNavGoalState(ActionServiceState):
 
 
 class SetPickupState(ActionServiceState):
-    """ State for setting pick up to something arbitrary defined by lambda. """
+    """ State for setting pick up to something arbitrary passed in. """
 
     def __init__(self, action_dict, global_store, obj):
         outcomes = ['SUCCESS']
@@ -1049,6 +1007,21 @@ class SetPickupState(ActionServiceState):
     
     def execute(self, userdata):
         self.global_store['pick_up'] = self.obj
+        return self._outcomes[0]
+
+
+class SetPickupFuncState(ActionServiceState):
+    """ State for setting pick up to something arbitrary defined by lambda. """
+
+    def __init__(self, action_dict, global_store, func):
+        outcomes = ['SUCCESS']
+        self.func = func
+        super(SetPickupFuncState, self).__init__(action_dict=action_dict,
+                                             global_store=global_store,
+                                             outcomes=outcomes)
+    
+    def execute(self, userdata):
+        self.global_store['pick_up'] = self.func()
         return self._outcomes[0]
 
 
