@@ -73,6 +73,10 @@ def create_state_machine(action_dict):
 
     with sm:
         
+        smach.StateMachine.add('StoreInitialLocation',
+                               GetRobotLocationState(action_dict, global_store),
+                               transitions={'STORED':'Intro'})
+
         phrase = ("Hi, my name is Bam Bam, welcome to the Oxford Robotics " + 
                  "Institute! Today we're going to show you what I can do!")
         smach.StateMachine.add('Intro',
@@ -236,7 +240,7 @@ def create_state_machine(action_dict):
                                             'FAILURE':'TASK_FAILURE'})  
     
     return sm
-    
+
 
 if __name__ == '__main__':
     action_dict = create_open_day_clients()
