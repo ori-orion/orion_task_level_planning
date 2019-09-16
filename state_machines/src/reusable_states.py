@@ -907,11 +907,11 @@ class NavigateState(ActionServiceState):
         dest_pose = self.global_store['nav_location']
 
         # Find closest node
-        (closest_node, wp_pose) = get_closest_node(dest_pose)
+        """(closest_node, wp_pose) = get_closest_node(dest_pose)
 
         current_pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         dist_to_wp = distance_between_poses(current_pose, wp_pose)
-        dist_to_dest = distance_between_poses(current_pose, dest_pose)
+        dist_to_dest = distance_between_poses(current_pose, dest_pose)"""
 
         #if dist_to_wp < dist_to_dest: # Just go directly
         """rospy.loginfo('Using top nav to navigate to: ' + str(closest_node))

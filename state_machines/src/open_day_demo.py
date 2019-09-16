@@ -11,7 +11,10 @@ import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_open_day_clients
+from geometry_msgs.msg import Pose
 
+
+TASK_OBJECTS = ['potted plant', 'tomato', 'flashlight']
 
 class SpeakToOperatorState(ActionServiceState):
     """ Smach state for the robot to say stuff.
@@ -84,7 +87,16 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavToOperator',
                                             'FAILURE':'SetNavToOperator'})
         
-        func = lambda: None # TODO: Set to location of operator
+
+        operator_pose = Pose()
+        operator_pose.position.x = -1.90554933177
+        operator_pose.position.y = 6.14218817664
+        operator_pose.position.z = 0.0
+        operator_pose.orientation.x = 0.0
+        operator_pose.orientation.y = 0.0
+        operator_pose.orientation.z = -0.420347484759
+        operator_pose.orientation.w = 0.907363208455
+        func = lambda: operator_pose # TODO: Set to location of operator
         smach.StateMachine.add('SetNavToOperator',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToOperator'})
@@ -118,7 +130,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   OBJECTS, # TODO: Set!
+                                                   TASK_OBJECTS,
                                                    [],
                                                    20),
                                transitions={'SUCCESS': 'SetPickUp',
@@ -132,7 +144,15 @@ def create_state_machine(action_dict):
                                                   func),
                                transitions={'SUCCESS':'SetNavToPickUp'})
         
-        func = lambda: None # TODO: Set to Pick up location
+        pickup_pose = Pose()
+        pickup_pose.position.x = -2.72972419023
+        pickup_pose.position.y = 5.54487004211
+        pickup_pose.position.z = 0.0
+        pickup_pose.orientation.x = 0.0
+        pickup_pose.orientation.y = 0.0
+        pickup_pose.orientation.z = -0.832897757204
+        pickup_pose.orientation.w = 0.553426893135
+        func = lambda: pickup_pose # TODO: Set to Pick up location
         smach.StateMachine.add('SetNavToPickUp',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavToPickUp'})
@@ -166,7 +186,7 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavBackToOperator',
                                             'FAILURE':'TASK_FAILURE'})
         
-        func = lambda: None # Set back to operator location 
+        func = lambda: operator_pose # Set back to operator location 
         smach.StateMachine.add('SetNavBackToOperator',
                                SetNavGoalState(action_dict, global_store, func),
                                transitions={'SUCCESS':'NavBackToOperator'})
