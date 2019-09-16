@@ -458,7 +458,7 @@ class SpeakAndHotwordState(ActionServiceState):
                                                    outcomes=outcomes)
 
         if 'speak_hotword_failure' not in self.global_store:
-            self.global_store['speak_hotword_faillure'] = 0
+            self.global_store['speak_hotword_failure'] = 0
 
     def execute(self, userdata):
 
@@ -488,6 +488,7 @@ class SpeakAndHotwordState(ActionServiceState):
                 else:
                     return self._outcomes[1]
         except:
+            rospy.loginfo('SOMETHING WENT WRONG')
             return self._outcomes[2]
 
 
