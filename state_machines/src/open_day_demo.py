@@ -81,8 +81,8 @@ def create_state_machine(action_dict):
                                GetRobotLocationState(action_dict, global_store),
                                transitions={'STORED':'Intro'})
 
-        phrase = ("Hi, my name is Bam Bam, welcome to the Oxford Robotics " + 
-                 "Institute! Today we're going to show you what I can do!")
+        phrase = ("Hi, my name is Bam Bam, and" + 
+                 "today we're going to show you what I can do!")
         smach.StateMachine.add('Intro',
                                SpeakState(action_dict, global_store, phrase),
                                transitions={'SUCCESS':'SetNavToOperator',

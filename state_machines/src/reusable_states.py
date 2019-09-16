@@ -46,7 +46,7 @@ NAMES = ['Alex', 'Charlie', 'Elizabeth', 'Francis', 'Jennifer', 'Linda',
          'Robert', 'William', 'Mark', 'Chia-Man', 'Dennis', 'Matt', 'Shu', 
          'Mia', 'Tim', 'Oliver', 'Yizhe']
 
-READY = ['I am ready', 'ready', "let's go", "I'm ready"]
+READY = ['ready']#['I am ready', 'ready', "let's go", "I'm ready"]
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
            "Black", "White", "Grey", "Brown", "Beige"]
