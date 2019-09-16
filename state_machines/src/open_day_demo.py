@@ -243,6 +243,7 @@ def create_state_machine(action_dict):
 
 
 if __name__ == '__main__':
+    rospy.init_node('open_day_demo_state_machine')
     action_dict = create_open_day_clients()
     sm = create_state_machine(action_dict)
     sm.execute()
