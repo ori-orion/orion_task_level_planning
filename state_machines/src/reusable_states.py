@@ -44,7 +44,7 @@ FAILURE_THRESHOLD = 3
 NAMES = ['Alex', 'Charlie', 'Elizabeth', 'Francis', 'Jennifer', 'Linda',
          'Mary', 'Patricia', 'Robin', 'Skyler', 'James', 'John', 'Michael',
          'Robert', 'William', 'Mark', 'Chia-Man', 'Dennis', 'Matt', 'Shu', 
-         'Mia']
+         'Mia', 'Tim', 'Oliver', 'Yizhe']
 
 READY = ['I am ready', 'ready', "let's go", "I'm ready"]
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
