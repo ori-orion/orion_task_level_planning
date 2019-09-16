@@ -49,7 +49,7 @@ def create_common_clients():
     rospy.loginfo('SOM service proxies set up...')
     
     # Add top nav stuff
-    rospy.loginfo('Setting up top nav stuff')
+    """rospy.loginfo('Setting up top nav stuff')
     rospy.wait_for_service('/topological_map_manager/get_tagged_nodes')
     action_dict['GetTaggedNodes'] = \
         rospy.ServiceProxy('/topological_map_manager/get_tagged_nodes',
@@ -57,7 +57,7 @@ def create_common_clients():
     action_dict['ExecutePolicy'] = \
         actionlib.SimpleActionClient('/mdp_plan_exec/execute_policy', 
                                      ExecutePolicyAction)
-    action_dict['ExecutePolicy'].wait_for_server()
+    action_dict['ExecutePolicy'].wait_for_server()"""
 
     # Now add common action clients
     rospy.loginfo('Setting up Move Base client...')
