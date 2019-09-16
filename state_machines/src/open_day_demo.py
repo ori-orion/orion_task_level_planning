@@ -23,7 +23,7 @@ class SpeakToOperatorState(ActionServiceState):
         phrase: What we want the robot to say
     """
     def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
+        outcomes = ['SUCCESS']
         super(SpeakToOperatorState, self).__init__(action_dict=action_dict,
                                                    global_store=global_store,
                                                    outcomes=outcomes)
