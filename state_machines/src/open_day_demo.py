@@ -175,7 +175,7 @@ def create_state_machine(action_dict):
                                SpeakAndHotwordState(action_dict, 
                                                    global_store, 
                                                    question, 
-                                                   ['ready'],
+                                                   READY,
                                                    7),
                                 transitions={'SUCCESS':'ReceiveItem',
                                              'FAILURE':'AskForHelp',
