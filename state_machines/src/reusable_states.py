@@ -674,7 +674,7 @@ class OperatorDetectState(ActionServiceState):
             if name in self.global_store['last_response']:
                 operator.name = name
                 break
-
+        """
         try:
             person_msg = rospy.wait_for_message('/vision/bbox_detections', 
                                                 DetectionArray, timeout=5)
@@ -711,7 +711,7 @@ class OperatorDetectState(ActionServiceState):
 
         if failed >= 3:
             return self._outcomes[1]
-
+        """
         result = self.action_dict['SOMObserve'](operator)
         if not result.result:
             return self._outcomes[1]
