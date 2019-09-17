@@ -905,6 +905,7 @@ class NavigateState(ActionServiceState):
             self.global_store['nav_failure'] = 0
     
     def execute(self, userdata):
+        return self._outcomes[0] # TODO: Remove
         dest_pose = self.global_store['nav_location']
 
         # Find closest node
