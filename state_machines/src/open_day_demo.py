@@ -173,10 +173,11 @@ def create_state_machine(action_dict):
         question = ("Can someone help me pick up the object and say ready " + 
                     "when they are ready?")
         smach.StateMachine.add('AskForHelp',
-                               SpeakAndHotwordState(action_dict, 
+                               SpeakAndListenState(action_dict, 
                                                    global_store, 
                                                    question, 
                                                    READY,
+                                                   [],
                                                    7),
                                 transitions={'SUCCESS':'ReceiveItem',
                                              'FAILURE':'AskForHelp',
@@ -203,8 +204,8 @@ def create_state_machine(action_dict):
                                SpeakToOperatorState(action_dict, global_store),
                                transitions={'SUCCESS':'ReadyToFollow'})
 
-        phrase = ("Now I'm ready to follow you. Please go slow and say my " +
-                  "name when you want me to stop.")
+        phrase = ("Now I'm ready to follow you. Please go slow and say " +
+                  "cancel when you want me to stop.")
         smach.StateMachine.add('ReadyToFollow',
                                SpeakState(action_dict, global_store, phrase),
                                transitions={'SUCCESS': 'Follow',
@@ -222,10 +223,11 @@ def create_state_machine(action_dict):
         question = ("Yay, we've arrived! Please say ready when you're ready "
                     "for me to hand this back to you?")
         smach.StateMachine.add('ArrivalQuestion',
-                               SpeakAndHotwordState(action_dict, 
+                               SpeakAndListenState(action_dict, 
                                                    global_store, 
                                                    question, 
-                                                   ['ready'],
+                                                   READY,
+                                                   [],
                                                    7),
                                 transitions={'SUCCESS':'GiveItemBack',
                                              'FAILURE':'ArrivalQuestion',
