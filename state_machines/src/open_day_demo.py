@@ -90,13 +90,13 @@ def create_state_machine(action_dict):
         
 
         operator_pose = Pose()
-        operator_pose.position.x = -1.90554933177
-        operator_pose.position.y = 6.14218817664
+        operator_pose.position.x = 1.33169130872
+        operator_pose.position.y = -1.9640107058
         operator_pose.position.z = 0.0
         operator_pose.orientation.x = 0.0
         operator_pose.orientation.y = 0.0
-        operator_pose.orientation.z = -0.420347484759
-        operator_pose.orientation.w = 0.907363208455
+        operator_pose.orientation.z = -0.621912540656
+        operator_pose.orientation.w = 0.783086707699
         func = lambda: operator_pose # TODO: Set to location of operator
         smach.StateMachine.add('SetNavToOperator',
                                SetNavGoalState(action_dict, global_store, func),
@@ -146,13 +146,13 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavToPickUp'})
         
         pickup_pose = Pose()
-        pickup_pose.position.x = -2.72972419023
-        pickup_pose.position.y = 5.54487004211
+        pickup_pose.position.x = 1.57063680724
+        pickup_pose.position.y = -2.10371785557
         pickup_pose.position.z = 0.0
         pickup_pose.orientation.x = 0.0
         pickup_pose.orientation.y = 0.0
-        pickup_pose.orientation.z = -0.832897757204
-        pickup_pose.orientation.w = 0.553426893135
+        pickup_pose.orientation.z = 0.167795206023
+        pickup_pose.orientation.w = 0.985821874801
         func = lambda: pickup_pose # TODO: Set to Pick up location
         smach.StateMachine.add('SetNavToPickUp',
                                SetNavGoalState(action_dict, global_store, func),
