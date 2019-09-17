@@ -814,7 +814,7 @@ class FollowState(ActionServiceState):
         obs = SOMObservation()
         obs.type = 'person'
         obs.task_role = 'operator'
-        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation())
+        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(), Pose())
         op = matches[0].obj1
         colour = op.shirt_colour
 
