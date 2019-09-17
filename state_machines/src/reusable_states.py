@@ -887,7 +887,7 @@ def make_follow_hotword_state(action_dict, global_store):
         Concurrence.add('Follow', FollowState(action_dict, global_store))
         Concurrence.add('Hotword', HotwordListenState(action_dict, 
                                                       global_store,
-                                                      ['bambam'],
+                                                      ['cancel'],
                                                       180))
     
     return con
