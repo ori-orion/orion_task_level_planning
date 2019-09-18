@@ -821,7 +821,7 @@ class FollowState(ActionServiceState):
             colour = op.shirt_colour
 
         follow_goal.object_name = 'person_' + colour
-        #self.action_dict['Follow'].send_goal(follow_goal) TODO: Change
+        self.action_dict['Follow'].send_goal(follow_goal) TODO: Change
         print("COLOUR: " + colour)
         current_result = True
         while not self.preempt_requested():
