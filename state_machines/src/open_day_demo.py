@@ -55,6 +55,66 @@ class SpeakToOperatorState(ActionServiceState):
         # Can only succeed
         return self._outcomes[0]
 
+class SpeakAndListenPickupState(ActionServiceState):
+    """ Smach state for speaking and then listening for a response.
+
+    This state will get the robot to say something and then wait for a 
+    response.
+    """
+
+    def __init__(self, 
+                 action_dict, 
+                 global_store,
+                 candidates, 
+                 params, 
+                 timeout):
+        """ Constructor initialises fields and calls super constructor.
+
+        Args:
+            action_dict: As in super class
+            global_store: As in super class
+            question: The question to ask
+            candidates: Candidate sentences
+            params: Optional parameters for candidate sentences
+            timeout: The timeout for listening
+        """
+
+        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
+        self.question = question
+        self.candidates = candidates
+        self.params = params
+        self.timeout = timeout
+        super(SpeakAndListenPickupState, self).__init__(action_dict=action_dict,
+                                                        global_store=global_store,
+                                                        outcomes=outcomes)
+        
+        if 'speak_listen_failure' not in self.global_store:
+            self.global_store['speak_listen_failure'] = 0
+    
+    def execute(self, userdata):
+        speak_listen_goal = SpeakAndListenGoal()
+        speak_listen_goal.question = ("Can someone help me pick up the " +
+                                      self.global_store['pick_up'] + 
+                                      " and say ready " + 
+                                      "when they are ready?")
+        speak_listen_goal.candidates = self.candidates
+        speak_listen_goal.params = self.params
+        speak_listen_goal.timeout = self.timeout
+
+        self.action_dict['SpeakAndListen'].send_goal(speak_listen_goal)
+        self.action_dict['SpeakAndListen'].wait_for_result()
+
+        result = self.action_dict['SpeakAndListen'].get_result()
+        if result.succeeded:
+            self.global_store['last_response'] = result.answer
+            self.global_store['speak_listen_failure'] = 0
+            return self._outcomes[0]
+        else:
+            self.global_store['speak_listen_failure'] += 1
+            if self.global_store['speak_listen_failure'] >= FAILURE_THRESHOLD:
+                return self._outcomes[2]
+            return self._outcomes[1]
+
 
 def create_state_machine(action_dict):
     """ This function builds the state machine for the ORI open day demo.
@@ -169,15 +229,12 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavBackToOperator',
                                             'FAILURE':'AskForHelp'})
 
-        question = ("Can someone help me pick up the object and say ready " + 
-                    "when they are ready?")
         smach.StateMachine.add('AskForHelp',
-                               SpeakAndListenState(action_dict, 
-                                                   global_store, 
-                                                   question, 
-                                                   READY,
-                                                   [],
-                                                   7),
+                               SpeakAndListenPickupState(action_dict, 
+                                                         global_store, 
+                                                         READY,
+                                                         [],
+                                                         7),
                                 transitions={'SUCCESS':'ReceiveItem',
                                              'FAILURE':'AskForHelp',
                                              'REPEAT_FAILURE':'TASK_FAILURE'})
