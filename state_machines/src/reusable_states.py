@@ -28,7 +28,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
                                 PointingGoal
 from orion_door_pass.msg import DoorCheckGoal
-from orion_actions.msg import DetectionArray, FaceDetectionArray
+from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal
