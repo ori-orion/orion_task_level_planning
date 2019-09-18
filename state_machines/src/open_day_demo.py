@@ -80,7 +80,6 @@ class SpeakAndListenPickupState(ActionServiceState):
         """
 
         outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
-        self.question = question
         self.candidates = candidates
         self.params = params
         self.timeout = timeout
