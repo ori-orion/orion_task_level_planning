@@ -675,17 +675,16 @@ class OperatorDetectState(ActionServiceState):
             if name in self.global_store['last_response']:
                 operator.name = name
                 break
-        """
+        
         try:
-            person_msg = rospy.wait_for_message('/vision/bbox_detections', 
-                                                DetectionArray, timeout=5)
-            for detection in person_msg.detections:
-                if 'person' in detection.label.name:
-                    operator.shirt_colour = detection.colour
-                    break
+            person_msg = rospy.wait_for_message('/vision/pose_detections', 
+                                                PoseDetectionArray, timeout=5)
+            person = person_msg.detections[0]
+            operator.shirt_colour = person.color
+            rospy.loginfo("PERSON COLOUR: " + str(operator.shirt_colour))
         except:
             failed += 1
-        
+        """
         try:
             listen = tf.TransformListener()
             tf_frame = 'person_' + operator.shirt_colour

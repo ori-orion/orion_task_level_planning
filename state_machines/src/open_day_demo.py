@@ -153,7 +153,6 @@ def create_state_machine(action_dict):
         pickup_pose.orientation.y = 0.0
         pickup_pose.orientation.z = 0.214779706997
         pickup_pose.orientation.w = 0.976662519739
-        pickup_pose = operator_pose # TODO: Remove!
         func = lambda: pickup_pose # TODO: Set to Pick up location
         smach.StateMachine.add('SetNavToPickUp',
                                SetNavGoalState(action_dict, global_store, func),
