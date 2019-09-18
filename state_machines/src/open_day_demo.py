@@ -201,9 +201,9 @@ def create_state_machine(action_dict):
 
         smach.StateMachine.add('SpeakToOperator',
                                SpeakToOperatorState(action_dict, global_store),
-                               transitions={'SUCCESS':'ReadyToFollow'})
+                               transitions={'SUCCESS':'ArrivalQuestion'})
 
-        phrase = ("Now I'm ready to follow you. Please go slow and say " +
+        """phrase = ("Now I'm ready to follow you. Please go slow and say " +
                   "cancel when you want me to stop.")
         smach.StateMachine.add('ReadyToFollow',
                                SpeakState(action_dict, global_store, phrase),
@@ -216,10 +216,10 @@ def create_state_machine(action_dict):
                                                           global_store),
                                 transitions={'SUCCESS': 'ArrivalQuestion',
                                              'FAILURE': 'Follow',
-                                             'REPEAT_FAILURE': 'TASK_FAILURE'})
+                                             'REPEAT_FAILURE': 'TASK_FAILURE'})"""
 
 
-        question = ("Yay, we've arrived! Please say ready when you're ready "
+        question = ("Please say ready when you're ready "
                     "for me to hand this back to you?")
         smach.StateMachine.add('ArrivalQuestion',
                                SpeakAndListenState(action_dict, 
