@@ -822,10 +822,9 @@ class FollowState(ActionServiceState):
 
         follow_goal.object_name = 'person_' + colour
         #self.action_dict['Follow'].send_goal(follow_goal) TODO: Change
-
+        print("COLOUR: " + colour)
         current_result = True
         while not self.preempt_requested():
-            continue # TODO: Remove
             finished = self.action_dict['Follow'].wait_for_result(timeout=rospy.Duration(secs=1))
             if finished:
                 current_result = self.action_dict['Follow'].get_result().succeeded

@@ -14,7 +14,7 @@ from set_up_clients import create_open_day_clients
 from geometry_msgs.msg import Pose
 
 
-TASK_OBJECTS = ['potted plant', 'tomato', 'flashlight']
+TASK_OBJECTS = ['potted plant', 'cup', 'bottle']
 
 class SpeakToOperatorState(ActionServiceState):
     """ Smach state for the robot to say stuff.
