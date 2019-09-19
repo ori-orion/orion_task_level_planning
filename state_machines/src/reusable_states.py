@@ -968,10 +968,13 @@ class PickUpObjectState(ActionServiceState):
                                                 outcomes=outcomes)
     
     def execute(self, userdata):
-        return self._outcomes[1] # TODO: Remove
         pick_up_goal = PickUpObjectGoal()
         pick_up_goal.goal_tf = self.global_store['pick_up']
 
+        if pick_up_goal.goal_tf == 'potted plant':
+            rospy.log_info('POTTED PLANT')
+            pick_up_goal.goal_tf = 'potted_plant'
+            
         self.action_dict['PickUpObject'].send_goal(pick_up_goal)
         self.action_dict['PickUpObject'].wait_for_result()
 
