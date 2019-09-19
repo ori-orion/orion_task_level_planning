@@ -675,7 +675,7 @@ class OperatorDetectState(ActionServiceState):
             if name in self.global_store['last_response']:
                 operator.name = name
                 break
-        
+        """
         try:
             person_msg = rospy.wait_for_message('/vision/pose_detections', 
                                                 PoseDetectionArray, timeout=5)
@@ -684,7 +684,7 @@ class OperatorDetectState(ActionServiceState):
             rospy.loginfo("PERSON COLOUR: " + str(operator.shirt_colour))
         except:
             failed += 1
-        """
+
         try:
             listen = tf.TransformListener()
             tf_frame = 'person_' + operator.shirt_colour
@@ -978,7 +978,7 @@ class PickUpObjectState(ActionServiceState):
         self.action_dict['PickUpObject'].send_goal(pick_up_goal)
         self.action_dict['PickUpObject'].wait_for_result()
 
-        result = self.action_dict['PickUpObject'].get_result().goal_complete
+        result = self.action_dict['PickUpObject'].get_result().result
 
         if result:
             return self._outcomes[0]
