@@ -28,7 +28,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
                                 PointingGoal
 from orion_door_pass.msg import DoorCheckGoal
-from orion_actions.msg import DetectionArray, FaceDetectionArray
+from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal
@@ -44,9 +44,9 @@ FAILURE_THRESHOLD = 3
 NAMES = ['Alex', 'Charlie', 'Elizabeth', 'Francis', 'Jennifer', 'Linda',
          'Mary', 'Patricia', 'Robin', 'Skyler', 'James', 'John', 'Michael',
          'Robert', 'William', 'Mark', 'Chia-Man', 'Dennis', 'Matt', 'Shu', 
-         'Mia']
+         'Mia', 'Tim', 'Oliver', 'Yizhe']
 
-READY = ['I am ready', 'ready', "let's go", "I'm ready"]
+READY = ['ready']#['I am ready', 'ready', "let's go", "I'm ready"]
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
            "Black", "White", "Grey", "Brown", "Beige"]
@@ -458,7 +458,7 @@ class SpeakAndHotwordState(ActionServiceState):
                                                    outcomes=outcomes)
 
         if 'speak_hotword_failure' not in self.global_store:
-            self.global_store['speak_hotword_faillure'] = 0
+            self.global_store['speak_hotword_failure'] = 0
 
     def execute(self, userdata):
 
@@ -488,6 +488,7 @@ class SpeakAndHotwordState(ActionServiceState):
                 else:
                     return self._outcomes[1]
         except:
+            rospy.loginfo('SOMETHING WENT WRONG')
             return self._outcomes[2]
 
 
@@ -674,17 +675,16 @@ class OperatorDetectState(ActionServiceState):
             if name in self.global_store['last_response']:
                 operator.name = name
                 break
-
+        """
         try:
-            person_msg = rospy.wait_for_message('/vision/bbox_detections', 
-                                                DetectionArray, timeout=5)
-            for detection in person_msg.detections:
-                if 'person' in detection.label.name:
-                    operator.shirt_colour = detection.colour
-                    break
+            person_msg = rospy.wait_for_message('/vision/pose_detections', 
+                                                PoseDetectionArray, timeout=5)
+            person = person_msg.detections[0]
+            operator.shirt_colour = person.color
+            rospy.loginfo("PERSON COLOUR: " + str(operator.shirt_colour))
         except:
             failed += 1
-        
+
         try:
             listen = tf.TransformListener()
             tf_frame = 'person_' + operator.shirt_colour
@@ -711,7 +711,7 @@ class OperatorDetectState(ActionServiceState):
 
         if failed >= 3:
             return self._outcomes[1]
-
+        """
         result = self.action_dict['SOMObserve'](operator)
         if not result.result:
             return self._outcomes[1]
@@ -813,13 +813,16 @@ class FollowState(ActionServiceState):
         obs = SOMObservation()
         obs.type = 'person'
         obs.task_role = 'operator'
-        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation())
-        op = matches[0].obj1
-        colour = op.shirt_colour
+        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(), Pose()).matches
+        if len(matches) == 0:
+            colour = 'green'
+        else:
+            op = matches[0].obj1
+            colour = op.shirt_colour
 
         follow_goal.object_name = 'person_' + colour
         self.action_dict['Follow'].send_goal(follow_goal)
-
+        print("COLOUR: " + colour)
         current_result = True
         while not self.preempt_requested():
             finished = self.action_dict['Follow'].wait_for_result(timeout=rospy.Duration(secs=1))
@@ -882,7 +885,7 @@ def make_follow_hotword_state(action_dict, global_store):
         Concurrence.add('Follow', FollowState(action_dict, global_store))
         Concurrence.add('Hotword', HotwordListenState(action_dict, 
                                                       global_store,
-                                                      ['bambam'],
+                                                      ['cancel'],
                                                       180))
     
     return con
@@ -907,11 +910,11 @@ class NavigateState(ActionServiceState):
         dest_pose = self.global_store['nav_location']
 
         # Find closest node
-        (closest_node, wp_pose) = get_closest_node(dest_pose)
+        """(closest_node, wp_pose) = get_closest_node(dest_pose)
 
         current_pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         dist_to_wp = distance_between_poses(current_pose, wp_pose)
-        dist_to_dest = distance_between_poses(current_pose, dest_pose)
+        dist_to_dest = distance_between_poses(current_pose, dest_pose)"""
 
         #if dist_to_wp < dist_to_dest: # Just go directly
         """rospy.loginfo('Using top nav to navigate to: ' + str(closest_node))
@@ -968,10 +971,14 @@ class PickUpObjectState(ActionServiceState):
         pick_up_goal = PickUpObjectGoal()
         pick_up_goal.goal_tf = self.global_store['pick_up']
 
+        if pick_up_goal.goal_tf == 'potted plant':
+            rospy.loginfo('POTTED PLANT')
+            pick_up_goal.goal_tf = 'potted_plant'
+
         self.action_dict['PickUpObject'].send_goal(pick_up_goal)
         self.action_dict['PickUpObject'].wait_for_result()
 
-        result = self.action_dict['PickUpObject'].get_result().goal_complete
+        result = self.action_dict['PickUpObject'].get_result().result
 
         if result:
             return self._outcomes[0]
