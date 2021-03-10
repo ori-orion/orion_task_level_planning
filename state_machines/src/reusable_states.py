@@ -26,7 +26,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                     FollowGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
-                                PointingGoal
+                                PointingGoal, CloseDrawerGoal
 from orion_door_pass.msg import DoorCheckGoal
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
@@ -52,9 +52,10 @@ COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
            "Black", "White", "Grey", "Brown", "Beige"]
 
 RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
-OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: Fill in
+OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
-          'nectarine'] # TODO: Fill in!
+          'nectarine'] # TODO: Fill in with the YCB benchmark
+
 
 class ActionServiceState(smach.State):
     """ A subclass of Smach States which gives access to actions/services.
@@ -617,7 +618,7 @@ class PickUpPointedObject(ActionServiceState):
 
         # specified to luggage!
         detected_obj = None
-        options = ['luggage', 'bag', 'rucksack', 'suitcase'] # TODO: sort out at competition!
+        options = OBJECTS
         for obj in objects:
             for option in options:
                 if option in obj.label:
@@ -813,7 +814,8 @@ class FollowState(ActionServiceState):
         obs = SOMObservation()
         obs.type = 'person'
         obs.task_role = 'operator'
-        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(), Pose()).matches
+        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(), 
+                                               Pose()).matches
         if len(matches) == 0:
             colour = 'green'
         else:
@@ -1002,6 +1004,41 @@ class SetNavGoalState(ActionServiceState):
         return self._outcomes[0]
 
 
+class NavToLocationState(ActionServiceState):
+    """ State for setting nav goal and then navigating there. """
+    
+    def __init__(self, action_dict, global_store, function):
+        """ Function must have 0 parameters and return new nav goal. """
+        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
+        self.function = function
+        super(SetNavGoalAndNavState, self).__init__(action_dict=action_dict,
+                                                    global_store=global_store,
+                                                    outcomes=outcomes)
+
+        if 'nav_failure' not in self.global_store:
+            self.global_store['nav_failure'] = 0
+
+    def execute(self, userdata):
+        dest_pose = self.function()
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = dest_pose
+        self.action_dict['Navigate'].send_goal(goal)
+        self.action_dict['Navigate'].wait_for_result()
+        status = self.action_dict['Navigate'].get_state()
+        self.action_dict['Navigate'].cancel_all_goals()
+        rospy.loginfo('status = ' + str(status))
+        if status == GoalStatus.SUCCEEDED:
+            self.global_store['nav_failure'] = 0
+            return self._outcomes[0]
+        else:
+            self.global_store['nav_failure'] += 1
+            if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:
+                return self._outcomes[2]
+            return self._outcomes[1]
+
+
 class SetPickupState(ActionServiceState):
     """ State for setting pick up to something arbitrary passed in. """
 
@@ -1053,6 +1090,30 @@ class OpenDrawerState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]
+
+
+class CloseDrawerState(ActionServiceState):
+    """ State for closing a drawer. """
+
+    def __init__(self, action_dict, global_store):
+        outcomes = ['SUCCESS', 'FAILURE']
+        super(CloseDrawerState, self).__init__(action_dict=action_dict,
+                                              global_store=global_store,
+                                              outcomes=outcomes)
+    
+    def execute(self, userdata):
+        drawer_goal = CloseDrawerGoal()
+        drawer_goal.goal_tf = self.global_store['drawer_handle']
+        self.action_dict['CloseDrawer'].send_goal(drawer_goal)
+        self.action_dict['CloseDrawer'].wait_for_result()
+
+        result = self.action_dict['CloseDrawer'].get_result().result
+
+        if result:
+            return self._outcomes[0]
+        else:
+            return self._outcomes[1]
+
 
 class PlaceObjectRelativeState(ActionServiceState):
     """ State for placing objects relative to something else. """
