@@ -147,8 +147,8 @@ def create_state_machine(action_dict):
                                transitions={'SUCCESS':'SetNavToPickUp'})
         
         pickup_pose = Pose()
-        pickup_pose.position.x = -0.303404230231
-        pickup_pose.position.y = -0.777865965634
+        pickup_pose.position.x = -3.08
+        pickup_pose.position.y = 0.522
         pickup_pose.position.z = 0.0
         pickup_pose.orientation.x = 0.0
         pickup_pose.orientation.y = 0.0
@@ -185,8 +185,8 @@ def create_state_machine(action_dict):
 
 
         operator_pose = Pose()
-        operator_pose.position.x = -1.04759316937
-        operator_pose.position.y = -1.99356716375
+        operator_pose.position.x = -5.01
+        operator_pose.position.y = 0.167
         operator_pose.position.z = 0.0
         operator_pose.orientation.x = 0.0
         operator_pose.orientation.y = 0.0
