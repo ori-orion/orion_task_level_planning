@@ -71,11 +71,10 @@ def create_common_clients():
     action_dict['Speak'].wait_for_server()
     rospy.loginfo('I can speak!...')
     rospy.loginfo('Can I listen?...')
-    # TODO: Add back in
-    #action_dict['SpeakAndListen'] = \
-    #    actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
-    #action_dict['SpeakAndListen'].wait_for_server()
-    #rospy.loginfo('I can listen!...')
+    action_dict['SpeakAndListen'] = \
+        actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+    action_dict['SpeakAndListen'].wait_for_server()
+    rospy.loginfo('I can listen!...')
 
     return action_dict
 
@@ -518,11 +517,11 @@ def create_open_day_clients():
     #    actionlib.SimpleActionClient('hotword_listen', HotwordListenAction)
     #action_dict['HotwordListen'].wait_for_server()
     #rospy.loginfo('I can!...')
-    #rospy.loginfo('Can I pick up objects?...')
-    #action_dict['PickUpObject'] = \
-    #    actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
-    #action_dict['PickUpObject'].wait_for_server()
-    #rospy.loginfo('I can pick up objects!...')
+    rospy.loginfo('Can I pick up objects?...')
+    action_dict['PickUpObject'] = \
+        actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+    action_dict['PickUpObject'].wait_for_server()
+    rospy.loginfo('I can pick up objects!...')
     rospy.loginfo('Can I receive objects?...')
     action_dict['ReceiveObjectFromOperator'] = \
         actionlib.SimpleActionClient('receive_object_from_operator',

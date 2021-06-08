@@ -162,7 +162,7 @@ def create_state_machine(action_dict):
 
         smach.StateMachine.add('NavToPickUp',
                                NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS':'AskForHelp',
+                               transitions={'SUCCESS':'PickUpItem',
                                             'FAILURE':'NavToPickUp',
                                             'REPEAT_FAILURE':'TASK_FAILURE'})
         
