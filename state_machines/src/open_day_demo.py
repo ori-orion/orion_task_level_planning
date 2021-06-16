@@ -5,6 +5,7 @@ Author: Charlie Street
 Owner: Charlie Street
 """
 
+import os
 import rospy
 import smach
 import actionlib
@@ -15,6 +16,18 @@ from geometry_msgs.msg import Pose
 
 
 TASK_OBJECTS = ['potted plant', 'cup', 'bottle']
+
+TASK_NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie', 
+          'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'Jon']
+
+# Load up all of our names
+import rospkg
+rospack = rospkg.RosPack()
+name_file = \
+    os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
+with open(name_file, 'r') as in_file:
+    TASK_NAMES += in_file.read().splitlines()
+
 
 class SpeakToOperatorState(ActionServiceState):
     """ Smach state for the robot to say stuff.
@@ -172,7 +185,7 @@ def create_state_machine(action_dict):
                                SpeakAndListenState(action_dict,
                                                    global_store,
                                                    question,
-                                                   NAMES,
+                                                   TASK_NAMES,
                                                    [],
                                                    20),
                                transitions={'SUCCESS': 'DetectOperator',
