@@ -46,15 +46,15 @@ class SpeakToOperatorState(ActionServiceState):
     
     def execute(self, userdata):
 
-        obj1 = SOMObservation()
-        obj1.obj_id = self.global_store['people_found'][0]
-        rel = Relation()
-        obj2 = SOMObservation()
+        #obj1 = SOMObservation()
+        #obj1.obj_id = self.global_store['people_found'][0]
+        #rel = Relation()
+        #obj2 = SOMObservation()
 
-        matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
+        #matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
         
-        name = matches[0].obj1.name
-
+        #name = matches[0].obj1.name
+        name = self.global_store['operator_name']
         picked_up = self.global_store['pick_up']
 
         phrase = "Hi, " + name + ", I've brought you the " + picked_up 

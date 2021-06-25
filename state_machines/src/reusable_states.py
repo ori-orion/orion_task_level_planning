@@ -657,6 +657,8 @@ class OperatorDetectState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
+        self.global_store['operator_name'] = self.global_store['last_response']
+        return self._outcomes[0]
         failed = 0
         operator = SOMObservation()
 
