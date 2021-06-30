@@ -18,7 +18,8 @@ from geometry_msgs.msg import Pose
 TASK_OBJECTS = ['potted plant', 'cup', 'bottle']
 
 TASK_NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie', 
-          'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'Jon']
+          'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'Jon',
+          'Michael', 'Matthew']
 
 # Load up all of our names
 import rospkg
