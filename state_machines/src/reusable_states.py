@@ -978,6 +978,9 @@ class PickUpObjectState(ActionServiceState):
         if pick_up_goal.goal_tf == 'potted plant':
             rospy.loginfo('POTTED PLANT')
             pick_up_goal.goal_tf = 'potted_plant'
+        elif pick_up_goal.goal_tf == 'bottle':
+            rospy.loginfo("BOTTLE - Switching to AR marker")
+            pick_up_goal.goal_tf = 'ar_marker/151'
 
         self.action_dict['PickUpObject'].send_goal(pick_up_goal)
         self.action_dict['PickUpObject'].wait_for_result()
