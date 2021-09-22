@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Smach state machine for Prince William H B Allen Centre Demo!
 
 Author: Charlie Street

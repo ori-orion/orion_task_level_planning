@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File containing reusable state machine states.
 
 This file contains state machine tasks which are reusable across

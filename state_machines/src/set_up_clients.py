@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for setting up action clients for state machines.
 
 This file contains functions for setting up the action clients for
