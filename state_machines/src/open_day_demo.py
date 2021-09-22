@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Smach state machine for ORI open day demonstration!
 
 Author: Charlie Street
