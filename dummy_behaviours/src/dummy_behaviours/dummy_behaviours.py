@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Module for dummy behaviours for state machines.
 
 This file contains dummy behaviours used within our
