@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for generating grako grammar from GPSRCmdGen grammar.
 
 This file contains code to take the grammar definition given by the
@@ -607,7 +607,7 @@ def remove_void_from_line(line, void_nts):
         if nt in line:
             start_point = line.find(nt)
             end_point = start_point + len(nt)
-            print line
+            print (line)
             if line[end_point] == '\n': # On the end of a line
                 if line[start_point-2] == '|':
                     return line[0:start_point-3] + '\n'

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File containing states for dummy help_me_carry.
 This module contains states for the dummy version of the
 help_me_carry task for RoboCup.

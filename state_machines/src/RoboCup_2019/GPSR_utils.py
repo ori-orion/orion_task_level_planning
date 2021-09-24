@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Utilities for the GPSR task.
 
 This file contains utilities for the GPSR task, including filtering

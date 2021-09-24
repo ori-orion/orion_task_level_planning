@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Smach state machine for the clean up task.
 
 This file contains any code specific to the clean up task, including

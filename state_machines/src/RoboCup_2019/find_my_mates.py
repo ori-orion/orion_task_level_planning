@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Code for the find my mate task.
 
 This file contains code for the find my mate task, including the

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Code for the Hand Me That Task.
 
 This file contains the state machine code for the Hand Me That task.

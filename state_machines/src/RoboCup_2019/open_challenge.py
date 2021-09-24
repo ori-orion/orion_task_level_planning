@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for Open Challenge.
 
 This file contains the state machine and states specific to the 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Code for the Storing Groceries task.
 
 This file contains the state machine code for the Storing Groceries task.

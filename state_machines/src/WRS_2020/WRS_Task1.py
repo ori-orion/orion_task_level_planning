@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for tidy up task for WRS 2020.
 
 This file contains the state machine for task 1 of WRS 2020.

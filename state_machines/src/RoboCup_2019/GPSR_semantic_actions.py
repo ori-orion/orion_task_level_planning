@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Code for GPSR Semantic Actions.
 
 This file contains the class for semantic actions for the GPSR task.
@@ -36,13 +36,13 @@ class GPSRSemanticActions(object):
 
     def fndppl(self, ast):
         # TODO: findppl
-        print 'findppl'
+        print ('findppl')
         pass
     
 
     def fndobj(self, ast):
         # TODO: fndobj
-        print 'fndobj'
+        print ('fndobj')
         pass
 
     
@@ -53,19 +53,19 @@ class GPSRSemanticActions(object):
     
     def follow(self, ast):
         # TODO: Follow
-        print 'follow'
+        print ('follow')
         pass
     
 
     def followout(self, ast):
         # TODO: followout
-        print 'followout'
+        print ('followout')
         pass
 
     
     def incomplete(self, ast):
         # TODO: incomplete
-        print 'incomplete'
+        print ('incomplete')
         pass
     
 
@@ -81,7 +81,7 @@ class GPSRSemanticActions(object):
 
     def partyhost(self, ast):
         # TODO: partyhost
-        print 'partyhost'
+        print ('partyhost')
         pass
     
 
@@ -104,7 +104,7 @@ class GPSRSemanticActions(object):
 
     def findp(self, ast):
         # TODO: findp
-        print 'findp'
+        print ('findp')
         pass
     
 
@@ -123,7 +123,7 @@ class GPSRSemanticActions(object):
 
     def gdcmd(self, ast):
         # TODO: gdcmd
-        print 'gdcmd'
+        print ('gdcmd')
         pass
     
 
@@ -166,13 +166,13 @@ class GPSRSemanticActions(object):
 
     def deliver(self, ast):
         # TODO: deliver
-        print 'deliver'
+        print ('deliver')
         pass
 
 
     def cmancmd(self, ast):
         # TODO: cmancmd
-        print 'cmancmd'
+        print ('cmancmd')
         pass
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File to let user choose which RoboCup task to execute.
 
 This file contains a script to let the user choose from all tasks which 

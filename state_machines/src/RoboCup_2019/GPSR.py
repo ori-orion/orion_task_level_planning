@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for main state machine of GPSR task.
 
 This file contains the code for the main part of the

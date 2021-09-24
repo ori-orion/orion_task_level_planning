@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Code for the Receptionist task.
 
 This file contains the state machine and other code specific to the

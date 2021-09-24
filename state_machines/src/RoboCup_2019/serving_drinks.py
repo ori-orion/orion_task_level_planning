@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File contains code for Serving Drinks task.
 
 This file contains the state machine for the serving drinks task.

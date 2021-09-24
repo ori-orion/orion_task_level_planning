@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for Take Out The Garbage Task.
 
 This file contains the state machine and states specific to the 

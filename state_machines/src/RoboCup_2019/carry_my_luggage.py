@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ File for carry my luggage task for stage 1 of RoboCup@home 2019.
 
 This file contains the state machine for the carry my luggage task
