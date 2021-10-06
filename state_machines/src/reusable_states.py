@@ -538,8 +538,11 @@ class SpeakAndListenState(ActionServiceState):
         speak_listen_goal.params = self.params
         speak_listen_goal.timeout = self.timeout
 
+        rospy.loginfo("Pre sending goal");
         self.action_dict['SpeakAndListen'].send_goal(speak_listen_goal)
+        rospy.loginfo("Pre wait for result");
         self.action_dict['SpeakAndListen'].wait_for_result()
+        rospy.loginfo("Post wait for result");
 
         result = self.action_dict['SpeakAndListen'].get_result()
         if result.succeeded:
@@ -764,7 +767,7 @@ class MemorisePersonState(ActionServiceState):
         
         try:
             listen = tf.TransformListener()
-            tf_frame = 'person_' + operator.shirt_colour
+            tf_frame = 'person_' + person.shirt_colour
             t = listen.getLatestCommonTime("map", tf_frame)
             (trans, rot) = listen.lookupTransform("map", tf_frame, t)
             pose = Pose()
