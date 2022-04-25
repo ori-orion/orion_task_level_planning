@@ -8,6 +8,7 @@ Owner: Charlie Street
 import os
 import rospy
 import smach
+import smach_ros
 import actionlib
 
 from reusable_states import * # pylint: disable=unused-wildcard-import
@@ -146,197 +147,239 @@ def create_state_machine(action_dict):
     global_store['last_person'] = None
 
     # Create the state machine
-    sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
+    sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
+    sm.userdata.nav_failures = 0
+    sm.userdata.nav_failure_threshold = 3
+    sm.userdata.intro_phrase = ("Hi, my name is Bam Bam, and " + 
+                 "today we're going to show you what I can do!")
+    sm.userdata.operator_question = "Hi, what's your name?"
+    sm.userdata.speak_listen_failures = 0
+    sm.userdata.speak_listen_failure_threshold = 3
+    sm.userdata.task_names = TASK_NAMES
+    sm.userdata.speak_and_listen_params_empty = []
+    sm.userdata.speak_and_listen_timeout = 20
 
     with sm:
         
-        smach.StateMachine.add('StoreInitialLocation',
-                               GetRobotLocationState(action_dict, global_store),
-                               transitions={'STORED':'Intro'})
+        smach.StateMachine.add('STORE_INITIAL_LOCATION',
+                                GetRobotLocationState(),
+                                transitions={'stored':'INTRO'},
+                                remapping={'robot_location':'robot_location'})
 
-        phrase = ("Hi, my name is Bam Bam, and " + 
-                 "today we're going to show you what I can do!")
-        smach.StateMachine.add('Intro',
-                               SpeakState(action_dict, global_store, phrase),
-                               transitions={'SUCCESS':'SetNavToOperator',
-                                            'FAILURE':'SetNavToOperator'})
-        
+        # userdata.phrase = ("Hi, my name is Bam Bam, and " + 
+        #          "today we're going to show you what I can do!")
 
-        operator_pose = Pose()
-        operator_pose.position.x = 1.57894771198
-        operator_pose.position.y = 0.59994803628
-        operator_pose.position.z = 0.0
-        operator_pose.orientation.x = 0.0
-        operator_pose.orientation.y = 0.0
-        operator_pose.orientation.z = -0.362624641735
-        operator_pose.orientation.w = 0.931935281662
-        func = lambda: operator_pose
-        smach.StateMachine.add('SetNavToOperator',
-                               SetNavGoalState(action_dict, global_store, func),
-                               transitions={'SUCCESS':'NavToOperator'})
+        # smach.StateMachine.add('INTRO',
+        #                         SpeakState(),
+        #                         transitions={'success':'SetNavToOperator',
+        #                                      'failure':'SetNavToOperator'},
+        #                         remapping={'phrase':'intro_phrase'})
 
-        smach.StateMachine.add('NavToOperator',
-                               NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS':'AskOperatorName',
-                                            'FAILURE':'NavToOperator',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+        smach.StateMachine.add('INTRO',
+                                SpeakState(),
+                                transitions={'success':'ASK_OPERATOR_NAME',
+                                             'failure':'task_failure'},
+                                remapping={'phrase':'intro_phrase'})
+        # orig
+        # def __init__(self, 
+        #          action_dict, 
+        #          global_store, 
+        #          question, 
+        #          candidates, 
+        #          params, 
+        #          timeout):
+
+        # operator_pose = Pose()
+        # operator_pose.position.x = 1.57894771198
+        # operator_pose.position.y = 0.59994803628
+        # operator_pose.position.z = 0.0
+        # operator_pose.orientation.x = 0.0
+        # operator_pose.orientation.y = 0.0
+        # operator_pose.orientation.z = -0.362624641735
+        # operator_pose.orientation.w = 0.931935281662
+        # func = lambda: operator_pose
+        # # smach.StateMachine.add('SetNavToOperator',
+        # #                        SetNavGoalState(action_dict, global_store, func),
+        # #                        transitions={'success':'NavToOperator'})
+
+        # TODO - fix userdata.nav_failures input and output (need to reset and re-use in later states)
+        # smach.StateMachine.add('NAV_TO_OPERATOR',
+        #                        NavigateState(),
+        #                        transitions={'success':'AskOperatorName',
+        #                                     'failure':'NavToOperator',
+        #                                     'repeat_failure':'TASK_FAILURE'})
     
-        question = ("Hi, what's your name?")
-        smach.StateMachine.add('AskOperatorName',
-                               SpeakAndListenState(action_dict,
-                                                   global_store,
-                                                   question,
-                                                   TASK_NAMES,
-                                                   [],
-                                                   20),
-                               transitions={'SUCCESS': 'DetectOperator',
-                                            'FAILURE':'AskOperatorName',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+        # question = ("Hi, what's your name?")
+        smach.StateMachine.add('ASK_OPERATOR_NAME',
+                               SpeakAndListenState(),
+                                transitions={'success': 'task_success',
+                                            'failure':'ASK_OPERATOR_NAME',
+                                            'repeat_failure':'task_failure'},
+                                remapping={'question':'operator_question',
+                                            'operator_response': 'operator_name',
+                                            'candidates':'task_names',
+                                            'params':'speak_and_listen_params_empty',
+                                            'timeout':'speak_and_listen_timeout'})
         
-        # Detect and memorise the operator
-        smach.StateMachine.add('DetectOperator',
-                               OperatorDetectState(action_dict, global_store),
-                               transitions={'SUCCESS': 'AskPickUp',
-                                            'FAILURE': 'AskOperatorName'})
+        # # Detect and memorise the operator
+        # smach.StateMachine.add('DetectOperator',
+        #                        OperatorDetectState(action_dict, global_store),
+        #                        transitions={'SUCCESS': 'AskPickUp',
+        #                                     'FAILURE': 'AskOperatorName'})
         
-        question = ("Great! What would you like me to pick up?")
-        smach.StateMachine.add('AskPickUp',
-                               SpeakAndListenState(action_dict,
-                                                   global_store,
-                                                   question,
-                                                   TASK_OBJECTS,
-                                                   [],
-                                                   20),
-                               transitions={'SUCCESS': 'SetPickUp',
-                                            'FAILURE':'AskPickUp',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+        # question = ("Great! What would you like me to pick up?")
+        # smach.StateMachine.add('AskPickUp',
+        #                        SpeakAndListenState(action_dict,
+        #                                            global_store,
+        #                                            question,
+        #                                            TASK_OBJECTS,
+        #                                            [],
+        #                                            20),
+        #                        transitions={'SUCCESS': 'SetPickUp',
+        #                                     'FAILURE':'AskPickUp',
+        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
 
-        func = lambda: global_store['last_response']
-        smach.StateMachine.add('SetPickUp',
-                               SetPickupFuncState(action_dict, 
-                                                  global_store, 
-                                                  func),
-                               transitions={'SUCCESS':'SetNavToPickUp'})
+        # func = lambda: global_store['last_response']
+        # smach.StateMachine.add('SetPickUp',
+        #                        SetPickupFuncState(action_dict, 
+        #                                           global_store, 
+        #                                           func),
+        #                        transitions={'SUCCESS':'SetNavToPickUp'})
         
-        pickup_pose = Pose()
-        pickup_pose.position.x = 0.829577886698
-        pickup_pose.position.y = -0.00474571408639
-        pickup_pose.position.z = 0.0
-        pickup_pose.orientation.x = 0.0
-        pickup_pose.orientation.y = 0.0
-        pickup_pose.orientation.z = -0.653883288824
-        pickup_pose.orientation.w = 0.756595429934
-        func = lambda: pickup_pose
-        smach.StateMachine.add('SetNavToPickUp',
-                               SetNavGoalState(action_dict, global_store, func),
-                               transitions={'SUCCESS':'NavToPickUp'})
+        # pickup_pose = Pose()
+        # pickup_pose.position.x = 0.829577886698
+        # pickup_pose.position.y = -0.00474571408639
+        # pickup_pose.position.z = 0.0
+        # pickup_pose.orientation.x = 0.0
+        # pickup_pose.orientation.y = 0.0
+        # pickup_pose.orientation.z = -0.653883288824
+        # pickup_pose.orientation.w = 0.756595429934
+        # func = lambda: pickup_pose
+        # smach.StateMachine.add('SetNavToPickUp',
+        #                        SetNavGoalState(action_dict, global_store, func),
+        #                        transitions={'SUCCESS':'NavToPickUp'})
 
-        smach.StateMachine.add('NavToPickUp',
-                               NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS':'PickUpItem',
-                                            'FAILURE':'NavToPickUp',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+        # smach.StateMachine.add('NavToPickUp',
+        #                        NavigateState(action_dict, global_store),
+        #                        transitions={'SUCCESS':'PickUpItem',
+        #                                     'FAILURE':'NavToPickUp',
+        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
         
-        smach.StateMachine.add('PickUpItem',
-                               PickUpObjectState(action_dict, global_store),
-                               transitions={'SUCCESS':'SetNavBackToOperator',
-                                            'FAILURE':'AskForHelp'})
+        # smach.StateMachine.add('PickUpItem',
+        #                        PickUpObjectState(action_dict, global_store),
+        #                        transitions={'SUCCESS':'SetNavBackToOperator',
+        #                                     'FAILURE':'AskForHelp'})
 
-        smach.StateMachine.add('AskForHelp',
-                               SpeakAndListenPickupState(action_dict, 
-                                                         global_store, 
-                                                         READY,
-                                                         [],
-                                                         7),
-                                transitions={'SUCCESS':'ReceiveItem',
-                                             'FAILURE':'AskForHelp',
-                                             'REPEAT_FAILURE':'TASK_FAILURE'})
+        # smach.StateMachine.add('AskForHelp',
+        #                        SpeakAndListenPickupState(action_dict, 
+        #                                                  global_store, 
+        #                                                  READY,
+        #                                                  [],
+        #                                                  7),
+        #                         transitions={'SUCCESS':'ReceiveItem',
+        #                                      'FAILURE':'AskForHelp',
+        #                                      'REPEAT_FAILURE':'TASK_FAILURE'})
 
-        smach.StateMachine.add('ReceiveItem',
-                               ReceiveObjectFromOperatorState(action_dict,
-                                                              global_store),
-                               transitions={'SUCCESS':'SetNavBackToOperator',
-                                            'FAILURE':'TASK_FAILURE'})
+        # smach.StateMachine.add('ReceiveItem',
+        #                        ReceiveObjectFromOperatorState(action_dict,
+        #                                                       global_store),
+        #                        transitions={'SUCCESS':'SetNavBackToOperator',
+        #                                     'FAILURE':'TASK_FAILURE'})
         
-        func = lambda: operator_pose # Set back to operator location 
-        smach.StateMachine.add('SetNavBackToOperator',
-                               SetNavGoalState(action_dict, global_store, func),
-                               transitions={'SUCCESS':'NavBackToOperator'})
+        # func = lambda: operator_pose # Set back to operator location 
+        # smach.StateMachine.add('SetNavBackToOperator',
+        #                        SetNavGoalState(action_dict, global_store, func),
+        #                        transitions={'SUCCESS':'NavBackToOperator'})
 
-        smach.StateMachine.add('NavBackToOperator',
-                               NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS':'SpeakToOperator',
-                                            'FAILURE':'NavBackToOperator',
-                                            'REPEAT_FAILURE':'TASK_FAILURE'})
+        # smach.StateMachine.add('NavBackToOperator',
+        #                        NavigateState(action_dict, global_store),
+        #                        transitions={'SUCCESS':'SpeakToOperator',
+        #                                     'FAILURE':'NavBackToOperator',
+        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
 
-        smach.StateMachine.add('SpeakToOperator',
-                               SpeakToOperatorState(action_dict, global_store),
-                               transitions={'SUCCESS':'ArrivalQuestion'})
+        # smach.StateMachine.add('SpeakToOperator',
+        #                        SpeakToOperatorState(action_dict, global_store),
+        #                        transitions={'SUCCESS':'ArrivalQuestion'})
 
-        """phrase = ("Now I'm ready to follow you. Please go slow and say " +
-                  "cancel when you want me to stop.")
-        smach.StateMachine.add('ReadyToFollow',
-                               SpeakState(action_dict, global_store, phrase),
-                               transitions={'SUCCESS': 'Follow',
-                                            'FAILURE': 'Follow'})
+        # """phrase = ("Now I'm ready to follow you. Please go slow and say " +
+        #           "cancel when you want me to stop.")
+        # smach.StateMachine.add('ReadyToFollow',
+        #                        SpeakState(action_dict, global_store, phrase),
+        #                        transitions={'SUCCESS': 'Follow',
+        #                                     'FAILURE': 'Follow'})
         
 
-        smach.StateMachine.add('Follow',
-                                make_follow_hotword_state(action_dict, 
-                                                          global_store),
-                                transitions={'SUCCESS': 'ArrivalQuestion',
-                                             'FAILURE': 'Follow',
-                                             'REPEAT_FAILURE': 'TASK_FAILURE'})"""
+        # smach.StateMachine.add('Follow',
+        #                         make_follow_hotword_state(action_dict, 
+        #                                                   global_store),
+        #                         transitions={'SUCCESS': 'ArrivalQuestion',
+        #                                      'FAILURE': 'Follow',
+        #                                      'REPEAT_FAILURE': 'TASK_FAILURE'})"""
 
 
-        question = ("Please say ready when you're ready "
-                    "for me to hand this back to you?")
-        smach.StateMachine.add('ArrivalQuestion',
-                               SpeakAndListenState(action_dict, 
-                                                   global_store, 
-                                                   question, 
-                                                   READY,
-                                                   [],
-                                                   7),
-                                transitions={'SUCCESS':'GiveItemBack',
-                                             'FAILURE':'ArrivalQuestion',
-                                             'REPEAT_FAILURE':'TASK_FAILURE'})
+        # question = ("Please say ready when you're ready "
+        #             "for me to hand this back to you?")
+        # smach.StateMachine.add('ArrivalQuestion',
+        #                        SpeakAndListenState(action_dict, 
+        #                                            global_store, 
+        #                                            question, 
+        #                                            READY,
+        #                                            [],
+        #                                            7),
+        #                         transitions={'SUCCESS':'GiveItemBack',
+        #                                      'FAILURE':'ArrivalQuestion',
+        #                                      'REPEAT_FAILURE':'TASK_FAILURE'})
 
-        smach.StateMachine.add('GiveItemBack',
-                               HandoverObjectToOperatorState(action_dict,
-                                                             global_store),
-                               transitions={'SUCCESS': 'ThankOperator',
-                                            'FAILURE': 'TASK_FAILURE'})
+        # smach.StateMachine.add('GiveItemBack',
+        #                        HandoverObjectToOperatorState(action_dict,
+        #                                                      global_store),
+        #                        transitions={'SUCCESS': 'ThankOperator',
+        #                                     'FAILURE': 'TASK_FAILURE'})
 
 
-        phrase = ("It looks like my job here is done. Have a nice day!")
-        smach.StateMachine.add('ThankOperator',
-                               SpeakState(action_dict, global_store, phrase),
-                               transitions={'SUCCESS':'SetNavToStart',
-                                            'FAILURE':'SetNavToStart'})
+        # phrase = ("It looks like my job here is done. Have a nice day!")
+        # smach.StateMachine.add('ThankOperator',
+        #                        SpeakState(action_dict, global_store, phrase),
+        #                        transitions={'SUCCESS':'SetNavToStart',
+        #                                     'FAILURE':'SetNavToStart'})
 
-        func = lambda : global_store['stored_location']  
-        smach.StateMachine.add('SetNavToStart',
-                               SetNavGoalState(action_dict, global_store, func),
-                               transitions={'SUCCESS':'NavToStart'}) 
+        # func = lambda : global_store['stored_location']  
+        # smach.StateMachine.add('SetNavToStart',
+        #                        SetNavGoalState(action_dict, global_store, func),
+        #                        transitions={'SUCCESS':'NavToStart'}) 
 
-        smach.StateMachine.add('NavToStart',
-                               NavigateState(action_dict, global_store),
-                               transitions={'SUCCESS': 'Finish',
-                                            'FAILURE': 'NavToStart',
-                                            'REPEAT_FAILURE': 'TASK_FAILURE'})
+        # smach.StateMachine.add('NavToStart',
+        #                        NavigateState(action_dict, global_store),
+        #                        transitions={'SUCCESS': 'Finish',
+        #                                     'FAILURE': 'NavToStart',
+        #                                     'REPEAT_FAILURE': 'TASK_FAILURE'})
 
-        phrase = "I'm back where I started, woohoo!"
-        smach.StateMachine.add('Finish',
-                               SpeakState(action_dict, global_store, phrase),
-                               transitions={'SUCCESS':'TASK_SUCCESS',
-                                            'FAILURE':'TASK_FAILURE'})  
+        # phrase = "I'm back where I started, woohoo!"
+        # smach.StateMachine.add('Finish',
+        #                        SpeakState(action_dict, global_store, phrase),
+        #                        transitions={'SUCCESS':'TASK_SUCCESS',
+        #                                     'FAILURE':'TASK_FAILURE'})  
     
     return sm
 
 
 if __name__ == '__main__':
     rospy.init_node('open_day_demo_state_machine')
-    action_dict = create_open_day_clients()
+    action_dict = {}
+    # action_dict = create_open_day_clients()
+
+    
+
+    # Create the state machine
     sm = create_state_machine(action_dict)
+
+    # Create and start the introspection server
+    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+    sis.start()
+
+    # Execute the state machine
     sm.execute()
+
+    # Run until ctl+c command is received
+    rospy.spin()
+    sis.stop()

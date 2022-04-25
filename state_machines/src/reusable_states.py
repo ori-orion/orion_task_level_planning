@@ -26,14 +26,15 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                     FollowGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
-                                PointingGoal, CloseDrawerGoal
+                                PointingGoal, CloseDrawerGoal, \
+                                    SpeakAndListenAction, SpeakAndListenGoal
 from orion_door_pass.msg import DoorCheckGoal
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
-from tmc_msgs.msg import TalkRequestGoal, Voice
+from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 from strands_navigation_msgs.srv import GetTaggedNodesResponse
 from strands_navigation_msgs.msg import TopologicalMap
 from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
@@ -192,31 +193,33 @@ def get_closest_node(dest_pose):
     return best_node_pose
 
 
-class SpeakState(ActionServiceState):
+class SpeakState(smach.State):
     """ Smach state for the robot to say stuff.
 
     This class has the robot say something and return success if it has been
     said. Enough said...
 
-    Attributes:
+    input_keys:
         phrase: What we want the robot to say
     """
-    def __init__(self, action_dict, global_store, phrase):
-        self.phrase = phrase
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(SpeakState, self).__init__(action_dict=action_dict,
-                                         global_store=global_store,
-                                         outcomes=outcomes)
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success','failure'],
+                                input_keys=['phrase'])
     
     def execute(self, userdata):
         action_goal = TalkRequestGoal()
         action_goal.data.language = Voice.kEnglish
-        action_goal.data.sentence = self.phrase
-        self.action_dict['Speak'].send_goal(action_goal)
-        self.action_dict['Speak'].wait_for_result()
+        action_goal.data.sentence = userdata.phrase
+
+        speak_action_client = actionlib.SimpleActionClient('talk_request_action', 
+                                        TalkRequestAction)
+
+        speak_action_client.send_goal(action_goal)
+        speak_action_client.wait_for_result()
 
         # Can only succeed
-        return self._outcomes[0]
+        return 'success'
 
 
 class CheckDoorIsOpenState(ActionServiceState):
@@ -418,24 +421,23 @@ class CheckForBarDrinksState(ActionServiceState):
         return self._outcomes[0]
 
 
-class GetRobotLocationState(ActionServiceState):
+class GetRobotLocationState(smach.State):
     """ Smach state for getting the robot's current location.
 
-    This state will get the robot's current location and store it.
+    This state will get the robot's current location and return it in the userdata dict.
     """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['STORED']
-        super(GetRobotLocationState, self).__init__(action_dict=action_dict,
-                                                    global_store=global_store,
-                                                    outcomes=outcomes)
-        
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['stored'],
+                                output_keys=['robot_location'])
+
     def execute(self, userdata):
         # Wait for one message on topic and then set as the location
         pose = rospy.wait_for_message('/global_pose', PoseStamped)
-        self.global_store['stored_location'] = pose.pose
+        userdata.robot_location = pose.pose
         rospy.loginfo(pose)
-        return self._outcomes[0]
+        return 'stored'
 
 
 class SpeakAndHotwordState(ActionServiceState):
@@ -494,20 +496,14 @@ class SpeakAndHotwordState(ActionServiceState):
 
 
 
-class SpeakAndListenState(ActionServiceState):
+class SpeakAndListenState(smach.State):
     """ Smach state for speaking and then listening for a response.
 
     This state will get the robot to say something and then wait for a 
     response.
     """
 
-    def __init__(self, 
-                 action_dict, 
-                 global_store, 
-                 question, 
-                 candidates, 
-                 params, 
-                 timeout):
+    def __init__(self):
         """ Constructor initialises fields and calls super constructor.
 
         Args:
@@ -518,42 +514,39 @@ class SpeakAndListenState(ActionServiceState):
             params: Optional parameters for candidate sentences
             timeout: The timeout for listening
         """
-
-        outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
-        self.question = question
-        self.candidates = candidates
-        self.params = params
-        self.timeout = timeout
-        super(SpeakAndListenState, self).__init__(action_dict=action_dict,
-                                                  global_store=global_store,
-                                                  outcomes=outcomes)
-        
-        if 'speak_listen_failure' not in self.global_store:
-            self.global_store['speak_listen_failure'] = 0
+        smach.State.__init__(self, 
+                                outcomes=['success','failure','repeat_failure'],
+                                input_keys=['question', 'candidates','params','timeout'],
+                                output_keys=['operator_response'])
     
     def execute(self, userdata):
         speak_listen_goal = SpeakAndListenGoal()
-        speak_listen_goal.question = self.question
-        speak_listen_goal.candidates = self.candidates
-        speak_listen_goal.params = self.params
-        speak_listen_goal.timeout = self.timeout
+        speak_listen_goal.question = userdata.question
+        speak_listen_goal.candidates = userdata.candidates
+        speak_listen_goal.params = userdata.params
+        speak_listen_goal.timeout = userdata.timeout
 
-        rospy.loginfo("Pre sending goal");
-        self.action_dict['SpeakAndListen'].send_goal(speak_listen_goal)
-        rospy.loginfo("Pre wait for result");
-        self.action_dict['SpeakAndListen'].wait_for_result()
-        rospy.loginfo("Post wait for result");
+        speak_listen_action_server = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+        # rospy.loginfo("Pre sending goal");
+        # todo
+        speak_listen_action_server.send_goal(speak_listen_goal)
+        # rospy.loginfo("Pre wait for result");
+        # todo
+        speak_listen_action_server.wait_for_result()
+        # rospy.loginfo("Post wait for result");
 
-        result = self.action_dict['SpeakAndListen'].get_result()
+        result = speak_listen_action_server.get_result()
         if result.succeeded:
-            self.global_store['last_response'] = result.answer
-            self.global_store['speak_listen_failure'] = 0
-            return self._outcomes[0]
+            # todo - replace ugly global variable
+            # self.global_store['last_response'] = result.answer
+            userdata.operator_response = result.answer
+            userdata.speak_listen_failures = 0
+            return 'success'
         else:
-            self.global_store['speak_listen_failure'] += 1
-            if self.global_store['speak_listen_failure'] >= FAILURE_THRESHOLD:
-                return self._outcomes[2]
-            return self._outcomes[1]
+            userdata.speak_listen_failures+= 1
+            if userdata.speak_listen_failures >= userdata.speak_listen_failure_threshold:
+                return repeat_failure
+            return failure
 
 
 class HotwordListenState(ActionServiceState):
