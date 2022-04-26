@@ -516,8 +516,8 @@ class SpeakAndListenState(smach.State):
         """
         smach.State.__init__(self, 
                                 outcomes=['success','failure','repeat_failure'],
-                                input_keys=['question', 'candidates','params','timeout'],
-                                output_keys=['operator_response'])
+                                input_keys=['question', 'candidates','params','timeout','speak_listen_failures'],
+                                output_keys=['operator_response', 'speak_listen_failures'])
     
     def execute(self, userdata):
         speak_listen_goal = SpeakAndListenGoal()

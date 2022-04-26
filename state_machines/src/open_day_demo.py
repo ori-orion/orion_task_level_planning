@@ -27,8 +27,8 @@ import rospkg
 rospack = rospkg.RosPack()
 name_file = \
     os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
-with open(name_file, 'r') as in_file:
-    TASK_NAMES += in_file.read().splitlines()
+# with open(name_file, 'r') as in_file:
+#     TASK_NAMES += in_file.read().splitlines()
 
 
 class SpeakToOperatorState(ActionServiceState):
@@ -157,7 +157,7 @@ def create_state_machine(action_dict):
     sm.userdata.speak_listen_failure_threshold = 3
     sm.userdata.task_names = TASK_NAMES
     sm.userdata.speak_and_listen_params_empty = []
-    sm.userdata.speak_and_listen_timeout = 20
+    sm.userdata.speak_and_listen_timeout = 5
 
     with sm:
         
