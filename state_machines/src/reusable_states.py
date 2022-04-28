@@ -19,10 +19,10 @@ from tf.transformations import euler_from_quaternion
 import tf
 
 from orion_actions.msg import GiveObjectToOperatorGoal, \
-    OpenDoorGoal, GiveObjectToOperatorGoal, \
-        ReceiveObjectFromOperatorGoal, PutObjectOnFloorGoal, \
+    OpenDoorGoal, GiveObjectToOperatorGoal, GiveObjectToOperatorAction, \
+        ReceiveObjectFromOperatorGoal, ReceiveObjectFromOperatorAction, PutObjectOnFloorGoal, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
-                HotwordListenGoal, PickUpObjectGoal, \
+                HotwordListenGoal, PickUpObjectGoal, PickUpObjectAction, \
                     FollowGoal, OpenDrawerGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
@@ -32,7 +32,7 @@ from orion_door_pass.msg import DoorCheckGoal
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
-from move_base_msgs.msg import MoveBaseGoal
+from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 from strands_navigation_msgs.srv import GetTaggedNodesResponse
@@ -56,6 +56,8 @@ RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
 OBJECTS = ['apple', 'banana', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
           'nectarine'] # TODO: Fill in with the YCB benchmark
+
+AR_MARKERS = {'bottle': 151}
 
 
 class ActionServiceState(smach.State):
@@ -194,33 +196,81 @@ def get_closest_node(dest_pose):
 
 
 class SpeakState(smach.State):
-    """ Smach state for the robot to say stuff.
+    """ Smach state for the robot to speak a phrase.
 
-    This class has the robot say something and return success if it has been
-    said. Enough said...
+    This class has the robot say something and return success.
 
     input_keys:
         phrase: What we want the robot to say
     """
     def __init__(self):
         smach.State.__init__(self, 
-                                outcomes=['success','failure'],
+                                outcomes=['success'],
                                 input_keys=['phrase'])
     
     def execute(self, userdata):
         action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
         action_goal.data.sentence = userdata.phrase
 
-        speak_action_client = actionlib.SimpleActionClient('talk_request_action', 
+        rospy.loginfo("HSR speaking phrase: '{}'".format(userdata.phrase))
+        speak_action_client = actionlib.SimpleActionClient('/talk_request_action', 
                                         TalkRequestAction)
 
+        speak_action_client.wait_for_server()
         speak_action_client.send_goal(action_goal)
         speak_action_client.wait_for_result()
+
+        # rospy.loginfo("Speaking complete")
 
         # Can only succeed
         return 'success'
 
+class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
+    """ Smach state to create the phrase to announce the retreival of an item to a named operator
+
+    This class always returns success.
+
+    input_keys:
+        operator_name: the name of the operator
+        object_name: the name of the retrieved object
+    output_keys:
+        phrase: the returned phrase
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success'],
+                                input_keys=['operator_name', 'object_name'],
+                                output_keys=['phrase'])
+    
+    def execute(self, userdata):
+        userdata.phrase = "Hi, " + userdata.operator_name + ", I've brought you the " + userdata.object_name
+
+        # Can only succeed
+        return 'success'
+
+class CreatePhraseAskForHelpPickupObjectState(smach.State):
+    """ Smach state to create the phrase to ask for help to pick up an object
+
+    This class always returns success.
+
+    input_keys:
+        object_name: the name of the object to be asked to be picked up
+    output_keys:
+        phrase: the returned phrase
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success'],
+                                input_keys=['object_name'],
+                                output_keys=['phrase'])
+    
+    def execute(self, userdata):
+        userdata.phrase = ("Can someone please help me pick up the " + userdata.object_name + 
+                                " and say ready when they are ready?")
+
+        # Can only succeed
+        return 'success'
 
 class CheckDoorIsOpenState(ActionServiceState):
     """ Smach state for robot to check if door is open. This is a common
@@ -300,57 +350,53 @@ class OpenFurnitureDoorState(ActionServiceState):
             return self._outcomes[1]
 
 
-class HandoverObjectToOperatorState(ActionServiceState):
+class HandoverObjectToOperatorState(smach.State):
     """ Smach state for handing a grasped object to an operator.
 
     This state hands over an object to the operator.
     """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(HandoverObjectToOperatorState, self).__init__(action_dict=
-                                                            action_dict,
-                                                            global_store=
-                                                            global_store,
-                                                            outcomes=
-                                                            outcomes)
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success','failure'])
     
     def execute(self, userdata):
         handover_goal = GiveObjectToOperatorGoal()
-        self.action_dict['GiveObjectToOperator'].send_goal(handover_goal)
-        self.action_dict['GiveObjectToOperator'].wait_for_result()
 
-        success = self.action_dict['GiveObjectToOperator'].get_result().result
+        give_object_to_operator_action_client = actionlib.SimpleActionClient('give_object_to_operator', 
+                                         GiveObjectToOperatorAction)
+        give_object_to_operator_action_client.wait_for_server()
+        give_object_to_operator_action_client.send_goal(handover_goal)
+        give_object_to_operator_action_client.wait_for_result()
+
+        success = give_object_to_operator_action_client.get_result().result
         if success:
-            return self._outcomes[0]
+            return 'success'
         else:
-            return self._outcomes[1]
+            return 'failure'
         
-
-class ReceiveObjectFromOperatorState(ActionServiceState):
+class ReceiveObjectFromOperatorState(smach.State):
     """ Smach state for receiving an object from an operator.
 
     This state grasps an object currently held by an operator.
     """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(ReceiveObjectFromOperatorState, self).__init__(action_dict=
-                                                             action_dict,
-                                                             global_store=
-                                                             global_store,
-                                                             outcomes=
-                                                             outcomes)
 
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success','failure'])
+    
     def execute(self, userdata):
         receive_goal = ReceiveObjectFromOperatorGoal()
-        self.action_dict['ReceiveObjectFromOperator'].send_goal(receive_goal)
-        self.action_dict['ReceiveObjectFromOperator'].wait_for_result()
 
-        result = self.action_dict['ReceiveObjectFromOperator'].get_result()
+        receive_object_from_operator_action_client = actionlib.SimpleActionClient('receive_object_from_operator',
+                                         ReceiveObjectFromOperatorAction)
+        receive_object_from_operator_action_client.wait_for_server()
+        receive_object_from_operator_action_client.send_goal(receive_goal)
+        receive_object_from_operator_action_client.wait_for_result()
+
+        result = receive_object_from_operator_action_client.get_result()
         success = result.result
         if success:
-            return self._outcomes[0]
+            return 'success'
         else:
-            return self._outcomes[1]
+            return 'failure'
 
 
 class PutObjectOnFloorState(ActionServiceState):
@@ -499,25 +545,27 @@ class SpeakAndHotwordState(ActionServiceState):
 class SpeakAndListenState(smach.State):
     """ Smach state for speaking and then listening for a response.
 
-    This state will get the robot to say something and then wait for a 
-    response.
+    This state will calll the speak and listen action server, 
+    to get the robot to say something, wait for a response, 
+    parse the response, and return it as an output key.
+
+    input_keys:
+        question: the question to ask
+        candidates: candidate sentences
+        params: optional parameters for candidate sentences
+        timeout: the timeout for listening
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        operator_response: the recognised response text
+        number_of_failures: the updated failure counter upon state exit
     """
 
     def __init__(self):
-        """ Constructor initialises fields and calls super constructor.
-
-        Args:
-            action_dict: As in super class
-            global_store: As in super class
-            question: The question to ask
-            candidates: Candidate sentences
-            params: Optional parameters for candidate sentences
-            timeout: The timeout for listening
-        """
         smach.State.__init__(self, 
                                 outcomes=['success','failure','repeat_failure'],
-                                input_keys=['question', 'candidates','params','timeout','speak_listen_failures'],
-                                output_keys=['operator_response', 'speak_listen_failures'])
+                                input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
+                                output_keys=['operator_response', 'number_of_failures'])
     
     def execute(self, userdata):
         speak_listen_goal = SpeakAndListenGoal()
@@ -526,27 +574,28 @@ class SpeakAndListenState(smach.State):
         speak_listen_goal.params = userdata.params
         speak_listen_goal.timeout = userdata.timeout
 
-        speak_listen_action_server = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+        speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+        speak_listen_action_client.wait_for_server()
         # rospy.loginfo("Pre sending goal");
-        # todo
-        speak_listen_action_server.send_goal(speak_listen_goal)
+        speak_listen_action_client.send_goal(speak_listen_goal)
         # rospy.loginfo("Pre wait for result");
-        # todo
-        speak_listen_action_server.wait_for_result()
+        speak_listen_action_client.wait_for_result()
         # rospy.loginfo("Post wait for result");
 
-        result = speak_listen_action_server.get_result()
+        result = speak_listen_action_client.get_result()
         if result.succeeded:
             # todo - replace ugly global variable
             # self.global_store['last_response'] = result.answer
             userdata.operator_response = result.answer
-            userdata.speak_listen_failures = 0
+            userdata.number_of_failures = 0
             return 'success'
         else:
-            userdata.speak_listen_failures+= 1
-            if userdata.speak_listen_failures >= userdata.speak_listen_failure_threshold:
-                return repeat_failure
-            return failure
+            userdata.number_of_failures+= 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                # reset number of failures because we've already triggered the repeat failure
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
 
 
 class HotwordListenState(ActionServiceState):
@@ -644,6 +693,10 @@ class OperatorDetectState(ActionServiceState):
 
     This is a state for memorising an operator and memorising their information.
     Many tasks have an operator to follow etc.
+
+        DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
+                                     - HOWEVER, THE UN-USED SOM INTEGRATION MAY BE USEFUL TO RE-IMPLEMENT ELSEWHERE?
+        TODO - REMOVE/MOVE SOM INTEGRATION ELSEWHERE
     """
 
     def __init__(self, action_dict, global_store):
@@ -654,7 +707,9 @@ class OperatorDetectState(ActionServiceState):
     
     def execute(self, userdata):
         self.global_store['operator_name'] = self.global_store['last_response']
-        return self._outcomes[0]
+        return self._outcomes[0]                        
+        # RC: Given this early return statement, this state seems to have been down-scoped. 
+        #     It now just sets the global variable, which is no longer used following the refactor. TODO - remove
         failed = 0
         operator = SOMObservation()
 
@@ -891,10 +946,60 @@ def make_follow_hotword_state(action_dict, global_store):
     return con
 # --- End of follow code
 
+class SimpleNavigateState(smach.State):
+    """ State for navigating directly to a location on the map.
+
+    This state is given a pose and navigates there.
+
+    input_keys:
+        pose: pose for the robot to navigate to
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        number_of_failures: the updated failure counter upon state exit
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success', 'failure', 'repeat_failure'],
+                                input_keys=['pose', 'number_of_failures', 'failure_threshold'],
+                                output_keys=['number_of_failures'])
+    
+    def execute(self, userdata):
+        # Navigating without top nav
+        rospy.loginfo('Navigating without top nav')
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = userdata.pose
+        rospy.loginfo(goal.target_pose.pose)
+
+        navigate_action_client = actionlib.SimpleActionClient('move_base/move',  MoveBaseAction)
+        navigate_action_client.wait_for_server()
+        navigate_action_client.send_goal(goal)
+        navigate_action_client.wait_for_result()
+        status = navigate_action_client.get_state()
+        navigate_action_client.cancel_all_goals()
+        rospy.loginfo('status = ' + str(status))
+        if status == GoalStatus.SUCCEEDED:
+            userdata.number_of_failures = 0
+            return 'success'
+        else:
+            userdata.number_of_failures += 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                 # reset number of failures because we've already triggered the repeat failure outcome
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
+
+
 class NavigateState(ActionServiceState):
     """ State for navigating to location on map.
 
     This state is given a pose and navigates there.
+        
+        DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
+        TODO - REMOVE
     """
 
     def __init__(self, action_dict, global_store):
@@ -954,51 +1059,100 @@ class NavigateState(ActionServiceState):
                 return self._outcomes[2]
             return self._outcomes[1]
 
+class PickUpObjectState(smach.State):
+    """ State for picking up an object
 
-class PickUpObjectState(ActionServiceState):
-    """ State for picking up an object.
+    This state picks up an object specified by name.
 
-    This state picks up an object specified in the global store.
+    input_keys:
+        object_name: the object to be picked up
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+        ar_marker_ids: a dictionary of AR marker IDs, keyed by object name
+    output_keys:
+        number_of_failures: the updated failure counter upon state exit
     """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(PickUpObjectState, self).__init__(action_dict=action_dict,
-                                                global_store=global_store,
-                                                outcomes=outcomes)
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success', 'failure', 'repeat_failure'],
+                                input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
+                                output_keys=['number_of_failures'])
     
     def execute(self, userdata):
         pick_up_goal = PickUpObjectGoal()
-        pick_up_goal.goal_tf = self.global_store['pick_up']
+        pick_up_goal.goal_tf = userdata.object_name
+        pick_up_goal.goal_tf.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
 
-        if pick_up_goal.goal_tf == 'potted plant':
-            rospy.loginfo('POTTED PLANT')
-            pick_up_goal.goal_tf = 'potted_plant'
-        elif pick_up_goal.goal_tf == 'bottle':
-            #listen = tf.TransformListener()
-            #rospy.sleep(2)
-            #fs = ''.join(listen.getFrameStrings())
-            #if 'bottle' not in fs:
+        # RC: this is mostly deprecated by use of the string replacement above. However the AR marker functionality should be retained somewhere else.(TODO)
+        # if pick_up_goal.goal_tf == 'potted plant':
+        #     rospy.loginfo('POTTED PLANT')
+        #     pick_up_goal.goal_tf = 'potted_plant'
+        # elif pick_up_goal.goal_tf == 'bottle':
+        #     #listen = tf.TransformListener()
+        #     #rospy.sleep(2)
+        #     #fs = ''.join(listen.getFrameStrings())
+        #     #if 'bottle' not in fs:
+        #
+        #     # if using AR marker
+        #     # rospy.loginfo("BOTTLE - Switching to AR marker")
+        #     # pick_up_goal.goal_tf = 'ar_marker/151'
+        #     # else
+        #     pick_up_goal.goal_tf = 'bottle'
 
-            # if using AR marker
-            # rospy.loginfo("BOTTLE - Switching to AR marker")
-            # pick_up_goal.goal_tf = 'ar_marker/151'
-            # else
-            pick_up_goal.goal_tf = 'bottle'
+        # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
+        tf_listener = tf.TransformListener()
+        rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
+        fs = ''.join(tf_listener.getFrameStrings())
 
-        self.action_dict['PickUpObject'].send_goal(pick_up_goal)
-        self.action_dict['PickUpObject'].wait_for_result()
+        if pick_up_goal.goal_tf not in fs:
+            if userdata.object_name in userdata.ar_marker_ids:
+                ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[userdata.object_name])
+                rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(pick_up_goal.goal_tf, ar_tf_string))
+                if ar_tf_string not in fs:
+                    rospy.loginfo("AR marker TF was not found in TF tree '{}'. PickUpObjectState will now return failure state".format(ar_tf_string))
+                    userdata.number_of_failures += 1
+                    if userdata.number_of_failures >= userdata.failure_threshold:
+                        userdata.number_of_failures = 0
+                        return 'repeat_failure'
+                    else:
+                        return 'failure'
+            else:
+                rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(pick_up_goal.goal_tf, userdata.object_name))
+                rospy.loginfo("PickUpObjectState will now return failure state")
+                userdata.number_of_failures += 1
+                if userdata.number_of_failures >= userdata.failure_threshold:
+                    userdata.number_of_failures = 0
+                    return 'repeat_failure'
+                else:
+                    return 'failure'
 
-        result = self.action_dict['PickUpObject'].get_result().result
+        # continue
+        pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+        pick_up_object_action_client.wait_for_server()
+
+        pick_up_object_action_client.send_goal(pick_up_goal)
+        pick_up_object_action_client.wait_for_result()
+
+        result = pick_up_object_action_client.get_result().result
 
         if result:
-            return self._outcomes[0]
+            userdata.number_of_failures = 0
+            return 'success'
         else:
-            return self._outcomes[1]
+            userdata.number_of_failures += 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            else:
+                return 'failure'
 
 
 class SetNavGoalState(ActionServiceState):
-    """ State for setting nav goal to something arbitrary defined by lambda. """
+    """ State for setting nav goal to something arbitrary defined by lambda. 
+        DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
+        TODO - REMOVE
+    """
 
     def __init__(self, action_dict, global_store, function):
         """ function must have 0 parameters and must return the new nav goal """
@@ -1064,7 +1218,11 @@ class SetPickupState(ActionServiceState):
 
 
 class SetPickupFuncState(ActionServiceState):
-    """ State for setting pick up to something arbitrary defined by lambda. """
+    """ State for setting pick up to something arbitrary defined by lambda. 
+
+        DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
+        TODO - REMOVE
+    """
 
     def __init__(self, action_dict, global_store, func):
         outcomes = ['SUCCESS']
