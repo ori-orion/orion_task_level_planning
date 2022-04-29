@@ -15,105 +15,6 @@ from reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_open_day_clients
 from geometry_msgs.msg import Pose
 
-# TODO - remove
-# class SpeakToOperatorState(ActionServiceState):
-#     """ Smach state for the robot to say stuff.
-
-#     This class has the robot say something and return success if it has been
-#     said. This says the operator name and the item that's been picked up
-
-#     Attributes:
-#         phrase: What we want the robot to say
-#     """
-#     def __init__(self, action_dict, global_store):
-#         outcomes = ['success']
-#         super(SpeakToOperatorState, self).__init__(action_dict=action_dict,
-#                                                    global_store=global_store,
-#                                                    outcomes=outcomes)
-    
-#     def execute(self, userdata):
-
-#         #obj1 = SOMObservation()
-#         #obj1.obj_id = self.global_store['people_found'][0]
-#         #rel = Relation()
-#         #obj2 = SOMObservation()
-
-#         #matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
-        
-#         #name = matches[0].obj1.name
-#         name = self.global_store['operator_name']
-#         picked_up = self.global_store['pick_up']
-
-#         phrase = "Hi, " + name + ", I've brought you the " + picked_up 
-
-#         action_goal = TalkRequestGoal()
-#         action_goal.data.language = Voice.kEnglish
-#         action_goal.data.sentence = phrase
-#         self.action_dict['Speak'].send_goal(action_goal)
-#         self.action_dict['Speak'].wait_for_result()
-
-#         # Can only succeed
-#         return self._outcomes[0]
-
-# class SpeakAndListenPickupState(ActionServiceState):
-#     """ Smach state for speaking and then listening for a response.
-
-#     This state will get the robot to say something and then wait for a 
-#     response.
-#     """
-
-#     def __init__(self, 
-#                  action_dict, 
-#                  global_store,
-#                  candidates, 
-#                  params, 
-#                  timeout):
-#         """ Constructor initialises fields and calls super constructor.
-
-#         Args:
-#             action_dict: As in super class
-#             global_store: As in super class
-#             question: The question to ask
-#             candidates: Candidate sentences
-#             params: Optional parameters for candidate sentences
-#             timeout: The timeout for listening
-#         """
-
-#         outcomes = ['success', 'failure', 'repeat_failure']
-#         self.candidates = candidates
-#         self.params = params
-#         self.timeout = timeout
-#         super(SpeakAndListenPickupState, self).__init__(action_dict=action_dict,
-#                                                         global_store=global_store,
-#                                                         outcomes=outcomes)
-        
-#         if 'speak_listen_failure' not in self.global_store:
-#             self.global_store['speak_listen_failure'] = 0
-    
-#     def execute(self, userdata):
-#         speak_listen_goal = SpeakAndListenGoal()
-#         speak_listen_goal.question = ("Can someone help me pick up the " +
-#                                       self.global_store['pick_up'] + 
-#                                       " and say ready " + 
-#                                       "when they are ready?")
-#         speak_listen_goal.candidates = self.candidates
-#         speak_listen_goal.params = self.params
-#         speak_listen_goal.timeout = self.timeout
-
-#         self.action_dict['SpeakAndListen'].send_goal(speak_listen_goal)
-#         self.action_dict['SpeakAndListen'].wait_for_result()
-
-#         result = self.action_dict['SpeakAndListen'].get_result()
-#         if result.succeeded:
-#             self.global_store['last_response'] = result.answer
-#             self.global_store['speak_listen_failure'] = 0
-#             return self._outcomes[0]
-#         else:
-#             self.global_store['speak_listen_failure'] += 1
-#             if self.global_store['speak_listen_failure'] >= FAILURE_THRESHOLD:
-#                 return self._outcomes[2]
-#             return self._outcomes[1]
-
 
 def create_state_machine(userdata=None):
     """ This function builds the state machine for the ORI open day demo.
@@ -135,9 +36,7 @@ def create_state_machine(userdata=None):
     sm.userdata.operator_question = "Hi, what's your name?"
     sm.userdata.speak_listen_failures = 0
     sm.userdata.speak_listen_failure_threshold = 3
-    sm.userdata.operator_names = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie', 
-          'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'Jon',
-          'Michael', 'Matthew', 'Ricardo']
+    sm.userdata.operator_names = NAMES
     # Load up huge database of additional names (if necessary)
     # import rospkg
     # rospack = rospkg.RosPack()
@@ -161,7 +60,7 @@ def create_state_machine(userdata=None):
     sm.userdata.operator_pose.orientation.z = -0.362624641735
     sm.userdata.operator_pose.orientation.w = 0.931935281662
 
-    sm.userdata.pickup_object_names = ['potted plant', 'cup', 'bottle']
+    sm.userdata.pickup_object_names = OBJECTS
     sm.userdata.object_pickup_question = "Great! What would you like me to pick up?"
 
     sm.userdata.pickup_pose = Pose()
@@ -358,8 +257,47 @@ def create_state_machine(userdata=None):
                                 transitions={'success':'task_success'},
                                 remapping={'phrase':'final_announcement_phrase'})
 
-    
     return sm
+
+# TODO - remove once the commented-out SOM interaction is understood
+# class SpeakToOperatorState(ActionServiceState):
+#     """ Smach state for the robot to say stuff.
+#
+#     This class has the robot say something and return success if it has been
+#     said. This says the operator name and the item that's been picked up
+#
+#     Attributes:
+#         phrase: What we want the robot to say
+#     """
+#     def __init__(self, action_dict, global_store):
+#         outcomes = ['success']
+#         super(SpeakToOperatorState, self).__init__(action_dict=action_dict,
+#                                                    global_store=global_store,
+#                                                    outcomes=outcomes)
+#   
+#     def execute(self, userdata):
+#
+#         #obj1 = SOMObservation()
+#         #obj1.obj_id = self.global_store['people_found'][0]
+#         #rel = Relation()
+#         #obj2 = SOMObservation()
+#
+#         #matches = self.action_dict['SOMQuery'](obj1, rel, obj2, Pose()).matches
+#        
+#         #name = matches[0].obj1.name
+#         name = self.global_store['operator_name']
+#         picked_up = self.global_store['pick_up']
+#
+#         phrase = "Hi, " + name + ", I've brought you the " + picked_up 
+#
+#         action_goal = TalkRequestGoal()
+#         action_goal.data.language = Voice.kEnglish
+#         action_goal.data.sentence = phrase
+#         self.action_dict['Speak'].send_goal(action_goal)
+#         self.action_dict['Speak'].wait_for_result()
+#
+#         # Can only succeed
+#         return self._outcomes[0]
 
 
 if __name__ == '__main__':
