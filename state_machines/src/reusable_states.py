@@ -60,11 +60,24 @@ RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
 AR_MARKERS = {'bottle': 151}
 
 # Objects & Things
+#  Be careful of space/underscore representations of 'cleaning stuff'
+OBJECT_CATEGORIES = ['cleaning stuff', 'containers', 'cutlery', 'drinks', 'food', 'fruits', 'snacks', 'tableware']  
 FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
           'nectarine'] # TODO: Fill in with the YCB benchmark
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 OBJECTS = ['potted plant', 'bottle', 'cup', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 OBJECTS += FRUITS + DRINKS
+# TODO - other object categories from https://sites.google.com/diag.uniroma1.it/robocupathome-objects/home
+# Parent               Number of children
+# ===============================================
+# Cleaning_stuff                37
+# Containers                    17
+# Cutlery                       15
+# Drinks                        17
+# Food                          22
+# Fruits                        23
+# Snacks                        26
+# Tableware                     23
 
 
 def pose_to_xy_theta(pose):
