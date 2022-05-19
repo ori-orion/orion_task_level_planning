@@ -465,13 +465,33 @@ class PickUpObjectState(smach.State):
         # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
         tf_listener = tf.TransformListener()
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
-        fs = ''.join(tf_listener.getFrameStrings())
+        frames = tf_listener.getFrameStrings()
 
-        if pick_up_goal.goal_tf not in fs:
+        tf_name_from_tree = "NOT_FOUND" # the matched tf name from the tree
+        
+        found_by_name = False
+        for frame in frames:
+            # perform a sub-string search in the frame string so we find the 
+            # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
+            if pick_up_goal.goal_tf in frame:
+                found_by_name = True
+                tf_name_from_tree = frame
+                break
+
+        if not found_by_name:
             if userdata.object_name in userdata.ar_marker_ids:
                 ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[userdata.object_name])
                 rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(pick_up_goal.goal_tf, ar_tf_string))
-                if ar_tf_string not in fs:
+                
+                found_by_ar_marker = False
+                for frame in frames:
+                    # perform a sub-string search in the frame string so we find the 
+                    # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
+                    if ar_tf_string in frame:
+                        found_by_ar_marker = True
+                        break
+
+                if not found_by_ar_marker:
                     rospy.loginfo("AR marker TF was not found in TF tree '{}'. PickUpObjectState will now return failure state".format(ar_tf_string))
                     userdata.number_of_failures += 1
                     if userdata.number_of_failures >= userdata.failure_threshold:
@@ -481,7 +501,7 @@ class PickUpObjectState(smach.State):
                         return 'failure'
             else:
                 rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(pick_up_goal.goal_tf, userdata.object_name))
-                rospy.loginfo("TF tree frames: '{}'".format(fs))
+                rospy.loginfo("TF tree frames: '{}'".format(frames))
                 rospy.loginfo("PickUpObjectState will now return failure state")
                 userdata.number_of_failures += 1
                 if userdata.number_of_failures >= userdata.failure_threshold:
