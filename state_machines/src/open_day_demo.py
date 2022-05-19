@@ -51,27 +51,48 @@ def create_state_machine(userdata=None):
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
 
+    # Use for real world (ground floor meeting room, etc)
     sm.userdata.operator_pose = Pose()
-    sm.userdata.operator_pose.position.x = 1.57894771198
-    sm.userdata.operator_pose.position.y = 0.59994803628
+    sm.userdata.operator_pose.position.x = -1.65
+    sm.userdata.operator_pose.position.y = 0.77
     sm.userdata.operator_pose.position.z = 0.0
     sm.userdata.operator_pose.orientation.x = 0.0
     sm.userdata.operator_pose.orientation.y = 0.0
-    sm.userdata.operator_pose.orientation.z = -0.362624641735
-    sm.userdata.operator_pose.orientation.w = 0.931935281662
+    sm.userdata.operator_pose.orientation.z = 0.7444649492585489
+    sm.userdata.operator_pose.orientation.w = 0.6676615454895288
+
+    # Use for Gazebo sim
+    # sm.userdata.operator_pose = Pose()
+    # sm.userdata.operator_pose.position.x = 1.57894771198
+    # sm.userdata.operator_pose.position.y = 0.59994803628
+    # sm.userdata.operator_pose.position.z = 0.0
+    # sm.userdata.operator_pose.orientation.x = 0.0
+    # sm.userdata.operator_pose.orientation.y = 0.0
+    # sm.userdata.operator_pose.orientation.z = -0.362624641735
+    # sm.userdata.operator_pose.orientation.w = 0.931935281662
 
     sm.userdata.pickup_object_names = OBJECTS
     sm.userdata.object_pickup_question = "Great! What would you like me to pick up?"
 
+    # Use for real world (ground floor meeting room, etc)
     sm.userdata.pickup_pose = Pose()
-    sm.userdata.pickup_pose.position.x = 0.23832461091673765
-    sm.userdata.pickup_pose.position.y = 0.0
+    sm.userdata.pickup_pose.position.x = -1.59
+    sm.userdata.pickup_pose.position.y = 1.67
     sm.userdata.pickup_pose.position.z = 0.0
     sm.userdata.pickup_pose.orientation.x = 0.0
     sm.userdata.pickup_pose.orientation.y = 0.0
-    sm.userdata.pickup_pose.orientation.z = -0.7027350031010926
-    sm.userdata.pickup_pose.orientation.w =  0.711451695771756
+    sm.userdata.pickup_pose.orientation.z = 0.0947440317564815
+    sm.userdata.pickup_pose.orientation.w = 0.995501666722124
 
+    # Use for Gazebo sim
+    # sm.userdata.pickup_pose = Pose()
+    # sm.userdata.pickup_pose.position.x = 0.23832461091673765
+    # sm.userdata.pickup_pose.position.y = 0.0
+    # sm.userdata.pickup_pose.position.z = 0.0
+    # sm.userdata.pickup_pose.orientation.x = 0.0
+    # sm.userdata.pickup_pose.orientation.y = 0.0
+    # sm.userdata.pickup_pose.orientation.z = -0.7027350031010926
+    # sm.userdata.pickup_pose.orientation.w =  0.711451695771756
 
     sm.userdata.object_ar_markers = AR_MARKERS
     sm.userdata.pickup_failures = 0
