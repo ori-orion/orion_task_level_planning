@@ -467,7 +467,7 @@ class PickUpObjectState(smach.State):
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
         frames = tf_listener.getFrameStrings()
 
-        tf_name_from_tree = "NOT_FOUND" # the matched tf name from the tree
+        matched_tf_from_tf_tree = "NOT_FOUND" # the matched tf name from the tree
         
         found_by_name = False
         for frame in frames:
@@ -475,7 +475,7 @@ class PickUpObjectState(smach.State):
             # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
             if pick_up_goal.goal_tf in frame:
                 found_by_name = True
-                tf_name_from_tree = frame
+                matched_tf_from_tf_tree = frame
                 break
 
         if not found_by_name:
@@ -499,6 +499,8 @@ class PickUpObjectState(smach.State):
                         return 'repeat_failure'
                     else:
                         return 'failure'
+                else:
+                    rospy.loginfo("PickUpObjectState found matching AR tf '{}' in tf-tree for task object {}".format(ar_tf_string, userdata.object_name))
             else:
                 rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(pick_up_goal.goal_tf, userdata.object_name))
                 rospy.loginfo("TF tree frames: '{}'".format(frames))
@@ -509,6 +511,9 @@ class PickUpObjectState(smach.State):
                     return 'repeat_failure'
                 else:
                     return 'failure'
+        else:
+            rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
+
 
         # continue
         pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
