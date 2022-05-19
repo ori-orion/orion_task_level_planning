@@ -460,8 +460,7 @@ class PickUpObjectState(smach.State):
     
     def execute(self, userdata):
         pick_up_goal = PickUpObjectGoal()
-        pick_up_goal.goal_tf = userdata.object_name
-        pick_up_goal.goal_tf.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
+        pick_up_goal.goal_tf = userdata.object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
 
         # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
         tf_listener = tf.TransformListener()
@@ -482,6 +481,7 @@ class PickUpObjectState(smach.State):
                         return 'failure'
             else:
                 rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(pick_up_goal.goal_tf, userdata.object_name))
+                rospy.loginfo("TF tree frames: '{}'".format(fs))
                 rospy.loginfo("PickUpObjectState will now return failure state")
                 userdata.number_of_failures += 1
                 if userdata.number_of_failures >= userdata.failure_threshold:
