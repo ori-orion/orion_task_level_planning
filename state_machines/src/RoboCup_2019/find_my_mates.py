@@ -157,6 +157,7 @@ def get_operator_location(action_dict, global_store):
 
     return operator.pose_estimate.most_recent_pose
 
+## TODO - create a duplicate of this in a robocup2022 directory, then refactor
 
 def create_state_machine(action_dict):
     """ This function creates and returns the state machine for the task. """

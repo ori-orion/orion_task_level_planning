@@ -1070,6 +1070,19 @@ class PickUpPointedObject(ActionServiceState):
             return self._outcomes[1]
 
 
+# TODO - OperatorRecogniseState - Create a state to detect operator via Jianeng's action server
+"""
+    1) call action server to recognise face
+    2) call service to SOM to find out which object/human the face id belongs to
+"""
+
+# TODO - OperatorRegisterState - Create a state to register operator via Jianeng's action server
+"""
+    input: recently detected human/object ID in previous state
+    1) call action server to register face
+    2) call service to SOM to request face id is associated with the ne
+"""
+
 class OperatorDetectState(ActionServiceState):
     """ This state will detect/observe an operator and memorise them.
 
@@ -1079,6 +1092,8 @@ class OperatorDetectState(ActionServiceState):
         DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
                                      - HOWEVER, THE UN-USED SOM INTEGRATION MAY BE USEFUL TO RE-IMPLEMENT ELSEWHERE?
         TODO - REMOVE/MOVE SOM INTEGRATION ELSEWHERE
+
+        TODO - 
     """
 
     def __init__(self, action_dict, global_store):
@@ -1148,7 +1163,7 @@ class OperatorDetectState(ActionServiceState):
         if failed >= 3:
             return self._outcomes[1]
         """
-        result = self.action_dict['SOMObserve'](operator)
+        result = self.action_dict['SOMObserve'](operator) # change to SOM input service call
         if not result.result:
             return self._outcomes[1]
         else:

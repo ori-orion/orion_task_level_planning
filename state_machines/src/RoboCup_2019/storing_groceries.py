@@ -44,7 +44,7 @@ class PickUpClosestItemState(ActionServiceState):
     
     def execute(self, userdata):
         
-        goal = GetClosestObjectNameGoal()
+        goal = GetClosestObjectNameGoal()       # todo - what is this closest to?
         self.action_dict['GetClosestObjectName'].send_goal(goal)
         self.action_dict['GetClosestObjectName'].wait_for_result()
         obj = self.action_dict['GetClosestObjectName'].get_result().object
@@ -78,12 +78,19 @@ class DecideItemPositionState(ActionServiceState):
                                                       outcomes=outcomes)
     
     def execute(self, userdata):
+
+        # TODO - Matthew Munks will combine the query to check for if in shelf and of type of category
+        # category set in SOM when logging the perception output
+        # 2) replace logic for deciding position on shelf to put object
+        #   - query SOM to find region which contains similar class (eg shelf where drinks are)
+        #   - do some logic to find out, between the shelf region bounds, where free space is, so we can decide where to place this object
+        #   - check that there is free space in the collision map to place the object in (of certain size - either from SOM entry or assumed width)
         
         # Get objects near the cupboard
         rel = Relation()
         rel.near = True
         cupboard = SOMObservation()
-        cupboard.type = 'cupboard'
+        cupboard.type = 'cupboard'      #TODO - change .type to .class_
         pose = rospy.wait_for_message('/global_pose', PoseStamped)
         pose = pose.pose
 
@@ -114,7 +121,7 @@ class DecideItemPositionState(ActionServiceState):
                 obj_loc = match.obj1.pose_estimate.most_likely_pose
 
         if closest_item == None:
-            return self._outcomes[1]
+            return self._outcomes[1] # TODO - change to string literal
 
         # Find the leftmost and rightmost items in the cupboard
         rel_left = Relation()
@@ -190,7 +197,9 @@ class UpdateItemInfoState(ActionServiceState):
                                                   outcomes=outcomes)
     
     def execute(self, userdata):
-        response = self.global_store['last_response']
+        # operator voice response in the form: <relation> of <object>
+        # eg: left of bottle
+        response = self.global_store['last_response']   
 
         relation = None
         for rel in RELATIONS:
