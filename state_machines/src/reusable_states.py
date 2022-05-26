@@ -38,6 +38,7 @@ from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 from strands_navigation_msgs.srv import GetTaggedNodesResponse
 from strands_navigation_msgs.msg import TopologicalMap
 from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
+from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal
 
 FAILURE_THRESHOLD = 3       # TODO - remove
 
@@ -437,6 +438,57 @@ class SimpleNavigateState(smach.State):
                 return 'repeat_failure'
             return 'failure'
 
+#TODO - make a topological localisation node
+#       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
+#       watif for one message and then set variable.
+
+# TODO - test
+class TopologicalNavigateState(smach.State):
+    """ State for navigating along the topological map.
+
+    This state is given a topological map ID and navigates there.
+
+    input_keys:
+        node_id: (string) the topological node for the robot to navigate to
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        number_of_failures: the updated failure counter upon state exit
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success', 'failure', 'repeat_failure'],
+                                input_keys=['node_id', 'number_of_failures', 'failure_threshold'],
+                                output_keys=['number_of_failures'])
+    
+    def execute(self, userdata):
+        # Navigating without top nav
+        rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
+
+        # create action goal and call action server
+        goal = TraverseToNodeGoal(node_id=userdata.node_id)
+       
+        topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
+        topological_navigate_action_client.wait_for_server()
+        topological_navigate_action_client.send_goal(goal)
+        topological_navigate_action_client.wait_for_result()
+        result = topological_navigate_action_client.get_result()
+
+        rospy.loginfo('result = ' + str(result.success))
+
+        # Process action result
+        #   Note: result.success returns True if node_id was reached
+        if result.success:
+            userdata.number_of_failures = 0
+            return 'success'
+        else:
+            userdata.number_of_failures += 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                 # reset number of failures because we've already triggered the repeat failure outcome
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
 
 class PickUpObjectState(smach.State):
     """ State for picking up an object
