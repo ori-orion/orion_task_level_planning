@@ -28,7 +28,8 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
                                 PointingGoal, CloseDrawerGoal, \
                                     SpeakAndListenAction, SpeakAndListenGoal
-from orion_door_pass.msg import DoorCheckGoal
+from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
+
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
@@ -186,6 +187,24 @@ def get_closest_node(dest_pose):
 
     return best_node_pose
 
+
+class GetTime(smach.State):
+    """ Smach state for current time using ROS clock.
+
+    This state will get the current time and return it in the userdata dict.
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['success'],
+                                output_keys=['current_time'])
+
+    def execute(self, userdata):
+        # fetch the time and return
+        now = rospy.Time.now()
+        userdata.current_time = now
+        rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
+        return 'success'
 
 class SpeakState(smach.State):
     """ Smach state for the robot to speak a phrase.
@@ -588,6 +607,40 @@ class PickUpObjectState(smach.State):
                 return 'failure'
 
 
+class CheckDoorIsOpenState(smach.State):
+    """ State for robot to check if the door is open. TODO: THE ACTION SERVER NEEDS TESTING!
+
+    This is a common start signal for tasks.
+
+    input_keys:
+        
+    output_keys:
+        
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['open', 'closed'])
+    
+    def execute(self, userdata):
+        is_door_open_goal = DoorCheckGoal()
+        is_door_open_goal.n_closed_door = 20 # Same as Bruno's code
+
+        is_door_open_action_client = actionlib.SimpleActionClient('door_check',
+                                                               DoorCheckAction)
+        is_door_open_action_client.wait_for_server()
+        is_door_open_action_client.send_goal(is_door_open_goal)
+        is_door_open_action_client.wait_for_result()
+
+        # Boolean value returned
+        is_door_open = is_door_open_action_client.get_result().open
+        if is_door_open:
+            rospy.loginfo("Detected open door")
+            return 'open'
+        else:
+            rospy.loginfo("Detected closed door")
+            return 'closed'
+
+
 ###################### NEEDS REVIEWING #################################
 
 # TODO - remove this once refactoring is complete
@@ -833,28 +886,6 @@ class PointToObjectState(ActionServiceState):
         else:
             return self._outcomes[1]
 
-class CheckDoorIsOpenState(ActionServiceState):
-    """ Smach state for robot to check if door is open. This is a common
-        start signal for tasks.
-    """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['OPEN', 'CLOSED']
-        super(CheckDoorIsOpenState, self).__init__(action_dict=action_dict,
-                                                   global_store=global_store,
-                                                   outcomes=outcomes)
-    
-    def execute(self, userdata):
-        is_door_open_goal = DoorCheckGoal()
-        is_door_open_goal.n_closed_door = 20 # Same as Bruno's code
-        self.action_dict['IsDoorOpen'].send_goal(is_door_open_goal)
-        self.action_dict['IsDoorOpen'].wait_for_result()
-
-        # Boolean value returned
-        is_door_open = self.action_dict['IsDoorOpen'].get_result().open
-        if is_door_open:
-            return self._outcomes[0]
-        else:
-            return self._outcomes[1]
 
 
 class CheckAndOpenDoorState(ActionServiceState):
