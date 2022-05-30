@@ -28,11 +28,9 @@ def create_state_machine(userdata=None):
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
-    sm.userdata.nav_failures = 0
-    sm.userdata.nav_failure_threshold = 3
     sm.userdata.intro_phrase = ("Hi, my name is Bam Bam, and " + 
                  "today we're going to show you what I can do!")
-    # sm.userdata.intro_phrase = "Hi, my name is Bam Bam."
+    # sm.userdata.intro_phrase = "Hi, my name is Bam Bam." # alternate, shorter intro
     sm.userdata.operator_question = "Hi, what's your name?"
     sm.userdata.speak_listen_failures = 0
     sm.userdata.speak_listen_failure_threshold = 3
