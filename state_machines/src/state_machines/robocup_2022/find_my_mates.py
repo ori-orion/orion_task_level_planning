@@ -9,168 +9,169 @@ Owner: Ricardo Cannizzaro
 
 """
 
+import os
 import rospy
-import smach
+import smach_ros
 import actionlib
 
-from reusable_states import * # pylint: disable=unused-wildcard-import
-from set_up_clients import create_stage_1_clients
+from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
+# from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation, SearchPersonNotMetGoal
 from geometry_msgs.msg import Pose
 
 import time  # TODO - replace calls to rospy.time library
 
 
-class LookForPeopleState(ActionServiceState):
-    """ State for searching for friends of the operator. """
+# class LookForPeopleState(ActionServiceState):
+#     """ State for searching for friends of the operator. """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['PERSON_FOUND', 'NOBODY_FOUND']
-        super(LookForPeopleState, self).__init__(action_dict=action_dict,
-                                                 global_store=global_store,
-                                                 outcomes=outcomes)
+#     def __init__(self, action_dict, global_store):
+#         outcomes = ['PERSON_FOUND', 'NOBODY_FOUND']
+#         super(LookForPeopleState, self).__init__(action_dict=action_dict,
+#                                                  global_store=global_store,
+#                                                  outcomes=outcomes)
         
-    def execute(self, userdata):
-        goal = SearchPersonNotMetGoal()
-        goal.met_before = list(map(lambda x: str(x), 
-                               self.global_store['people_found']))
+#     def execute(self, userdata):
+#         goal = SearchPersonNotMetGoal()
+#         goal.met_before = list(map(lambda x: str(x), 
+#                                self.global_store['people_found']))
                                
-        pose = rospy.wait_for_message('/global_pose', PoseStamped)
-        pose = pose.pose
+#         pose = rospy.wait_for_message('/global_pose', PoseStamped)
+#         pose = pose.pose
 
-        goal.room_name = self.action_dict['SOMGetRoom'](pose).room_name
+#         goal.room_name = self.action_dict['SOMGetRoom'](pose).room_name
 
-        self.action_dict['SearchPersonNotMet'].send_goal(goal)
-        self.action_dict['SearchPersonNotMet'].wait_for_result()
+#         self.action_dict['SearchPersonNotMet'].send_goal(goal)
+#         self.action_dict['SearchPersonNotMet'].wait_for_result()
 
-        result = self.action_dict['SearchPersonNotMet'].get_result()
+#         result = self.action_dict['SearchPersonNotMet'].get_result()
 
-        if result.success:
-            self.global_store['last_person'] = result.obj_id
-        else:
-            return self._outcomes[1]
+#         if result.success:
+#             self.global_store['last_person'] = result.obj_id
+#         else:
+#             return self._outcomes[1]
 
 
 
-class GiveOperatorInfoState(ActionServiceState):
-    """ State for giving operator info about mates. """
+# class GiveOperatorInfoState(ActionServiceState):
+#     """ State for giving operator info about mates. """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS']
-        super(GiveOperatorInfoState, self).__init__(action_dict=action_dict,
-                                                    global_store=global_store,
-                                                    outcomes=outcomes)
+#     def __init__(self, action_dict, global_store):
+#         outcomes = ['SUCCESS']
+#         super(GiveOperatorInfoState, self).__init__(action_dict=action_dict,
+#                                                     global_store=global_store,
+#                                                     outcomes=outcomes)
     
-    def execute(self, userdata):
-        obj1 = SOMObservation()
-        obj1.type = 'person'
+#     def execute(self, userdata):
+#         obj1 = SOMObservation()
+#         obj1.type = 'person'
 
-        matches = self.action_dict['SOMQuery'](obj1, Relation(), 
-                                               SOMObservation())
+#         matches = self.action_dict['SOMQuery'](obj1, Relation(), 
+#                                                SOMObservation())
 
-        operator_name = ''
-        people_information = []
+#         operator_name = ''
+#         people_information = []
 
-        # Extract information from matches
-        for match in matches:
-            person = match.obj1
-            if person.task_role == 'operator':
-                operator_name = person.name
-            else:
-                person_info = {}
-                person_info['name'] = person.name
-                person_info['age'] = person.age
-                person_info['gender'] = person.gender
-                person_info['shirt_colour'] = person.shirt_colour
-                person_info['room'].pose_estimate.most_likely_room
-                people_information.append(person_info)
+#         # Extract information from matches
+#         for match in matches:
+#             person = match.obj1
+#             if person.task_role == 'operator':
+#                 operator_name = person.name
+#             else:
+#                 person_info = {}
+#                 person_info['name'] = person.name
+#                 person_info['age'] = person.age
+#                 person_info['gender'] = person.gender
+#                 person_info['shirt_colour'] = person.shirt_colour
+#                 person_info['room'].pose_estimate.most_likely_room
+#                 people_information.append(person_info)
         
-        info_string = ("Hi " + operator_name + ", I have some people to tell " +
-                      "you about.")
+#         info_string = ("Hi " + operator_name + ", I have some people to tell " +
+#                       "you about.")
         
-        for person in people_information:
-            person_string = ""
-            if person['room'] != '':
-                person_string += " In the " + person['room'] + " I met "
-            else:
-                person_string += " I met "
+#         for person in people_information:
+#             person_string = ""
+#             if person['room'] != '':
+#                 person_string += " In the " + person['room'] + " I met "
+#             else:
+#                 person_string += " I met "
             
-            if person['name'] != '':
-                person_string += person['name'] + ', '
-            else:
-                person_string += 'someone, '
+#             if person['name'] != '':
+#                 person_string += person['name'] + ', '
+#             else:
+#                 person_string += 'someone, '
             
-            if person['age'] != 0:
-                person_string += ('who I think is around the age of ' + 
-                                  str(person['age']) + ', ')
+#             if person['age'] != 0:
+#                 person_string += ('who I think is around the age of ' + 
+#                                   str(person['age']) + ', ')
             
-            if person['gender'] != '':
-                person_string += 'who is ' + person['gender'] + ', '
+#             if person['gender'] != '':
+#                 person_string += 'who is ' + person['gender'] + ', '
             
-            if person['shirt_colour'] != '':
-                person_string += 'and who is wearing ' + person['shirt_colour']
+#             if person['shirt_colour'] != '':
+#                 person_string += 'and who is wearing ' + person['shirt_colour']
             
-            if person_string[-2] == ',':
-                person_string = person_string[0:-2] + '.'
-            else:
-                person_string += '.'
-            info_string += person_string
-        goal = SpeakGoal()
-        goal.sentence = info_string
-        self.action_dict['Speak'].send_goal(goal)
-        self.action_dict['Speak'].wait_for_result()
+#             if person_string[-2] == ',':
+#                 person_string = person_string[0:-2] + '.'
+#             else:
+#                 person_string += '.'
+#             info_string += person_string
+#         goal = SpeakGoal()
+#         goal.sentence = info_string
+#         self.action_dict['Speak'].send_goal(goal)
+#         self.action_dict['Speak'].wait_for_result()
 
-        return self._outcomes[0]
+#         return self._outcomes[0]
 
 
-class ShouldIContinueState(ActionServiceState):
-    """ State determines whether we should continue or go back. """
+# class ShouldIContinueState(ActionServiceState):
+#     """ State determines whether we should continue or go back. """
 
-    def __init__(self, action_dict, global_store):
-        outcomes = ['YES', 'NO']
-        super(ShouldIContinueState, self).__init__(action_dict=action_dict,
-                                                   global_store=global_store,
-                                                   outcomes=outcomes)
+#     def __init__(self, action_dict, global_store):
+#         outcomes = ['YES', 'NO']
+#         super(ShouldIContinueState, self).__init__(action_dict=action_dict,
+#                                                    global_store=global_store,
+#                                                    outcomes=outcomes)
     
-    def execute(self, userdata):
-        time_elapsed = time.time() - self.global_store['start_time']
-        if time_elapsed > 210: # 3 and a half minutes
-            return self._outcomes[1]
-        elif len(self.global_store['people_found']) == 3:
-            return self._outcomes[1]
+#     def execute(self, userdata):
+#         time_elapsed = time.time() - self.global_store['start_time']
+#         if time_elapsed > 210: # 3 and a half minutes
+#             return self._outcomes[1]
+#         elif len(self.global_store['people_found']) == 3:
+#             return self._outcomes[1]
         
-        return self._outcomes[0]
+#         return self._outcomes[0]
 
 
-def go_to_instruction_point(action_dict):
-    """ Returns the navigation location of the instruction point. """
-    obj1 = SOMObservation()
-    obj1.type = 'find_my_mates_point_of_interest'
+# def go_to_instruction_point(action_dict):
+#     """ Returns the navigation location of the instruction point. """
+#     obj1 = SOMObservation()
+#     obj1.type = 'find_my_mates_point_of_interest'
 
-    return get_location_of_object(action_dict, obj1, 
-                                  Relation(), SOMObservation())
+#     return get_location_of_object(action_dict, obj1, 
+#                                   Relation(), SOMObservation())
 
 
-def get_operator_location(action_dict, global_store):
-    """ Gets the location of our operator. """
+# def get_operator_location(action_dict, global_store):
+#     """ Gets the location of our operator. """
 
-    operator = action_dict['SOMLookup'](global_store['operator'])
+#     operator = action_dict['SOMLookup'](global_store['operator'])
 
-    return operator.pose_estimate.most_recent_pose
+#     return operator.pose_estimate.most_recent_pose
 
 ## TODO - create a duplicate of this in a robocup2022 directory, then refactor
 
-def create_state_machine(action_dict):
+def create_state_machine():
     """ This function creates and returns the state machine for the task. """
 
     # Initialise the global store - TODO - REVIEW
-    global_store = {}
-    global_store['start_time'] = time.time()
-    global_store['last_person'] = None
-    global_store['people_found'] = []
+    # global_store = {}
+    # global_store['start_time'] = time.time()
+    # global_store['last_person'] = None
+    # global_store['people_found'] = []
 
     # Create the state machine
-    sm = smach.StateMachine(outcomes=['TASK_SUCCESS', 'TASK_FAILURE'])
+    sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
 
     # Create state machine userdata dictionary elements
 
@@ -232,16 +233,16 @@ def create_state_machine(action_dict):
         #                         remapping={'robot_location':'start_pose'})
 
         # announce waiting for start signal
-        smach.StateMachine.add('ANNOUNCE_WAIT_FOR_START_SIGNAL',
-                                SpeakState(),
-                                transitions={'success':'WAIT_FOR_START_SIGNAL'},
-                                remapping={'phrase':'wait_for_start_signal_phrase'})
+        # smach.StateMachine.add('ANNOUNCE_WAIT_FOR_START_SIGNAL',
+        #                         SpeakState(),
+        #                         transitions={'success':'WAIT_FOR_START_SIGNAL'},
+        #                         remapping={'phrase':'wait_for_start_signal_phrase'})
         
-        # wait for the start signal - TODO - test
-        smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
-                                CheckDoorIsOpenState(),
-                                transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
-                                                'closed':'WAIT_FOR_START_SIGNAL'})
+        # # wait for the start signal - TODO - test
+        # smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
+        #                         CheckDoorIsOpenState(),
+        #                         transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
+        #                                         'closed':'WAIT_FOR_START_SIGNAL'})
         
         # announce task intentions
         smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
@@ -260,7 +261,7 @@ def create_state_machine(action_dict):
                                SimpleNavigateState(),
                                transitions={'success':'INTRODUCTION_TO_OPERATOR',
                                             'failure':'NAV_TO_OPERATOR',
-                                            'repeat_failure':'ANNOUNCE_NAV_FAILURE'},
+                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
                                            'failure_threshold':'simple_navigation_failure_threshold'})

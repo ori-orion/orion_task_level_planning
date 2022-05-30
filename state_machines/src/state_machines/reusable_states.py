@@ -396,6 +396,16 @@ class SpeakAndListenState(smach.State):
         # rospy.loginfo("Post wait for result");
 
         result = speak_listen_action_client.get_result()
+
+        if result is None:
+            # action server failed
+            userdata.number_of_failures+= 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                # reset number of failures because we've already triggered the repeat failure
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
+            
         if result.succeeded:
             # todo - replace ugly global variable
             # self.global_store['last_response'] = result.answer
