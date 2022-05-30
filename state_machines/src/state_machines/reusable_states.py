@@ -5,7 +5,7 @@ This file contains state machine tasks which are reusable across
 multiple tasks.
 
 Author: Charlie Street
-Owner: Charlie Street
+Owner: Ricardo Cannizzaro
 
 """
 
@@ -32,6 +32,7 @@ from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
 
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
+from orion_actions.srv import SOMObserve
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
@@ -285,6 +286,28 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
         # Can only succeed
         return 'success'
 
+class CreatePhraseStartSearchForPeopleState(smach.State):
+    """ Smach state to create the phrase to announce the start of the search for people
+
+    This class always returns success.
+
+    input_keys:
+        operator_name: the name of the operator
+    output_keys:
+        phrase: the returned phrase
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success'],
+                                input_keys=['operator_name'],
+                                output_keys=['phrase'])
+    
+    def execute(self, userdata):
+        userdata.phrase = "Ok, " + userdata.operator_name + ", I am now going to search for your friends. I'll be back soon!"
+
+        # Can only succeed
+        return 'success'
+
 
 class HandoverObjectToOperatorState(smach.State):
     """ Smach state for handing a grasped object to an operator.
@@ -405,7 +428,7 @@ class SpeakAndListenState(smach.State):
                 userdata.number_of_failures = 0
                 return 'repeat_failure'
             return 'failure'
-            
+
         if result.succeeded:
             # todo - replace ugly global variable
             # self.global_store['last_response'] = result.answer
@@ -649,6 +672,89 @@ class CheckDoorIsOpenState(smach.State):
         else:
             rospy.loginfo("Detected closed door")
             return 'closed'
+
+
+# TODO - need to update this state with new SOM observation service message definition
+class SaveOperatorToSOM(smach.State):
+    """ State for robot to log the operator information as an observation in the SOM
+
+    input_keys:
+        operator_name: the operator's name
+    output_keys:
+        operator_som_id: the operator's UID in the SOM, returned by SOM observation service call
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'],
+                                input_keys=['operator_name'],
+                                output_keys=['operator_som_id'])
+    
+    def execute(self, userdata):
+        
+        failed = 0
+        operator = SOMObservation()
+
+        operator.type = 'person'            # TODO - check that this needs to change to '_class'
+        operator.task_role = 'operator'
+        
+        pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+        operator.robot_pose = pose
+        
+        # operator.room_name = self.action_dict['SOMGetRoom'](pose).room_name # TODO - review this
+        operator.room_name = ''     # leave blank for now
+        
+        """
+        # TODO - check if this functionality still exists - I'm pretty sure it's not used anymore
+        try:
+            person_msg = rospy.wait_for_message('/vision/pose_detections', 
+                                                PoseDetectionArray, timeout=5)
+            person = person_msg.detections[0]
+            operator.shirt_colour = person.color
+            rospy.loginfo("PERSON COLOUR: " + str(operator.shirt_colour))
+        except:
+            failed += 1
+
+        try:
+            listen = tf.TransformListener()
+            tf_frame = 'person_' + operator.shirt_colour
+            t = listen.getLatestCommonTime("map", tf_frame)
+            (trans, rot) = listen.lookupTransform("map", tf_frame, t)
+            pose = Pose()
+            pose.position = trans
+            pose.orientation = rot
+            operator.pose_observation = pose
+
+        except:
+            failed += 1
+
+        try:
+            face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
+                                              FaceDetectionArray, 
+                                              timeout=5)
+            
+            face = face_msg.detections[0]
+            operator.age = face.age
+            operator.gender = face.gender
+        except:
+            failed += 1
+
+        if failed >= 3:
+            return self._outcomes[1]
+        """
+
+        rospy.loginfo('Storing operator info in SOM with name: {}, pose: {}'.format(userdata.operator_name, operator.robot_pose))
+
+        rospy.wait_for_service('som/observe')
+        som_observe_action_client = rospy.ServiceProxy('som/observe', SOMObserve)
+
+        result = som_observe_action_client(operator) # change to SOM input service call
+
+        if not result.result:
+            return 'failure'
+        else:
+            rospy.loginfo('Operator "{}" successfully stored in SOM with ID: {}'.format(userdata.operator_name, result.obj_id))
+            userdata.operator_som_id = result.obj_id
+            return 'success'
 
 
 ###################### NEEDS REVIEWING #################################
