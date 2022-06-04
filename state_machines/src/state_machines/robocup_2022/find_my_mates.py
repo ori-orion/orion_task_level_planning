@@ -164,25 +164,19 @@ import time  # TODO - replace calls to rospy.time library
 def create_state_machine():
     """ This function creates and returns the state machine for the task. """
 
-    # Initialise the global store - TODO - REVIEW
-    # global_store = {}
-    # global_store['start_time'] = time.time()
-    # global_store['last_person'] = None
-    # global_store['people_found'] = []
-
     # Create the state machine
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
 
     # Create state machine userdata dictionary elements
 
-    sm.userdata.operator_names = NAMES
+    sm.userdata.person_names = NAMES
     # Load up huge database of additional names (if necessary)
-    import rospkg
-    rospack = rospkg.RosPack()
-    name_file = \
-        os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
-    with open(name_file, 'r') as in_file:
-        sm.userdata.operator_names += in_file.read().splitlines()
+    # import rospkg
+    # rospack = rospkg.RosPack()
+    # name_file = \
+    #     os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
+    # with open(name_file, 'r') as in_file:
+    #     sm.userdata.person_names += in_file.read().splitlines()
 
     sm.userdata.speak_and_listen_params_empty = []
     sm.userdata.speak_and_listen_timeout = 5
@@ -212,6 +206,10 @@ def create_state_machine():
     sm.userdata.operator_pose.orientation.z = 0.0
     sm.userdata.operator_pose.orientation.w = 1.0
 
+    # speaking to guests
+    sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
+    sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
+
     # set arena exit pose - TODO
     sm.userdata.exit_pose = Pose()
     sm.userdata.exit_pose.position.x = 0.0
@@ -226,6 +224,13 @@ def create_state_machine():
 
     sm.userdata.operator_name = "<operator_name>"
 
+    # guest tracking
+    sm.userdata.guest_som_human_ids = []
+    sm.userdata.guest_som_obj_ids = []
+
+    # task params
+    sm.userdata.expected_num_guests = 3
+    sm.userdata.max_search_duration = 30 # seconds
 
     with sm:
 
@@ -253,11 +258,11 @@ def create_state_machine():
         #                         transitions={'success':'SAVE_START_TIME'},
         #                         remapping={'phrase':'task_intentions_phrase'})
 
-        # # save the start time
-        # smach.StateMachine.add('SAVE_START_TIME',
-        #                         GetTime(),
-        #                         transitions={'success':'NAV_TO_OPERATOR'},
-        #                         remapping={'current_time':'task_start_time'})
+        # save the start time
+        smach.StateMachine.add('SAVE_START_TIME',
+                                GetTime(),
+                                transitions={'success':'LEARN_GUEST_SUB'},
+                                remapping={'current_time':'task_start_time'})
         
         # # navigate to operator - TODO - consider changing to top nav
         # smach.StateMachine.add('NAV_TO_OPERATOR',
@@ -290,7 +295,7 @@ def create_state_machine():
         #                                     'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
         #                         remapping={'question':'ask_operator_name_phrase',
         #                                     'operator_response': 'operator_name',
-        #                                     'candidates':'operator_names',
+        #                                     'candidates':'person_names',
         #                                     'params':'speak_and_listen_params_empty',
         #                                     'timeout':'speak_and_listen_timeout',
         #                                     'number_of_failures': 'speak_and_listen_failures',
@@ -309,26 +314,85 @@ def create_state_machine():
         #                         remapping={'phrase':'speak_and_listen_repeat_failure_phrase'})
 
         # save the operator info to the SOM
-        smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM',
-                               SaveOperatorToSOM(),
-                               transitions={'success':'CREATE_PHRASE_START_SEARCH',
-                                            'failure':'task_failure'},
-                                remapping={'operator_name':'operator_name', 
-                                            'operator_som_id':'operator_som_id'})
+        # smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM',
+        #                        SaveOperatorToSOM(),
+        #                        transitions={'success':'CREATE_PHRASE_START_SEARCH',
+        #                                     'failure':'task_failure'},
+        #                         remapping={'operator_name':'operator_name', 
+        #                                     'operator_som_id':'operator_som_id'})
 
-        # create the search start phrase
-        smach.StateMachine.add('CREATE_PHRASE_START_SEARCH',
-                                CreatePhraseStartSearchForPeopleState(),
-                                transitions={'success':'ANNOUNCE_SEARCH_START'},
-                                remapping={'operator_name':'operator_name',
-                                            'phrase':'announce_search_start_phrase'})
+        # # create the search start phrase
+        # smach.StateMachine.add('CREATE_PHRASE_START_SEARCH',
+        #                         CreatePhraseStartSearchForPeopleState(),
+        #                         transitions={'success':'ANNOUNCE_SEARCH_START'},
+        #                         remapping={'operator_name':'operator_name',
+        #                                     'phrase':'announce_search_start_phrase'})
         
-        # introduce to operator
-        smach.StateMachine.add('ANNOUNCE_SEARCH_START',
-                                SpeakState(),
-                                transitions={'success':'ANNOUNCE_FINISH'},
-                                remapping={'phrase':'announce_search_start_phrase',
-                                            'operator_name':'operator_name'})
+        # # announce search start
+        # smach.StateMachine.add('ANNOUNCE_SEARCH_START',
+        #                         SpeakState(),
+        #                         transitions={'success':'ANNOUNCE_GUEST_INTRO'},
+        #                         remapping={'phrase':'announce_search_start_phrase'})
+        
+        # TODO - put into a sub-state machine so we can repeat process for 3 guests
+        # introduction to guest
+        # smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
+        #                         SpeakState(),
+        #                         transitions={'success':'ASK_GUEST_NAME'},
+        #                         remapping={'phrase':'introduction_to_guest_phrase'})
+        
+        # # ask for guest's name
+        # smach.StateMachine.add('ASK_GUEST_NAME',
+        #                        SpeakAndListenState(),
+        #                         transitions={'success': 'SAVE_GUEST_TO_SOM',
+        #                                     'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
+        #                                     'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+        #                         remapping={'question':'ask_operator_name_phrase',
+        #                                     'operator_response': 'guest_name',
+        #                                     'candidates':'person_names',
+        #                                     'params':'speak_and_listen_params_empty',
+        #                                     'timeout':'speak_and_listen_timeout',
+        #                                     'number_of_failures': 'speak_and_listen_failures',
+        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
+        
+        # # announce that we missed the name, and that we will try again
+        # smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
+        #                         SpeakState(),
+        #                         transitions={'success':'ASK_GUEST_NAME'},
+        #                         remapping={'phrase':'speech_recognition_failure_phrase'})
+
+        # # announce that we think there is no-one there & transition to checking if we need to stop (TODO)
+        # smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
+        #                         SpeakState(),
+        #                         transitions={'success':'task_failure'},  # TODO - route this to the check if stop state
+        #                         remapping={'phrase':'no_one_there_phrase'})
+        
+        # # save the guest info to the SOM (requires at least one entry in SOM object DB with class_=='person')
+        # smach.StateMachine.add('SAVE_GUEST_TO_SOM',
+        #                         SaveGuestToSOM(),
+        #                         transitions={'success':'ANNOUNCE_FINISH',
+        #                                     'failure':'task_failure'},
+        #                         remapping={'guest_name':'guest_name'})
+        # replace with sub state machine
+
+        smach.StateMachine.add('LEARN_GUEST_SUB', 
+                                create_learn_guest_sub_state_machine(),
+                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH',
+                                            'failure':'SHOULD_I_CONTINUE_GUEST_SEARCH'},
+                                remapping={'guest_som_human_ids':'guest_som_human_ids',
+                                            'guest_som_obj_ids':'guest_som_obj_ids',
+                                            'person_names':'person_names'})
+
+        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
+                                ShouldIContinueGuestSearchState(),
+                                transitions={'yes':'LEARN_GUEST_SUB',
+                                            'no':'ANNOUNCE_FINISH'},
+                                remapping={'guest_som_human_ids':'guest_som_human_ids',
+                                            'max_search_duration':'max_search_duration',
+                                            'expected_num_guests':'expected_num_guests',
+                                            'start_time':'task_start_time'})
+
+        
 
         ############################################################################
         

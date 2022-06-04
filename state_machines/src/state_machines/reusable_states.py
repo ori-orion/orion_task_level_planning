@@ -227,6 +227,73 @@ def get_most_recent_obj_from_som(class_=None):
     most_recent_object = returned_objects_sorted[0]
     return most_recent_object
 
+def create_learn_guest_sub_state_machine():
+    
+    # create the sub state machine
+    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
+                                input_keys=['guest_som_human_ids',
+                                            'guest_som_obj_ids',
+                                            'person_names'],
+                                output_keys=['guest_som_human_ids',
+                                            'guest_som_obj_ids'])
+    
+    # speaking to guests
+    # sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
+    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam"
+    sub_sm.userdata.ask_name_phrase = "What is your name?"
+    sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
+    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
+
+    sub_sm.userdata.speak_and_listen_params_empty = []
+    sub_sm.userdata.speak_and_listen_timeout = 5
+    sub_sm.userdata.speak_and_listen_failures = 0
+    sub_sm.userdata.speak_and_listen_failure_threshold = 3
+
+    # Open the container 
+    with sub_sm:
+        # introduction to guest
+        smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
+                                SpeakState(),
+                                transitions={'success':'ASK_GUEST_NAME'},
+                                remapping={'phrase':'introduction_to_guest_phrase'})
+        
+        # ask for guest's name
+        smach.StateMachine.add('ASK_GUEST_NAME',
+                               SpeakAndListenState(),
+                                transitions={'success': 'SAVE_GUEST_TO_SOM',
+                                            'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
+                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                remapping={'question':'ask_name_phrase',
+                                            'operator_response': 'guest_name',
+                                            'candidates':'person_names',
+                                            'params':'speak_and_listen_params_empty',
+                                            'timeout':'speak_and_listen_timeout',
+                                            'number_of_failures': 'speak_and_listen_failures',
+                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+        
+        # announce that we missed the name, and that we will try again
+        smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
+                                SpeakState(),
+                                transitions={'success':'ASK_GUEST_NAME'},
+                                remapping={'phrase':'speech_recognition_failure_phrase'})
+
+        # announce that we think there is no-one there & transition to checking if we need to stop (TODO)
+        smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
+                                SpeakState(),
+                                transitions={'success':'failure'},  # TODO - route this to the check if stop state
+                                remapping={'phrase':'no_one_there_phrase'})
+        
+        # save the guest info to the SOM (requires at least one entry in SOM object DB with class_=='person')
+        smach.StateMachine.add('SAVE_GUEST_TO_SOM',
+                                SaveGuestToSOM(),
+                                transitions={'success':'success',
+                                            'failure':'failure'},
+                                remapping={'guest_name':'guest_name'})
+    
+    return sub_sm
+
+
+
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
 
@@ -244,6 +311,43 @@ class GetTime(smach.State):
         userdata.current_time = now
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
         return 'success'
+
+class ShouldIContinueGuestSearchState(smach.State):
+    """ State determines whether we should continue or go back. 
+    
+    input_keys:
+        max_search_duration: search duration (seconds)
+        start_time: time we started the task (ros Time object)
+        guest_som_obj_ids: the list of guest som object ids (only the length is used)
+    output_keys:
+    
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['yes', 'no'],
+                                input_keys=['max_search_duration',
+                                            'expected_num_guests',
+                                            'start_time',
+                                            'guest_som_obj_ids'])
+    
+    def execute(self, userdata):
+        # fetch the current time
+        now = rospy.Time.now()
+        time_elapsed = now - userdata.start_time
+
+        # if time_elapsed > 210: # 3 and a half minutes - # TODO move to state machine
+        if time_elapsed > rospy.Duration(userdata.max_search_duration):
+            rospy.loginfo("Exceeded max search time ({}/{} sec) - stop searching!".format(time_elapsed.to_sec(), userdata.max_search_duration))
+            return "no"
+        
+        num_guests_found = len(userdata.guest_som_obj_ids)
+        if num_guests_found >= userdata.expected_num_guests:
+            rospy.loginfo("Found all the guests - stop searching!")
+            return "no"
+        
+        rospy.loginfo("I'll keep searching! Time: {}/{} sec, Found: {}/{} guests".format(time_elapsed.to_sec(), userdata.max_search_duration, num_guests_found,userdata.expected_num_guests))
+        return "yes"
 
 class SpeakState(smach.State):
     """ Smach state for the robot to speak a phrase.
@@ -757,12 +861,70 @@ class SaveOperatorToSOM(smach.State):
 
         result = som_human_obs_input_service_client(operator_obs)
 
-        # if not result.result:
-        #     return 'failure'
-        # else:
         rospy.loginfo('Operator "{}" successfully stored in SOM with UID: {}'.format(operator_obs.adding.name, result.UID))
         userdata.operator_som_human_id = result.UID
         userdata.operator_som_obj_id = operator_obs.adding.object_uid
+        return 'success'
+
+
+class SaveGuestToSOM(smach.State):
+    """ State for robot to log the guest information as an observation in the SOM,
+        and update the ongoing list of som ids (both human ids and object ids)
+
+    input_keys:
+        guest_name: the guest's name
+        guest_som_human_ids: list of UIDs in the SOM human collection, corresponding to the guests we've met so far
+        guest_som_obj_ids: list of UIDs in the SOM object collection, corresponding to the guests we've met so far
+    output_keys:
+        guest_som_human_ids: as above
+        guest_som_obj_ids: as above
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'],
+                                input_keys=['guest_name', 
+                                            'guest_som_human_ids',
+                                            'guest_som_obj_ids'],
+                                output_keys=['guest_som_human_ids',
+                                            'guest_som_obj_ids'])
+    
+    def execute(self, userdata):
+        # retreive the most recently observed human-class object in the SOM
+        guest_som_obj = get_most_recent_obj_from_som(class_="person")
+        if(guest_som_obj is None):
+            # couldn't find any "person"-class objects in the SOM
+            rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
+            return 'failure'
+        
+        if(guest_som_obj.UID in userdata.guest_som_obj_ids):
+            # we have already saved details for this person
+            # we haven't seen a new person since last time, 
+            # so something has gone wrong. return failure
+            rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
+            return 'failure'           
+
+        # create the service message
+        guest_obs = SOMAddHumanObsRequest()
+
+        guest_obs.adding.observed_at = rospy.Time.now()
+        guest_obs.adding.object_uid  = guest_som_obj.UID
+        guest_obs.adding.name = userdata.guest_name
+        guest_obs.adding.task_role = 'guest'
+        guest_obs.adding.obj_position = guest_som_obj.obj_position    # same as before
+        
+        # todo - check if used
+        # pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+
+        rospy.loginfo('Storing info for guest "{}" in SOM:\n\t{}'.format(guest_obs.adding.name, guest_obs.adding))
+
+        rospy.wait_for_service('som/human_observations/input')
+        som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
+
+        result = som_human_obs_input_service_client(guest_obs)
+
+        rospy.loginfo('Guest "{}" successfully stored in SOM with UID: {}'.format(guest_obs.adding.name, result.UID))
+        userdata.guest_som_human_ids.append(result.UID)
+        userdata.guest_som_obj_ids.append(guest_obs.adding.object_uid)
         return 'success'
 
 
