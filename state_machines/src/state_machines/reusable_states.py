@@ -33,6 +33,9 @@ from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
 from orion_actions.srv import SOMObserve
+# new som system
+from orion_actions.msg import SOMObject
+from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
@@ -198,6 +201,31 @@ def filter_face_attributes_by_exclusion(attributes):
 	filtered_attributes = [attr for attr in attributes if attr not in FACE_ATTRIBUTES_EXCLUSION_LIST]
 
 	return filtered_attributes
+
+def get_most_recent_obj_from_som(class_=None):
+    ''' Function to get the most recently observed object from the som (optionally filtered by class_ field)
+    
+    '''
+    # call a query by class_ and sort results by most recent observation - return the newest one
+    query = SOMQueryObjectsRequest()
+    if(class_ is not None):
+        query.query.class_ = class_
+    
+    rospy.wait_for_service('som/objects/basic_query')
+    som_obj_query_service_client = rospy.ServiceProxy('som/objects/basic_query', SOMQueryObjects);
+
+    # call the service
+    response = som_obj_query_service_client(query);
+
+    # process the service response
+    if len(response.returns) == 0:
+        return None
+
+    # sort the object results by last updated field (most recent will appear first)
+    returned_objects = response.returns
+    returned_objects_sorted = sorted(returned_objects, key=lambda x: x.last_observed_at, reverse=True)
+    most_recent_object = returned_objects_sorted[0]
+    return most_recent_object
 
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
@@ -684,89 +712,60 @@ class CheckDoorIsOpenState(smach.State):
             return 'closed'
 
 
-# TODO - need to update this state with new SOM observation service message definition
 class SaveOperatorToSOM(smach.State):
     """ State for robot to log the operator information as an observation in the SOM
 
     input_keys:
         operator_name: the operator's name
     output_keys:
-        operator_som_id: the operator's UID in the SOM, returned by SOM observation service call
+        operator_som_human_id: the operator's UID in the SOM human collection, returned by SOM observation service call
+        operator_som_obj_id: the operator's corresponding UID in the SOM object collection 
+                             (assumed to be the most recently observed human-class object)
     """
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'failure'],
                                 input_keys=['operator_name'],
-                                output_keys=['operator_som_id'])
+                                output_keys=['operator_som_human_id',
+                                            'operator_som_obj_id'])
     
     def execute(self, userdata):
         
-        failed = 0
-        operator = SOMObservation()
-
-        operator.type = 'person'            # TODO - check that this needs to change to '_class'
-        operator.task_role = 'operator'
-        
-        pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
-        operator.robot_pose = pose
-        
-        # operator.room_name = self.action_dict['SOMGetRoom'](pose).room_name # TODO - review this
-        operator.room_name = ''     # leave blank for now
-        
-        """
-        # TODO - check if this functionality still exists - I'm pretty sure it's not used anymore
-        try:
-            person_msg = rospy.wait_for_message('/vision/pose_detections', 
-                                                PoseDetectionArray, timeout=5)
-            person = person_msg.detections[0]
-            operator.shirt_colour = person.color
-            rospy.loginfo("PERSON COLOUR: " + str(operator.shirt_colour))
-        except:
-            failed += 1
-
-        try:
-            listen = tf.TransformListener()
-            tf_frame = 'person_' + operator.shirt_colour
-            t = listen.getLatestCommonTime("map", tf_frame)
-            (trans, rot) = listen.lookupTransform("map", tf_frame, t)
-            pose = Pose()
-            pose.position = trans
-            pose.orientation = rot
-            operator.pose_observation = pose
-
-        except:
-            failed += 1
-
-        try:
-            face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
-                                              FaceDetectionArray, 
-                                              timeout=5)
-            
-            face = face_msg.detections[0]
-            operator.age = face.age
-            operator.gender = face.gender
-        except:
-            failed += 1
-
-        if failed >= 3:
-            return self._outcomes[1]
-        """
-
-        rospy.loginfo('Storing operator info in SOM with name: {}, pose: {}'.format(userdata.operator_name, operator.robot_pose))
-
-        rospy.wait_for_service('som/observe')
-        som_observe_service_client = rospy.ServiceProxy('som/observe', SOMObserve)
-
-        result = som_observe_service_client(operator) # change to SOM input service call
-
-        if not result.result:
+        # retreive the most recently observed human-class object in the SOM
+        operator_som_obj = get_most_recent_obj_from_som(class_="person")
+        if(operator_som_obj is None):
+            # couldn't find any "person"-class objects in the SOM
+            rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
             return 'failure'
-        else:
-            rospy.loginfo('Operator "{}" successfully stored in SOM with ID: {}'.format(userdata.operator_name, result.obj_id))
-            userdata.operator_som_id = result.obj_id
-            return 'success'
 
-# TODO - Test
+        # create the service message
+        operator_obs = SOMAddHumanObsRequest()
+
+        operator_obs.adding.observed_at = rospy.Time.now()
+        operator_obs.adding.object_uid  = operator_som_obj.UID
+        operator_obs.adding.name = userdata.operator_name
+        operator_obs.adding.task_role = 'operator'
+        operator_obs.adding.obj_position = operator_som_obj.obj_position    # same as before
+        
+        # todo - check if used
+        # pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
+
+        rospy.loginfo('Storing info for operator "{}" in SOM:\n\t{}'.format(operator_obs.adding.name, operator_obs.adding))
+
+        rospy.wait_for_service('som/human_observations/input')
+        som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
+
+        result = som_human_obs_input_service_client(operator_obs)
+
+        # if not result.result:
+        #     return 'failure'
+        # else:
+        rospy.loginfo('Operator "{}" successfully stored in SOM with UID: {}'.format(operator_obs.adding.name, result.UID))
+        userdata.operator_som_human_id = result.UID
+        userdata.operator_som_obj_id = operator_obs.adding.object_uid
+        return 'success'
+
+
 class RegisterFace(smach.State):
 	""" State for robot to register a new face using facial capture action server
 
@@ -780,7 +779,7 @@ class RegisterFace(smach.State):
 	"""
 
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['success'],
+		smach.State.__init__(self, outcomes=['success','failure'],
 								input_keys=['face_id'],
 								output_keys=['registered_face_id'])
 		
@@ -797,54 +796,79 @@ class RegisterFace(smach.State):
 		
 		capface_action_client = actionlib.SimpleActionClient('as_Capface', ActionServer_CapFaceAction)
 		capface_action_client.wait_for_server()
+		rospy.loginfo("Calling CapFace action server...")
 		capface_action_client.send_goal(capface_goal)
 		capface_action_client.wait_for_result()
 
 		# process result
+		found_face = capface_action_client.get_result().If_saved
+		if not found_face:
+			# no faces were found in the image
+			rospy.logwarn("Capface action server failed. Did not find any faces in the image")
+			return "failure"
+		# success
 		registered_face_id = capface_action_client.get_result().name
 		userdata["registered_face_id"] = registered_face_id
 		rospy.loginfo("Capface action server registered face with id: {}".format(registered_face_id))
 		return "success"
 
-# TODO - Test
+
 class RecogniseFace(smach.State):
 	""" State for robot to recognise a face and match it to a previously registered face,
 		using the facial capture action server
 
 	input_keys:
-		
+		min_score_threshold: (optional) the minimum score for a matched face to be considered a valid match
 	output_keys:
 		face_id: the id of the detected face, used in the facelib system / capface action server
 		face_match_score: the match score of the recognised face
 	"""
 
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['success'],	
+		smach.State.__init__(self, outcomes=['success', 'failure'],
+								input_keys=['min_score_threshold'],	
 								output_keys=['face_id','face_match_score'])
 
 	def execute(self, userdata):
+		# use min_score_threshold, if set
+		if "min_score_threshold" in userdata:
+			min_score_threshold = userdata["min_score_threshold"]
+		else:
+			min_score_threshold = 0.1
+
 		# set action goal and call action server
 		findmatch_goal = ActionServer_FindMatchGoal()
 		
 		findmatch_action_client = actionlib.SimpleActionClient('as_Findmatch', ActionServer_FindMatchAction)
 		findmatch_action_client.wait_for_server()
+		rospy.loginfo("Calling face match action server...")
 		findmatch_action_client.send_goal(findmatch_goal)
 		findmatch_action_client.wait_for_result()
 
 		# process result
+		if(not findmatch_action_client.get_result().If_find):
+			# face not found
+			rospy.loginfo("Face FindMatch action server did not find any faces in the image")
+			return "failure"
+		# face was found
 		matched_face_id = findmatch_action_client.get_result().face_id
 		matched_face_score = findmatch_action_client.get_result().best_match_score
-		matched_face_file_name = findmatch_action_client.get_result().file_name
+		# matched_face_file_name = findmatch_action_client.get_result().file_name
+		if(matched_face_score < min_score_threshold):
+			# no faces found with high enough score/confidence
+			rospy.logwarn("Face FindMatch action server failed. Did not find any matches above min score threshold ({}); best score is '{}'.".format(min_score_threshold, matched_face_score))
+			return "failure"
+		# result was good!
 		userdata["face_id"] = matched_face_id
 		userdata["face_match_score"] = matched_face_score
 		rospy.loginfo("Face FindMatch action server recognised face_id '{}', face_score: {}".format(matched_face_id, matched_face_score))
 		return "success"
 
-# TODO - Test
 class DetectFaceAttributes(smach.State):
 	""" State for the robot to detect face attributes
 	
-	Uses the FaceLib FindAttrs action server
+	Uses the FaceLib FindAttrs action server. 
+	Always succeeds; an empty attributes list is not a failure.
 
 	input_keys:
 		face_id: (optional) If given, the action server will analyse the saved face for this face_id,
@@ -874,6 +898,7 @@ class DetectFaceAttributes(smach.State):
 		
 		find_face_attrs_action_client = actionlib.SimpleActionClient('as_Findattrs', ActionServer_FindAttrsAction)
 		find_face_attrs_action_client.wait_for_server()
+		rospy.loginfo("Calling find face attributes action server...")
 		find_face_attrs_action_client.send_goal(find_face_attrs_goal)
 		find_face_attrs_action_client.wait_for_result()
 
@@ -882,16 +907,12 @@ class DetectFaceAttributes(smach.State):
 		num_attributes_raw = find_face_attrs_action_client.get_result().num_attrs
 		face_attributes = filter_face_attributes_by_exclusion(face_attributes_raw) 		# remove unwanted labels
 		num_attributes = len(face_attributes)
-
-		# TODO - need to filter out the attributes we don't want to report...
-
 		userdata["face_attributes"] = face_attributes
 		userdata["num_attributes"] = num_attributes
-		# rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}".format(num_attributes, face_attributes))
-		rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}\n\nFound {} unfiltered attributes: \n\t{}".format(num_attributes, face_attributes, num_attributes_raw, face_attributes_raw))
+		rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}".format(num_attributes, face_attributes))
+		# rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}\nFound {} unfiltered attributes: \n\t{}".format(num_attributes, face_attributes, num_attributes_raw, face_attributes_raw))
 		return "success"
 
-# TODO - Test
 class ClearFaceDB(smach.State):
 	""" State for the robot to clear the face database
 	
@@ -914,6 +935,7 @@ class ClearFaceDB(smach.State):
 		
 		clear_face_db_action_client = actionlib.SimpleActionClient('as_Cleardatabase', ActionServer_ClearDatabaseAction)
 		clear_face_db_action_client.wait_for_server()
+		rospy.loginfo("Calling clear face db action server...")
 		clear_face_db_action_client.send_goal(clear_face_db_goal)
 		clear_face_db_action_client.wait_for_result()
 
