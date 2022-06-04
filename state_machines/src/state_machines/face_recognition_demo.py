@@ -37,12 +37,14 @@ def create_state_machine(userdata=None):
         
         smach.StateMachine.add('REGISTER_FACE',
                                 RegisterFace(),
-                                transitions={'success':'RECOGNISE_OPEATOR_FACE'},
+                                transitions={'success':'RECOGNISE_OPEATOR_FACE',
+                                            'failure':'task_failure'},
                                 remapping={'face_id':'operator_name'})
 
         smach.StateMachine.add('RECOGNISE_OPEATOR_FACE',
                                 RecogniseFace(),
-                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_TOPIC'},
+                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_TOPIC',
+                                            'failure':'task_failure'},
                                 remapping={'face_id':'operator_detected_face_id',
                                             'face_match_score':'operator_face_match_score'})
         
