@@ -722,6 +722,7 @@ class PickUpObjectState(smach.State):
             if pick_up_goal.goal_tf in frame:
                 found_by_name = True
                 matched_tf_from_tf_tree = frame
+                pick_up_goal.goal_tf = matched_tf_from_tf_tree # need to update the goal_tf to the actual frame name (TODO - check why pickup action server no longer resolves this)
                 break
 
         if not found_by_name:
@@ -735,6 +736,7 @@ class PickUpObjectState(smach.State):
                     # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
                     if ar_tf_string in frame:
                         found_by_ar_marker = True
+                        pick_up_goal.goal_tf = frame # need to update the goal_tf to the actual frame name (TODO - check why pickup action server no longer resolves this)
                         break
 
                 if not found_by_ar_marker:
