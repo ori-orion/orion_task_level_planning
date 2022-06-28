@@ -26,8 +26,16 @@ def create_state_machine(userdata=None):
 
     # Create the state machine
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
-    sm.userdata.guest_name = "Ricardo"
-    sm.userdata.guest_name_2 = "Matthew"
+    sm.userdata.guest_attributes = {}
+    
+    sm.userdata.name = "Ricardo"
+    sm.userdata.gender = "Male"
+    sm.userdata.pronouns = "He/Him"
+    sm.userdata.face_id = "Ricardo"
+    sm.userdata.face_attributes = ["Has_Face", "Wearing_Glasses"]
+
+    sm.userdata.guest_attributes_2 = {}
+    sm.userdata.guest_attributes_2["name"] = "Matthew"
     sm.userdata.guest_som_human_ids = []
     sm.userdata.guest_som_obj_ids = []
 
@@ -35,19 +43,24 @@ def create_state_machine(userdata=None):
     if userdata is not None:
         sm.userdata.update(userdata)
 
-    with sm:
-        
+    with sm:   
+        smach.StateMachine.add('CREATE_GUEST_ATTRIBUTES_DICT',
+                                CreateGuestAttributesDict(),
+                                transitions={'success':'SAVE_GUEST_TO_SOM'},
+                                remapping={'name':'name','gender':'gender','pronouns':'pronouns','face_id':'face_id','face_attributes':'face_attributes',
+                                        'guest_attributes':'guest_attributes'})
+
         smach.StateMachine.add('SAVE_GUEST_TO_SOM',
                                 SaveGuestToSOM(),
                                 transitions={'success':'SAVE_GUEST_TO_SOM_2',
                                             'failure':'task_failure'},
-                                remapping={'guest_name':'guest_name'})
-        
+                                remapping={'guest_attributes':'guest_attributes'})
+                
         smach.StateMachine.add('SAVE_GUEST_TO_SOM_2',
                                 SaveGuestToSOM(),
                                 transitions={'success':'task_success',
                                             'failure':'task_failure'},
-                                remapping={'guest_name':'guest_name_2'})
+                                remapping={'guest_attributes':'guest_attributes_2'})
 
 
     return sm

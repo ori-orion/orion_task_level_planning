@@ -222,7 +222,7 @@ def create_state_machine():
 
     sm.userdata.announce_finish_phrase = "I have exited the arena. I am now stopping."
 
-    sm.userdata.operator_name = "<operator_name>"
+    sm.userdata.operator_name = "Isaac Asimov"   # a default name for testing, this will be overridden by ASK_OPERATOR_NAME state
 
     # guest tracking
     sm.userdata.guest_som_human_ids = []
@@ -333,47 +333,14 @@ def create_state_machine():
         #                         SpeakState(),
         #                         transitions={'success':'ANNOUNCE_GUEST_INTRO'},
         #                         remapping={'phrase':'announce_search_start_phrase'})
-        
-        # TODO - put into a sub-state machine so we can repeat process for 3 guests
-        # introduction to guest
-        # smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
-        #                         SpeakState(),
-        #                         transitions={'success':'ASK_GUEST_NAME'},
-        #                         remapping={'phrase':'introduction_to_guest_phrase'})
-        
-        # # ask for guest's name
-        # smach.StateMachine.add('ASK_GUEST_NAME',
-        #                        SpeakAndListenState(),
-        #                         transitions={'success': 'SAVE_GUEST_TO_SOM',
-        #                                     'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
-        #                                     'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
-        #                         remapping={'question':'ask_operator_name_phrase',
-        #                                     'operator_response': 'guest_name',
-        #                                     'candidates':'person_names',
-        #                                     'params':'speak_and_listen_params_empty',
-        #                                     'timeout':'speak_and_listen_timeout',
-        #                                     'number_of_failures': 'speak_and_listen_failures',
-        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-        
-        # # announce that we missed the name, and that we will try again
-        # smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
-        #                         SpeakState(),
-        #                         transitions={'success':'ASK_GUEST_NAME'},
-        #                         remapping={'phrase':'speech_recognition_failure_phrase'})
 
-        # # announce that we think there is no-one there & transition to checking if we need to stop (TODO)
-        # smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
-        #                         SpeakState(),
-        #                         transitions={'success':'task_failure'},  # TODO - route this to the check if stop state
-        #                         remapping={'phrase':'no_one_there_phrase'})
-        
-        # # save the guest info to the SOM (requires at least one entry in SOM object DB with class_=='person')
-        # smach.StateMachine.add('SAVE_GUEST_TO_SOM',
-        #                         SaveGuestToSOM(),
-        #                         transitions={'success':'ANNOUNCE_FINISH',
-        #                                     'failure':'task_failure'},
-        #                         remapping={'guest_name':'guest_name'})
-        # replace with sub state machine
+        # TODO - implement state or sub state machine to search for person
+        # OLD CODE
+        # # Start looking for people
+        # smach.StateMachine.add('LookForPeople',
+        #                        LookForPeopleState(action_dict, global_store),
+        #                        transitions={'PERSON_FOUND':'TalkToPerson',
+        #                                     'NOBODY_FOUND':'SetOpDestination'})
 
         smach.StateMachine.add('LEARN_GUEST_SUB', 
                                 create_learn_guest_sub_state_machine(),
@@ -394,102 +361,23 @@ def create_state_machine():
 
         
 
-        ############################################################################
-        
-        
-        # # Ask for an operator
-        # question = ("Hi, nice to meet you! Are you the operator who is looking "+
-        #            "for their friends! If so, please tell me your name.")
-        # smach.StateMachine.add('AskForOperator',
-        #                        SpeakAndListenState(action_dict,
-        #                                            global_store,
-        #                                            question,
-        #                                            NAMES,
-        #                                            [],
-        #                                            30),
-        #                        transitions={'SUCCESS':'MemoriseOperator',
-        #                                     'FAILURE':'AskForOperator',
-        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
-
-        # # Memorise operator
-        # smach.StateMachine.add('MemoriseOperator',
-        #                        OperatorDetectState(action_dict, global_store),
-        #                        transitions={'SUCCESS':'OnMyWay',
-        #                                     'FAILURE':'AskForOperator'})
-
-        # # Head on the way
-        # phrase = ("Right, I'm off to find your mates! Don't worry, I never " +
-        #          "forget a friendly face! In the words of Arnold Schwarzenegger"
-        #          + ", I'll be back!")
-        # smach.StateMachine.add('OnMyWay',
-        #                        SpeakState(action_dict, global_store, phrase),
-        #                        transitions={'SUCCESS':'LookForPeople',
-        #                                     'FAILURE':'LookForPeople'})
-        
-        # # Start looking for people
-        # smach.StateMachine.add('LookForPeople',
-        #                        LookForPeopleState(action_dict, global_store),
-        #                        transitions={'PERSON_FOUND':'TalkToPerson',
-        #                                     'NOBODY_FOUND':'SetOpDestination'})
-        
-        # # Get information from person
-        # question = ("Hi, I'm Bam Bam, nice to meet you! What is your name?")
-        # smach.StateMachine.add('TalkToPerson',
-        #                        SpeakAndListenState(action_dict,
-        #                                            global_store,
-        #                                            question,
-        #                                            NAMES,
-        #                                            [],
-        #                                            30),
-        #                        transitions={'SUCCESS':'MemorisePerson',
-        #                                     'FAILURE':'TalkToPerson',
-        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
-        
-        # # memorise the person
-        # smach.StateMachine.add('MemorisePerson',
-        #                        MemorisePersonState(action_dict, global_store),
-        #                        transitions={'SUCCESS':'ThankYou',
-        #                                     'FAILURE':'TalkToPerson'})
-        
-        # # Thank the person
-        # phrase = ("Thank you, I think I got all that. I need to go now, my " +
-        #          "home planet needs me! Beep boop")
-        # smach.StateMachine.add('ThankYou',
-        #                        SpeakState(action_dict, global_store, phrase),
-        #                        transitions={'SUCCESS':'ShouldIContinue',
-        #                                     'FAILURE':'ShouldIContinue'})
-        
-        # # Check whether I should continue
-        # smach.StateMachine.add('ShouldIContinue',
-        #                        ShouldIContinueState(action_dict, global_store),
-        #                        transitions={'YES':'LookForPeople',
-        #                                     'NO':'SetOpDestination'})
-        
-        # # Set operator destination
-        # function = lambda : get_operator_location(action_dict, global_store)
-        # smach.StateMachine.add('SetOpDestination',
-        #                        SetNavGoalState(action_dict, 
-        #                                        global_store, 
-        #                                        function),
-        #                        transitions={'SUCCESS':'BackToOp'})
-        
-        # # Navigate back to the operator
-        # smach.StateMachine.add('BackToOp',
-        #                        NavigateState(action_dict, global_store),
-        #                        transitions={'SUCCESS':'GiveOperatorInfo',
-        #                                     'FAILURE':'BackToOp',
-        #                                     'REPEAT_FAILURE':'TASK_FAILURE'})
-        
+        # OLD CODE
         # # Give the operator information
         # smach.StateMachine.add('GiveOperatorInfo',
         #                        GiveOperatorInfoState(action_dict, global_store),
         #                        transitions={'SUCCESS':'ThankOp'})
-        
+        #
+        # OLD CODE
         # # Thank the operator
         # smach.StateMachine.add('ThankOp',
         #                        SpeakState(action_dict, global_store, phrase),
         #                        transitions={'SUCCESS':'TASK_SUCCESS',
         #                                     'FAILURE':'TASK_SUCCESS'})
+
+        # TODO - Return to operator
+        # TODO - Report to operator details of known guests
+        # TODO - Thank operator and announce that we're done
+        # TODO - Reset FaceDB? Or do this manually between runs?
 
         # leave the arena
         # TODO - consider changing to topological navigation state

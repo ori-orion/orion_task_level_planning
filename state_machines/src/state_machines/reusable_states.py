@@ -236,18 +236,35 @@ def create_learn_guest_sub_state_machine():
                                             'person_names'],
                                 output_keys=['guest_som_human_ids',
                                             'guest_som_obj_ids'])
-    
-    # speaking to guests
-    # sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
-    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam"
-    sub_sm.userdata.ask_name_phrase = "What is your name?"
-    sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
-    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
 
+    # speech defaults
     sub_sm.userdata.speak_and_listen_params_empty = []
     sub_sm.userdata.speak_and_listen_timeout = 5
     sub_sm.userdata.speak_and_listen_failures = 0
     sub_sm.userdata.speak_and_listen_failure_threshold = 3
+
+    # speaking to guests
+    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
+    sub_sm.userdata.ask_name_phrase = "What is your name?"
+    sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there. It's time for me to move on."
+    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
+
+    sub_sm.userdata.ask_gender_phrase = "What is your gender?"
+    sub_sm.userdata.ask_gender_candidates = GENDERS
+
+    sub_sm.userdata.ask_pronouns_phrase = "What are your preferred pronouns?"
+    sub_sm.userdata.ask_pronouns_candidates = PRONOUNS
+
+    # TODO - add age fields into SOM person observation data (and expand CreateGuestAttributesDict state)
+    # sub_sm.userdata.ask_age_phrase = "How old are you?"                     # assume response is given in years
+    # sub_sm.userdata.ask_age_candidates = [str(x) for x in range(1,101)]     # TODO - test recognition of numbers
+
+    sub_sm.userdata.start_face_registration_phrase = "I am registering your face so I can tell the host what you look like. Please stand still."
+    sub_sm.userdata.finish_face_registration_phrase = "I have finished registering your face. Thank you!"
+    sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
+    sub_sm.userdata.farewell_guest = "Thank you. I need to go now. It was nice to meet you!"
+
+    sub_sm.userdata.guest_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
 
     # Open the container 
     with sub_sm:
@@ -260,7 +277,7 @@ def create_learn_guest_sub_state_machine():
         # ask for guest's name
         smach.StateMachine.add('ASK_GUEST_NAME',
                                SpeakAndListenState(),
-                                transitions={'success': 'SAVE_GUEST_TO_SOM',
+                                transitions={'success': 'ASK_GUEST_GENDER',
                                             'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
                                             'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
                                 remapping={'question':'ask_name_phrase',
@@ -283,12 +300,86 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success':'failure'},  # TODO - route this to the check if stop state
                                 remapping={'phrase':'no_one_there_phrase'})
         
+        # ask for guest's gender
+        smach.StateMachine.add('ASK_GUEST_GENDER',
+                               SpeakAndListenState(),
+                                transitions={'success': 'ASK_GUEST_PRONOUNS',
+                                            'failure':'ASK_GUEST_GENDER', 
+                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                remapping={'question':'ask_gender_phrase',
+                                            'operator_response': 'guest_gender',
+                                            'candidates':'ask_gender_candidates',
+                                            'params':'speak_and_listen_params_empty',
+                                            'timeout':'speak_and_listen_timeout',
+                                            'number_of_failures': 'speak_and_listen_failures',
+                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+        
+        # ask for guest's pronouns
+        smach.StateMachine.add('ASK_GUEST_PRONOUNS',
+                               SpeakAndListenState(),
+                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+                                            'failure':'ASK_GUEST_PRONOUNS', 
+                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                remapping={'question':'ask_pronouns_phrase',
+                                            'operator_response': 'guest_pronouns',
+                                            'candidates':'ask_pronouns_candidates',
+                                            'params':'speak_and_listen_params_empty',
+                                            'timeout':'speak_and_listen_timeout',
+                                            'number_of_failures': 'speak_and_listen_failures',
+                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+        
+        # tell guest face registration is starting
+        smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+                                SpeakState(),
+                                transitions={'success':'CAPTURE_GUEST_FACE'},
+                                remapping={'phrase':'start_face_registration_phrase'})
+
+        # capture guest's face
+        smach.StateMachine.add('CAPTURE_GUEST_FACE',
+                                RegisterFace(),
+                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
+                                            'failure':'task_failure'},
+                                remapping={'face_id':'guest_name'})
+        
+        # detect guest face attributes
+        smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
+                                DetectFaceAttributes(),
+                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
+                                remapping={'face_id':'guest_name',
+                                            'face_attributes':'guest_face_attributes',
+                                            'num_attributes':'guest_num_attributes'  })
+        
+        # tell guest face registration is finished
+        smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
+                                SpeakState(),
+                                transitions={'success':'ANNOUNCE_SAVE_GUEST_TO_SOM'},
+                                remapping={'phrase':'finish_face_registration_phrase'})
+        
+        # tell guest we are saving their details
+        smach.StateMachine.add('ANNOUNCE_SAVE_GUEST_TO_SOM',
+                                SpeakState(),
+                                transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
+                                remapping={'phrase':'save_to_som_phrase'})
+
+        # create the guest_attributes dictionary
+        smach.StateMachine.add('CREATE_GUEST_ATTRIBUTES_DICT',
+                                CreateGuestAttributesDict(),
+                                transitions={'success':'SAVE_GUEST_TO_SOM'},
+                                remapping={'name':'guest_name','gender':'guest_gender','pronouns':'guest_pronouns','face_id':'guest_name','face_attributes':'guest_face_attributes',
+                                        'guest_attributes':'guest_attributes'})
+
         # save the guest info to the SOM (requires at least one entry in SOM object DB with class_=='person')
         smach.StateMachine.add('SAVE_GUEST_TO_SOM',
                                 SaveGuestToSOM(),
-                                transitions={'success':'success',
+                                transitions={'success':'ANNOUNCE_GUEST_FAREWELL',
                                             'failure':'failure'},
-                                remapping={'guest_name':'guest_name'})
+                                remapping={'guest_attributes':'guest_attributes'})
+
+        # farewell guest
+        smach.StateMachine.add('ANNOUNCE_GUEST_FAREWELL',
+                                SpeakState(),
+                                transitions={'success':'success'},
+                                remapping={'phrase':'farewell_guest'})
     
     return sub_sm
 
@@ -310,6 +401,29 @@ class GetTime(smach.State):
         now = rospy.Time.now()
         userdata.current_time = now
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
+        return 'success'
+
+class CreateGuestAttributesDict(smach.State):
+    """ Smach state to build the guest attributes dictionary from userdata values.
+
+    This state will return the built dictionary it in the userdata dict.
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['success'],
+                                input_keys=['guest_attributes','name','gender','pronouns','face_id','face_attributes'],
+                                output_keys=['guest_attributes'])
+
+    def execute(self, userdata):
+        userdata.guest_attributes = {}
+        userdata.guest_attributes["name"] = userdata.name
+        userdata.guest_attributes["gender"] = userdata.gender
+        userdata.guest_attributes["pronouns"] = userdata.pronouns
+        userdata.guest_attributes["face_id"] = userdata.face_id
+        userdata.guest_attributes["face_attributes"] = userdata.face_attributes
+        
+        # rospy.loginfo("Created guest_attributes dict: {}".format(userdata.guest_attributes))
         return 'success'
 
 class ShouldIContinueGuestSearchState(smach.State):
@@ -863,18 +977,18 @@ class SaveOperatorToSOM(smach.State):
 
         result = som_human_obs_input_service_client(operator_obs)
 
-        rospy.loginfo('Operator "{}" successfully stored in SOM with UID: {}'.format(operator_obs.adding.name, result.UID))
+        rospy.loginfo('Operator "{}" successfully stored in SOM with human collection UID: {}'.format(operator_obs.adding.name, result.UID))
         userdata.operator_som_human_id = result.UID
         userdata.operator_som_obj_id = operator_obs.adding.object_uid
         return 'success'
 
-
+#TODO - investigate why humans/basic_query does not return the updated human object, after we upate it with name, gender, etc.
 class SaveGuestToSOM(smach.State):
     """ State for robot to log the guest information as an observation in the SOM,
         and update the ongoing list of som ids (both human ids and object ids)
 
     input_keys:
-        guest_name: the guest's name
+        guest_attributes: the guest's attributes (e.g., name), to be added to the SOM, represented as a dictionary with keys: ["name","age","gender","pronouns","facial_features"]
         guest_som_human_ids: list of UIDs in the SOM human collection, corresponding to the guests we've met so far
         guest_som_obj_ids: list of UIDs in the SOM object collection, corresponding to the guests we've met so far
     output_keys:
@@ -884,7 +998,7 @@ class SaveGuestToSOM(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'failure'],
-                                input_keys=['guest_name', 
+                                input_keys=['guest_attributes', 
                                             'guest_som_human_ids',
                                             'guest_som_obj_ids'],
                                 output_keys=['guest_som_human_ids',
@@ -910,21 +1024,31 @@ class SaveGuestToSOM(smach.State):
 
         guest_obs.adding.observed_at = rospy.Time.now()
         guest_obs.adding.object_uid  = guest_som_obj.UID
-        guest_obs.adding.name = userdata.guest_name
         guest_obs.adding.task_role = 'guest'
         guest_obs.adding.obj_position = guest_som_obj.obj_position    # same as before
-        
+
+        if("name" in userdata.guest_attributes):
+            guest_obs.adding.name = userdata.guest_attributes["name"]
+        if("gender" in userdata.guest_attributes):
+            guest_obs.adding.gender = userdata.guest_attributes["gender"]
+        if("pronouns" in userdata.guest_attributes):
+            guest_obs.adding.pronouns = userdata.guest_attributes["pronouns"]
+        if("face_id" in userdata.guest_attributes):
+            guest_obs.adding.face_id = userdata.guest_attributes["face_id"]
+        if("face_attributes" in userdata.guest_attributes):
+            guest_obs.adding.face_attributes = userdata.guest_attributes["face_attributes"]
+
         # todo - check if used
         # pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
 
-        rospy.loginfo('Storing info for guest "{}" in SOM:\n\t{}'.format(guest_obs.adding.name, guest_obs.adding))
+        rospy.loginfo('Storing info for guest "{}" in SOM:\n{}'.format(guest_obs.adding.name, guest_obs.adding))
 
         rospy.wait_for_service('som/human_observations/input')
         som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
 
         result = som_human_obs_input_service_client(guest_obs)
 
-        rospy.loginfo('Guest "{}" successfully stored in SOM with UID: {}'.format(guest_obs.adding.name, result.UID))
+        rospy.loginfo('Guest "{}" successfully stored in SOM with human collection UID: {}'.format(guest_obs.adding.name, result.UID))
         userdata.guest_som_human_ids.append(result.UID)
         userdata.guest_som_obj_ids.append(guest_obs.adding.object_uid)
         return 'success'
@@ -1619,20 +1743,6 @@ class PickUpPointedObject(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]
-
-
-# TODO - OperatorRecogniseState - Create a state to detect operator via Jianeng's action server
-"""
-    1) call action server to recognise face
-    2) call service to SOM to find out which object/human the face id belongs to
-"""
-
-# TODO - OperatorRegisterState - Create a state to register operator via Jianeng's action server
-"""
-    input: recently detected human/object ID in previous state
-    1) call action server to register face
-    2) call service to SOM to request face id is associated with the ne
-"""
 
 class OperatorDetectState(ActionServiceState):
     """ This state will detect/observe an operator and memorise them.
