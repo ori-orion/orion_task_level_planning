@@ -56,8 +56,8 @@ NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
           'Michael', 'Matthew', 'Clarissa', 'Ricardo', 'Mia', 'Shu', 'Owen',
           'Jianeng', 'Kim', 'Liam', 'Kelvin', 'Benoit', 'Mark']
 
-PRONOUNS = ['She/Her', 'He/Him', 'They/Them', 'Ze/Zir', 'Name']
-GENDERS = ['Female', 'Male', 'Gender Fluid', 'Poly-Gender', 'Pangender', 'Agender']
+PRONOUNS = ['She/Her', 'He/Him', 'They/Them', 'Ze/Zir', 'Name', 'Prefer Not To Say']
+GENDERS = ['Female', 'Male', 'Gender Fluid', 'Poly-Gender', 'Pangender', 'Agender', 'Non-Binary', 'Prefer Not To Say']
 
 # Commands
 READY = ['ready']#['I am ready', 'ready', "let's go", "I'm ready"]
