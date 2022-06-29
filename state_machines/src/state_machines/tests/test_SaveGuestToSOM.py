@@ -33,6 +33,7 @@ def create_state_machine(userdata=None):
     sm.userdata.pronouns = "He/Him"
     sm.userdata.face_id = "Ricardo"
     sm.userdata.face_attributes = ["Has_Face", "Wearing_Glasses"]
+    # sm.userdata.face_attributes = []
 
     sm.userdata.guest_attributes_2 = {}
     sm.userdata.guest_attributes_2["name"] = "Matthew"

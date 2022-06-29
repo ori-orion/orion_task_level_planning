@@ -1218,8 +1218,6 @@ class ClearFaceDB(smach.State):
 		smach.State.__init__(self, outcomes=['success'])
 		
 	def execute(self, userdata):
-		
-
 		# set action goal and call action server
 		clear_face_db_goal = ActionServer_ClearDatabaseGoal()
 		
@@ -1234,6 +1232,100 @@ class ClearFaceDB(smach.State):
 
 		rospy.loginfo("ClearFaceDatabase action server cleared the database")
 		return "success"
+
+# TODO - complete this state
+class AnnounceGuestDetailsToOperator(smach.State):
+	""" State for the robot to give the operator info about mates
+	
+	Always succeeds.
+
+	input_keys:
+		guest_som_human_ids: TODO
+		guest_som_obj_ids: TODO
+
+	output_keys:
+		
+	"""
+
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['success'],
+								input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
+
+		
+	def execute(self, userdata):
+		number_guests_found = min(len(userdata.guest_som_human_ids), len(userdata.guest_som_obj_ids))
+
+		return 'success'
+
+# class GiveOperatorInfoState(ActionServiceState):
+#     """ State for giving operator info about mates. """
+
+#     def __init__(self, action_dict, global_store):
+#         outcomes = ['SUCCESS']
+#         super(GiveOperatorInfoState, self).__init__(action_dict=action_dict,
+#                                                     global_store=global_store,
+#                                                     outcomes=outcomes)
+    
+#     def execute(self, userdata):
+#         obj1 = SOMObservation()
+#         obj1.type = 'person'
+
+#         matches = self.action_dict['SOMQuery'](obj1, Relation(), 
+#                                                SOMObservation())
+
+#         operator_name = ''
+#         people_information = []
+
+#         # Extract information from matches
+#         for match in matches:
+#             person = match.obj1
+#             if person.task_role == 'operator':
+#                 operator_name = person.name
+#             else:
+#                 person_info = {}
+#                 person_info['name'] = person.name
+#                 person_info['age'] = person.age
+#                 person_info['gender'] = person.gender
+#                 person_info['shirt_colour'] = person.shirt_colour
+#                 person_info['room'].pose_estimate.most_likely_room
+#                 people_information.append(person_info)
+        
+#         info_string = ("Hi " + operator_name + ", I have some people to tell " +
+#                       "you about.")
+        
+#         for person in people_information:
+#             person_string = ""
+#             if person['room'] != '':
+#                 person_string += " In the " + person['room'] + " I met "
+#             else:
+#                 person_string += " I met "
+            
+#             if person['name'] != '':
+#                 person_string += person['name'] + ', '
+#             else:
+#                 person_string += 'someone, '
+            
+#             if person['age'] != 0:
+#                 person_string += ('who I think is around the age of ' + 
+#                                   str(person['age']) + ', ')
+            
+#             if person['gender'] != '':
+#                 person_string += 'who is ' + person['gender'] + ', '
+            
+#             if person['shirt_colour'] != '':
+#                 person_string += 'and who is wearing ' + person['shirt_colour']
+            
+#             if person_string[-2] == ',':
+#                 person_string = person_string[0:-2] + '.'
+#             else:
+#                 person_string += '.'
+#             info_string += person_string
+#         goal = SpeakGoal()
+#         goal.sentence = info_string
+#         self.action_dict['Speak'].send_goal(goal)
+#         self.action_dict['Speak'].wait_for_result()
+
+#         return self._outcomes[0]
 
 ###################### NEEDS REVIEWING #################################
 
