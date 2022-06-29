@@ -52,15 +52,15 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('SAVE_GUEST_TO_SOM',
                                 SaveGuestToSOM(),
-                                transitions={'success':'SAVE_GUEST_TO_SOM_2',
+                                transitions={'success':'task_success',
                                             'failure':'task_failure'},
                                 remapping={'guest_attributes':'guest_attributes'})
                 
-        smach.StateMachine.add('SAVE_GUEST_TO_SOM_2',
-                                SaveGuestToSOM(),
-                                transitions={'success':'task_success',
-                                            'failure':'task_failure'},
-                                remapping={'guest_attributes':'guest_attributes_2'})
+        # smach.StateMachine.add('SAVE_GUEST_TO_SOM_2',
+        #                         SaveGuestToSOM(),
+        #                         transitions={'success':'task_success',
+        #                                     'failure':'task_failure'},
+        #                         remapping={'guest_attributes':'guest_attributes_2'})
 
 
     return sm

@@ -1017,7 +1017,9 @@ class SaveGuestToSOM(smach.State):
             # we haven't seen a new person since last time, 
             # so something has gone wrong. return failure
             rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
-            return 'failure'           
+            return 'failure'       
+
+        rospy.loginfo("Found most recent SOM object with class_ 'person' with UID: {}".format(guest_som_obj.UID))    
 
         # create the service message
         guest_obs = SOMAddHumanObsRequest()
