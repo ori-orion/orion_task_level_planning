@@ -138,6 +138,9 @@ def create_state_machine():
     sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
     sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
 
+    # farewell operator
+    sm.userdata.farewell_operator_phrase = "My job here is done. Have a nice day!"
+
     # set arena exit pose - TODO
     sm.userdata.exit_pose = Pose()
     sm.userdata.exit_pose.position.x = 0.0
@@ -281,13 +284,24 @@ def create_state_machine():
         smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
                                 ShouldIContinueGuestSearchState(),
                                 transitions={'yes':'LEARN_GUEST_SUB',
-                                            'no':'ANNOUNCE_FINISH'},
+                                            'no':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},     # TODO - nav to operator instead of this
                                 remapping={'guest_som_human_ids':'guest_som_human_ids',
                                             'max_search_duration':'max_search_duration',
                                             'expected_num_guests':'expected_num_guests',
                                             'start_time':'task_start_time'})
 
-        
+        smach.StateMachine.add('ANNOUNCE_GUEST_DETAILS_TO_OPERATOR', 
+                                AnnounceGuestDetailsToOperator(),
+                                transitions={'success':'FAREWELL_OPERATOR'},
+                                remapping={'guest_som_human_ids':'guest_som_human_ids',
+                                            'guest_som_obj_ids':'guest_som_obj_ids'})   
+
+        # Farewell operator
+        smach.StateMachine.add('FAREWELL_OPERATOR',
+                                SpeakState(),
+                                # transitions={'success':'NAV_TO_EXIT'},  # TODO - put back in
+                                transitions={'success':'ANNOUNCE_FINISH'},
+                                remapping={'phrase':'farewell_operator_phrase'}) 
 
         # OLD CODE
         # # Give the operator information

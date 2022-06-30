@@ -35,7 +35,8 @@ from orion_actions.msg import SOMObservation, Relation
 from orion_actions.srv import SOMObserve
 # new som system
 from orion_actions.msg import SOMObject
-from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest
+from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest, \
+	SOMQueryHumans, SOMQueryHumansRequest, SOMQueryHumansResponse
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
@@ -226,6 +227,33 @@ def get_most_recent_obj_from_som(class_=None):
     returned_objects_sorted = sorted(returned_objects, key=lambda x: x.last_observed_at, reverse=True)
     most_recent_object = returned_objects_sorted[0]
     return most_recent_object
+
+def call_talk_request_action_server(phrase : str):
+	''' Function to call the Toyota talk request action server
+	
+	'''
+	action_goal = TalkRequestGoal()
+	action_goal.data.language = Voice.kEnglish  # enum for value: 1
+	action_goal.data.sentence = phrase
+
+	rospy.loginfo("HSR speaking phrase: '{}'".format(phrase))
+	speak_action_client = actionlib.SimpleActionClient('/talk_request_action', 
+									TalkRequestAction)
+
+	speak_action_client.wait_for_server()
+	speak_action_client.send_goal(action_goal)
+	speak_action_client.wait_for_result()
+
+	return
+
+def positional_to_cardinal(num: int) -> str:
+	# function to convert positional numbers to cardinal numbers. returns a string.
+	mapping = {1:"first", 2: "second", 3:"third", 4:"fourth", 5:"fifth", 6:"sixth", 7:"seventh", 8:"eighth", 9:"nineth", 10:"tenth"}
+
+	if num in mapping:
+		return mapping[num]
+	else:
+		raise Exception("Input number is out of range for this function. Supported mapping: {}".format(mapping))
 
 def create_learn_guest_sub_state_machine():
     
@@ -1233,7 +1261,7 @@ class ClearFaceDB(smach.State):
 		rospy.loginfo("ClearFaceDatabase action server cleared the database")
 		return "success"
 
-# TODO - complete this state
+# TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
 	""" State for the robot to give the operator info about mates
 	
@@ -1250,10 +1278,78 @@ class AnnounceGuestDetailsToOperator(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['success'],
 								input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
-
 		
 	def execute(self, userdata):
-		number_guests_found = min(len(userdata.guest_som_human_ids), len(userdata.guest_som_obj_ids))
+		number_of_guests_found = min(len(userdata.guest_som_human_ids), len(userdata.guest_som_obj_ids))
+
+		if number_of_guests_found == 0:
+			talk_phrase = "I could not find any of your mates. Don't worry, I'm sure they will arrive soon!"
+			call_talk_request_action_server(phrase=talk_phrase)
+			return 'success'
+		
+		if number_of_guests_found > 0:
+			talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
+			call_talk_request_action_server(phrase=talk_phrase)
+			for guest_num in range(number_of_guests_found):
+				# TODO - Query human from human collection
+				# call a query by class_ and sort results by most recent observation - return the newest one
+				query = SOMQueryHumansRequest() 
+				query.query.object_uid = userdata.guest_som_obj_ids[guest_num]
+				
+				rospy.wait_for_service('som/humans/basic_query')
+				som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
+
+				# call the service
+				response = som_humans_query_service_client(query);
+
+				# if the SOM didn't return any records that match the object_uid, then skip it
+				if len(response.returns) == 0:
+					# let the operator know there was a problem
+					talk_phrase = "Something has gone wrong and I cannot retreive information about person number {}".format(guest_num+1)
+					call_talk_request_action_server(phrase=talk_phrase)
+					continue
+
+				# just take the first return because there should only ever be one human entry for a given object_uid
+				human_record = response.returns[0]
+
+				# build the string to tell the operator about the mate
+				person_talk_phrase = ""
+				if human_record.name:
+					person_talk_phrase += "The {} person I met was {}.".format(positional_to_cardinal(guest_num+1), human_record.name)
+				else:
+					if guest_num == 0:
+						person_talk_phrase += "I met the {} person.".format(positional_to_cardinal(guest_num+1))
+					else:
+						person_talk_phrase += "I met a {} person.".format(positional_to_cardinal(guest_num+1))
+
+				# TODO - build in information about person location (maybe query the SOM to find out?)
+				
+				# TODO - pronouns and gender (need to be included in Human.msg)
+				if not human_record.gender:
+					pass
+				else:
+					if human_record.gender == "Prefer Not To Say":
+						pass
+					else:
+						person_talk_phrase += " They identify as {}".format(human_record.gender)
+				
+				if not human_record.pronouns:
+					pass
+				else:
+					if human_record.pronouns == "Prefer Not To Say":
+						pass
+					else:
+						person_talk_phrase += " Their pronouns are {}.".format(human_record.pronouns)
+						
+				if human_record.face_attributes:
+					person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
+
+				# speak the details for this person
+				call_talk_request_action_server(phrase=person_talk_phrase)
+
+			# wrap up
+			talk_phrase = "That's everyone I met!"
+			call_talk_request_action_server(phrase=talk_phrase)
 
 		return 'success'
 
