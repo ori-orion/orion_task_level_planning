@@ -1044,7 +1044,7 @@ class SaveGuestToSOM(smach.State):
             rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
             return 'failure'
         
-        # todo - see if this is safe to remove
+        # This check has been removed - now, if we have previously saved details for this person then it will override it in the SOM
         # if(guest_som_obj.UID in userdata.guest_som_obj_ids):
         #     # we have already saved details for this person
         #     # we haven't seen a new person since last time, 
