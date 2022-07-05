@@ -57,8 +57,8 @@ NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
           'Michael', 'Matthew', 'Clarissa', 'Ricardo', 'Mia', 'Shu', 'Owen',
           'Jianeng', 'Kim', 'Liam', 'Kelvin', 'Benoit', 'Mark']
 
-PRONOUNS = ['She/Her', 'He/Him', 'They/Them', 'Ze/Zir', 'Name', 'Prefer Not To Say']
-GENDERS = ['Female', 'Male', 'Gender Fluid', 'Poly-Gender', 'Pangender', 'Agender', 'Non-Binary', 'Prefer Not To Say']
+PRONOUNS = ['She / Her', 'He / Him', 'They / Them', 'Prefer Not To Say']
+GENDERS = ['Male', 'Female', 'Gender Fluid', 'Poly-Gender', 'Pangender', 'Agender', 'Non-Binary', 'Prefer Not To Say']
 
 # Commands
 READY = ['ready']#['I am ready', 'ready', "let's go", "I'm ready"]
@@ -272,7 +272,7 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.speak_and_listen_failure_threshold = 3
 
     # speaking to guests
-    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
+    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you!"
     sub_sm.userdata.ask_name_phrase = "What is your name?"
     sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there. It's time for me to move on."
     sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
@@ -292,7 +292,11 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
     sub_sm.userdata.farewell_guest = "Thank you. I need to go now. It was nice to meet you!"
 
+    sub_sm.userdata.guest_name = ""
+    sub_sm.userdata.guest_gender = ""
+    sub_sm.userdata.guest_pronouns = ""
     sub_sm.userdata.guest_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
+    sub_sm.userdata.guest_face_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
 
     # Open the container 
     with sub_sm:
@@ -333,7 +337,7 @@ def create_learn_guest_sub_state_machine():
                                SpeakAndListenState(),
                                 transitions={'success': 'ASK_GUEST_PRONOUNS',
                                             'failure':'ASK_GUEST_GENDER', 
-                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                            'repeat_failure':'ASK_GUEST_PRONOUNS'},
                                 remapping={'question':'ask_gender_phrase',
                                             'operator_response': 'guest_gender',
                                             'candidates':'ask_gender_candidates',
@@ -345,9 +349,10 @@ def create_learn_guest_sub_state_machine():
         # ask for guest's pronouns
         smach.StateMachine.add('ASK_GUEST_PRONOUNS',
                                SpeakAndListenState(),
-                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+                                # transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', # TODO - change back
+                                transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',
                                             'failure':'ASK_GUEST_PRONOUNS', 
-                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                            'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
                                 remapping={'question':'ask_pronouns_phrase',
                                             'operator_response': 'guest_pronouns',
                                             'candidates':'ask_pronouns_candidates',
@@ -366,7 +371,7 @@ def create_learn_guest_sub_state_machine():
         smach.StateMachine.add('CAPTURE_GUEST_FACE',
                                 RegisterFace(),
                                 transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
-                                            'failure':'task_failure'},
+                                            'failure':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 remapping={'face_id':'guest_name'})
         
         # detect guest face attributes
@@ -485,7 +490,7 @@ class ShouldIContinueGuestSearchState(smach.State):
         
         num_guests_found = len(userdata.guest_som_obj_ids)
         if num_guests_found >= userdata.expected_num_guests:
-            rospy.loginfo("Found all the guests - stop searching!")
+            rospy.loginfo("Found all the guests ({}) - stop searching!".format(num_guests_found))
             return "no"
         
         rospy.loginfo("I'll keep searching! Time: {}/{} sec, Found: {}/{} guests".format(time_elapsed.to_sec(), userdata.max_search_duration, num_guests_found,userdata.expected_num_guests))
@@ -1010,7 +1015,6 @@ class SaveOperatorToSOM(smach.State):
         userdata.operator_som_obj_id = operator_obs.adding.object_uid
         return 'success'
 
-#TODO - investigate why humans/basic_query does not return the updated human object, after we upate it with name, gender, etc.
 class SaveGuestToSOM(smach.State):
     """ State for robot to log the guest information as an observation in the SOM,
         and update the ongoing list of som ids (both human ids and object ids)
@@ -1040,12 +1044,13 @@ class SaveGuestToSOM(smach.State):
             rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
             return 'failure'
         
-        if(guest_som_obj.UID in userdata.guest_som_obj_ids):
-            # we have already saved details for this person
-            # we haven't seen a new person since last time, 
-            # so something has gone wrong. return failure
-            rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
-            return 'failure'       
+        # todo - see if this is safe to remove
+        # if(guest_som_obj.UID in userdata.guest_som_obj_ids):
+        #     # we have already saved details for this person
+        #     # we haven't seen a new person since last time, 
+        #     # so something has gone wrong. return failure
+        #     rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
+        #     return 'failure'       
 
         rospy.loginfo("Found most recent SOM object with class_ 'person' with UID: {}".format(guest_som_obj.UID))    
 
@@ -1323,15 +1328,14 @@ class AnnounceGuestDetailsToOperator(smach.State):
 						person_talk_phrase += "I met a {} person.".format(positional_to_cardinal(guest_num+1))
 
 				# TODO - build in information about person location (maybe query the SOM to find out?)
-				
-				# TODO - pronouns and gender (need to be included in Human.msg)
+
 				if not human_record.gender:
 					pass
 				else:
 					if human_record.gender == "Prefer Not To Say":
 						pass
 					else:
-						person_talk_phrase += " They identify as {}".format(human_record.gender)
+						person_talk_phrase += " They identify as {}.".format(human_record.gender)
 				
 				if not human_record.pronouns:
 					pass
