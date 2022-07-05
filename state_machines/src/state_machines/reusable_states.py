@@ -57,8 +57,8 @@ NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
           'Michael', 'Matthew', 'Clarissa', 'Ricardo', 'Mia', 'Shu', 'Owen',
           'Jianeng', 'Kim', 'Liam', 'Kelvin', 'Benoit', 'Mark']
 
-PRONOUNS = ['She / Her', 'He / Him', 'They / Them', 'Prefer Not To Say']
-GENDERS = ['Male', 'Female', 'Gender Fluid', 'Poly-Gender', 'Pangender', 'Agender', 'Non-Binary', 'Prefer Not To Say']
+GENDERS = ['female', 'male', 'gender fluid', 'poly-gender', 'pangender', 'agender', 'non-binary', 'prefer not to say']
+PRONOUNS = ['she her', 'he him', 'they them', 'prefer not to say']
 
 # Commands
 READY = ['ready']#['I am ready', 'ready', "let's go", "I'm ready"]
@@ -326,10 +326,10 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success':'ASK_GUEST_NAME'},
                                 remapping={'phrase':'speech_recognition_failure_phrase'})
 
-        # announce that we think there is no-one there & transition to checking if we need to stop (TODO)
+        # announce that we think there is no-one there & end sub state machine
         smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
                                 SpeakState(),
-                                transitions={'success':'failure'},  # TODO - route this to the check if stop state
+                                transitions={'success':'failure'},
                                 remapping={'phrase':'no_one_there_phrase'})
         
         # ask for guest's gender
@@ -416,7 +416,154 @@ def create_learn_guest_sub_state_machine():
     
     return sub_sm
 
+# TODO - create sub state machine for searching for humans
+# TODO - fix this because it throws errors atm
+def create_search_for_guest_sub_state_machine():
+    """ Smach sub state machine to search for guests (non-operator people)
 
+    Returns 'success' if a non-operator person is found within the timeout period, `failure` otherwise.
+
+    input_keys:
+        node_list: list of topological node ids to visit during search, in search order
+        operator_uid: the operator unique id in the SOM object collection, used to ignore detections from the operator
+    output_keys:
+        nodes_not_searched: list of topological node ids that were not visited during search (does not include the final node because there may be another person there)
+        found_guest_uid: the uid of the found guest, if any
+    """
+
+    # # create the sub state machine
+    # sub_sm_top = smach.StateMachine(outcomes=['success', 'failure'],
+    #                             input_keys=['node_list',
+    #                                         'operator_uid'],
+    #                             output_keys=['nodes_not_searched',
+    #                                         'found_guest_uid'])
+    
+    # sub_sm_top.userdata.found_guest_uid = ""
+    # sub_sm_top.userdata.nodes_not_searched = list(sub_sm_top.userdata.node_list)       # initialise the list of unsearched nodes
+
+    # TODO - see if we can just return the Concurrence state machine
+    # gets called when ANY child state terminates
+    def child_term_cb(outcome_map):
+        # TODO - Finish cb
+        # terminate all running states if FOO finished with outcome 'outcome3'
+        # if outcome_map['FOO'] == 'outcome3':
+        #     return True
+
+        # # terminate all running states if BAR finished
+        # if outcome_map['BAR']:
+        #     return True
+
+        # in all other case, just keep running, don't terminate anything
+        return False
+
+    # gets called when ALL child states are terminated
+    def out_cb(outcome_map):
+        # TODO - implement callback function
+        # if outcome_map['FOO'] == 'succeeded':
+        #     return 'outcome1'
+        # else:
+        #     return 'outcome2'
+        return outcome_map['NAV_SUB'] # TODO - remove this basic logic
+
+    # creating the concurrence state machine
+    sm_con = Concurrence(outcomes=['success', 'failure'],
+                    default_outcome='success',
+                    input_keys=['node_list',
+                                 'operator_uid'],
+                    output_keys=['nodes_not_searched',
+                                    'found_guest_uid'],
+                    child_termination_cb = child_term_cb,
+                    outcome_cb = out_cb)
+
+    sm_con.userdata.found_guest_uid = ""
+    # sm_con.userdata.nodes_not_searched = list(sm_con.userdata.node_list)       # initialise the list of unsearched nodes # TODO - fix this issue
+    sm_con.userdata.node_list = ['Node1', 'Node2']
+
+
+    # Open the concurrence container
+    with sm_con:
+        sub_sm_nav = smach.StateMachine(outcomes=['failure'],
+                                input_keys=['nodes_not_searched',
+                                            'operator_uid'],
+                                output_keys=['nodes_not_searched',
+                                            'found_guest_uid'])
+        # Open the container 
+        with sub_sm_nav:
+            # nav to next top node
+            smach.StateMachine.add('NAV_TO_NEXT_TOP_NODE',
+                                    SearchForGuestNavToNextNode(),
+                                    transitions={'searched':'NAV_TO_NEXT_TOP_NODE',
+                                                'exhausted_search':'failure',
+                                                'failure':'NAV_TO_NEXT_TOP_NODE'},
+                                    remapping={'nodes_not_searched':'nodes_not_searched'})
+        
+        # Add states to the container
+        smach.Concurrence.add('NAV_SUB', sub_sm_nav)
+        # smach.Concurrence.add('BAR', Bar()) # TODO - add state to periodically check for person detections
+
+    return sm_con
+
+# TODO - test with concurrency state machine
+class SearchForGuestNavToNextNode(smach.State):
+    """ Smach state to navigate the robot during the search for guests (non-operator people)
+
+    Returns 'searched' if arrived at next node, 'exhausted_search' if no more nodes are available to visit, `failure` if navigation fails.
+
+    input_keys:
+        nodes_not_searched: list of topological node ids to visit during search, in search order
+        failure_threshold: number of allowed failed attempts for each topological navigation action
+    output_keys:
+        nodes_not_searched: list of topological node ids that were not visited during search (does not include the final node because there may be another person there)
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['searched', 'exhausted_search', 'failure'],
+                                input_keys=['nodes_not_searched'],
+                                output_keys=['nodes_not_searched'])
+
+    def execute(self, userdata):
+        # TODO
+        userdata.nodes_not_searched = list(userdata.node_list)       # initialise the list of unsearched nodes
+
+        if not userdata.node_list:
+            rospy.loginfo('All nodes explored. Nothing to search next.')
+            return 'exhausted_search'
+
+        # create action server
+        topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
+        topological_navigate_action_client.wait_for_server()
+
+        # take the first node on the nodes not searched list
+        node_id = userdata.nodes_not_searched[0]
+
+        for attempt_num in range(userdata.failure_threshold):
+            # create action goal and call action server
+            goal = TraverseToNodeGoal(node_id=node_id)
+            rospy.loginfo('Navigating with top nav to node "{}"'.format(node_id))
+
+            topological_navigate_action_client.wait_for_server()
+            topological_navigate_action_client.send_goal(goal)
+            topological_navigate_action_client.wait_for_result()
+            result = topological_navigate_action_client.get_result()
+
+            rospy.loginfo('result = ' + str(result.success))
+
+            # Process action result
+            #   Note: result.success returns True if node_id was reached
+            if result.success:
+                break   # break out of attempts for-loop
+            else:
+                # attempt_num starts at 0, and we have just finished taking an attempt
+                if (attempt_num + 1) >= userdata.failure_threshold:
+                    rospy.logwarn('Navigating with top nav to node "{}" failed. Abandoning.'.format(node_id))
+                    # now remove the node from the nodes_not_searched list, because the nav action failed
+                    del userdata.nodes_not_searched[0]
+                    return 'failure'
+
+        # now remove the node from the nodes_not_searched list, because we have now searched it
+        del userdata.nodes_not_searched[0]
+        return 'searched'
 
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
@@ -783,7 +930,7 @@ class SimpleNavigateState(smach.State):
 #       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
 #       watif for one message and then set variable.
 
-# TODO - test
+
 class TopologicalNavigateState(smach.State):
     """ State for navigating along the topological map.
 
@@ -804,7 +951,7 @@ class TopologicalNavigateState(smach.State):
                                 output_keys=['number_of_failures'])
     
     def execute(self, userdata):
-        # Navigating without top nav
+        # Navigating with top nav
         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
 
         # create action goal and call action server
@@ -1296,7 +1443,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 			talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
 			call_talk_request_action_server(phrase=talk_phrase)
 			for guest_num in range(number_of_guests_found):
-				# TODO - Query human from human collection
+				# Query human from human collection
 				# call a query by class_ and sort results by most recent observation - return the newest one
 				query = SOMQueryHumansRequest() 
 				query.query.object_uid = userdata.guest_som_obj_ids[guest_num]
@@ -1332,7 +1479,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 				if not human_record.gender:
 					pass
 				else:
-					if human_record.gender == "Prefer Not To Say":
+					if human_record.gender == "prefer not to say":
 						pass
 					else:
 						person_talk_phrase += " They identify as {}.".format(human_record.gender)
@@ -1340,10 +1487,10 @@ class AnnounceGuestDetailsToOperator(smach.State):
 				if not human_record.pronouns:
 					pass
 				else:
-					if human_record.pronouns == "Prefer Not To Say":
+					if human_record.pronouns == "prefer not to say":
 						pass
 					else:
-						person_talk_phrase += " Their pronouns are {}.".format(human_record.pronouns)
+						person_talk_phrase += " Their pronouns are '{}'.".format(human_record.pronouns)
 						
 				if human_record.face_attributes:
 					person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)

@@ -162,10 +162,14 @@ def create_state_machine():
     sm.userdata.announce_finish_phrase = "I have exited the arena. I am now stopping."
 
     sm.userdata.operator_name = "Isaac Asimov"   # a default name for testing, this will be overridden by ASK_OPERATOR_NAME state
+    sm.userdata.operator_uid = ""       # TODO - implement state to set this
 
     # guest tracking
     sm.userdata.guest_som_human_ids = []
     sm.userdata.guest_som_obj_ids = []
+
+    # top nav
+    sm.userdata.node_list = ['Node1', 'Node2']
 
     with sm:
 
@@ -196,7 +200,8 @@ def create_state_machine():
         # save the start time
         smach.StateMachine.add('SAVE_START_TIME',
                                 GetTime(),
-                                transitions={'success':'LEARN_GUEST_SUB'},
+                                # transitions={'success':'SEARCH_FOR_GUEST_SUB'}, # TODO - switch for testing
+                                transitions={'success':'LEARN_GUEST_SUB'}, # TODO - switch for testing
                                 remapping={'current_time':'task_start_time'})
         
         # # navigate to operator - TODO - consider changing to top nav
@@ -270,6 +275,14 @@ def create_state_machine():
         #                         remapping={'phrase':'announce_search_start_phrase'})
 
         # TODO - implement state or sub state machine to search for person & look up at person's face
+        # TODO - put back in once fixed
+        # smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
+        #                         create_search_for_guest_sub_state_machine(),
+        #                         transitions={'success':'LEARN_GUEST_SUB',
+        #                                     'failure':'ANNOUNCE_FINISH_SEARCH'},
+        #                         remapping={'node_list':'node_list',
+        #                                     'operator_uid':'operator_uid'})
+        
         # OLD CODE
         # # Start looking for people
         # smach.StateMachine.add('LookForPeople',
