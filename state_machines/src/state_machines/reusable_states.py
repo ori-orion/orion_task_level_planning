@@ -1213,6 +1213,9 @@ class SaveGuestToSOM(smach.State):
         guest_obs.adding.task_role = 'guest'
         guest_obs.adding.obj_position = guest_som_obj.obj_position    # same as before
 
+        # We don't want to speak to the same guest twice.
+        guest_obs.adding.spoken_to_state = Human.SPOKEN_TO;
+
         if("name" in userdata.guest_attributes):
             guest_obs.adding.name = userdata.guest_attributes["name"]
         if("gender" in userdata.guest_attributes):
