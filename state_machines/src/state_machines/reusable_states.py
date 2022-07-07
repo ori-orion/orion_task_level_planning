@@ -34,9 +34,11 @@ from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionA
 from orion_actions.msg import SOMObservation, Relation
 from orion_actions.srv import SOMObserve
 # new som system
-from orion_actions.msg import SOMObject
+from orion_actions.msg import SOMObject, Human
 from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest, \
 	SOMQueryHumans, SOMQueryHumansRequest, SOMQueryHumansResponse
+import orion_actions.srv;
+
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
@@ -92,7 +94,7 @@ OBJECTS += FRUITS + DRINKS
 # Tableware                     23
 
 
-def pose_to_xy_theta(pose):
+def pose_to_xy_theta(pose:Pose):
     """ Function converts a pose to an (x,y,theta) triple.
 
     Args:
@@ -113,34 +115,34 @@ def pose_to_xy_theta(pose):
 
     return (x,y,theta)
 
-
-def get_location_of_object(action_dict, obj_1, rel, obj_2):
-    """ Function returns the location of an object in terms of a pose. 
+# Deprecated!!! (Not using the current som system.)
+# def get_location_of_object(action_dict, obj_1, rel, obj_2):
+#     """ Function returns the location of an object in terms of a pose. 
     
-    This function uses the semantic mapping to get the closest location of an
-    object.
+#     This function uses the semantic mapping to get the closest location of an
+#     object.
 
-    Args:
-        action_dict: our action dictionary to be able to use the services.
-        obj_1: The first SOMObservation message
-        rel: The Relation message between the objects
-        obj_2: The second SOMObservation message
+#     Args:
+#         action_dict: our action dictionary to be able to use the services.
+#         obj_1: The first SOMObservation message
+#         rel: The Relation message between the objects
+#         obj_2: The second SOMObservation message
     
-    Returns: 
-        pose: The pose of the object
+#     Returns: 
+#         pose: The pose of the object
 
-    """
-    matches = action_dict['SOMQuery'](obj_1, rel, obj_2, Pose()).matches
+#     """
+#     matches = action_dict['SOMQuery'](obj_1, rel, obj_2, Pose()).matches
     
-    if len(matches) == 0:
-        raise Exception("No matches found in Semantic Map")
+#     if len(matches) == 0:
+#         raise Exception("No matches found in Semantic Map")
     
-    pose = matches[0].obj1.pose_estimate.most_likely_pose
+#     pose = matches[0].obj1.pose_estimate.most_likely_pose
 
-    return pose
+#     return pose
 
 
-def distance_between_poses(pose_1, pose_2):
+def distance_between_poses(pose_1:Pose, pose_2:Pose):
     """Given two poses, this finds the Euclidean distance between them. """
 
     pos_1 = pose_1.position
@@ -152,7 +154,7 @@ def distance_between_poses(pose_1, pose_2):
 
     return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq)
 
-
+# Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
 def get_node_with_label(action_dict, label):
     """ Returns the name of the waypoint with a given label. """
 
@@ -163,7 +165,7 @@ def get_node_with_label(action_dict, label):
     else:
         return response.nodes[0]
 
-
+# Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
 def get_pose_of_node(waypoint):
     """ Gets the pose of a node in the topological map. """
 
@@ -178,7 +180,7 @@ def get_pose_of_node(waypoint):
 
     return None
 
-
+# Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
 def get_closest_node(dest_pose):
     """ Get the closest node to a destination pose. Returns name and pose. """
 
@@ -216,7 +218,7 @@ def get_most_recent_obj_from_som(class_=None):
     som_obj_query_service_client = rospy.ServiceProxy('som/objects/basic_query', SOMQueryObjects);
 
     # call the service
-    response = som_obj_query_service_client(query);
+    response:orion_actions.srv.SOMQueryObjectsResponse = som_obj_query_service_client(query);
 
     # process the service response
     if len(response.returns) == 0:
@@ -674,7 +676,10 @@ class SpeakState(smach.State):
         # Can only succeed
         return 'success'
 
-
+#region Create Phrase stuff.
+# This seems to set `userdata.phrase` for subsequent speaking.
+# Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow
+# one of these. 
 class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
     """ Smach state to create the phrase to announce the retreival of an item to a named operator
 
@@ -697,7 +702,6 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
 
         # Can only succeed
         return 'success'
-
 
 class CreatePhraseAskForHelpPickupObjectState(smach.State):
     """ Smach state to create the phrase to ask for help to pick up an object
@@ -743,7 +747,7 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
 
         # Can only succeed
         return 'success'
-
+#endregion
 
 class HandoverObjectToOperatorState(smach.State):
     """ Smach state for handing a grasped object to an operator.
@@ -1697,6 +1701,7 @@ class SetPickupFuncState(ActionServiceState):
         return self._outcomes[0]
 
 
+#region Dealing with draws.
 class OpenDrawerState(ActionServiceState):
     """ State for opening a drawer. """
 
@@ -1719,7 +1724,6 @@ class OpenDrawerState(ActionServiceState):
         else:
             return self._outcomes[1]
 
-
 class CloseDrawerState(ActionServiceState):
     """ State for closing a drawer. """
 
@@ -1741,6 +1745,7 @@ class CloseDrawerState(ActionServiceState):
             return self._outcomes[0]
         else:
             return self._outcomes[1]
+#endregion
 
 
 class PlaceObjectRelativeState(ActionServiceState):
