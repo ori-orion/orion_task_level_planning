@@ -18,6 +18,8 @@ from smach import Concurrence
 from tf.transformations import euler_from_quaternion
 import tf
 
+import math
+
 from orion_actions.msg import GiveObjectToOperatorGoal, \
     OpenDoorGoal, GiveObjectToOperatorGoal, GiveObjectToOperatorAction, \
         ReceiveObjectFromOperatorGoal, ReceiveObjectFromOperatorAction, PutObjectOnFloorGoal, \
@@ -141,7 +143,6 @@ def pose_to_xy_theta(pose:Pose):
 
 #     return pose
 
-# Only seems to be used in deprecated stuff or simply commented out.
 def distance_between_poses(pose_1:Pose, pose_2:Pose):
     """Given two poses, this finds the Euclidean distance between them. """
 
@@ -154,6 +155,8 @@ def distance_between_poses(pose_1:Pose, pose_2:Pose):
 
     return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq)
 
+
+#region seems to be deprecated
 # Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
 def get_node_with_label(action_dict, label):
     """ Returns the name of the waypoint with a given label. """
@@ -198,6 +201,8 @@ def get_closest_node(dest_pose):
             best_node_pose = (node.name, node.pose)
 
     return best_node_pose
+#endregion
+
 
 def filter_face_attributes_by_exclusion(attributes):
 	""" Filter the list of facial attributes by removing items in the exclusion list. """
@@ -1116,6 +1121,7 @@ class CheckDoorIsOpenState(smach.State):
             return 'closed'
 
 
+#region Human SOM interface.
 class SaveOperatorToSOM(smach.State):
     """ State for robot to log the operator information as an observation in the SOM
 
@@ -1241,6 +1247,45 @@ class SaveGuestToSOM(smach.State):
         userdata.guest_som_human_ids.append(result.UID)
         userdata.guest_som_obj_ids.append(guest_obs.adding.object_uid)
         return 'success'
+
+class GetNearestOperator(smach.State):
+    """
+    Finds the closest operator to the current robot's position.
+    NOTE: currently might return a human with a single observation (which has the possibility of being unreliable).
+    """
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['human_found', 'human_not_found'],
+                                input_keys=[],
+                                output_keys=['closest_human'])
+    
+    def execute(self, userdata):
+        human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+        
+        query = SOMQueryHumansRequest();
+        query.query.spoken_to_state = Human.NOT_SPOKEN_TO;
+        
+        human_query_results:SOMQueryHumansResponse = human_query_srv(query);
+
+        # What's the current position of the robot?
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+
+        min_distance = math.inf;
+        closest_human:Human = None;
+
+        for result in human_query_results.returns:
+            result:Human;
+            distance = distance_between_poses(result.obj_position, robot_pose.pose);
+            if distance < min_distance:
+                min_distance = distance;
+                closest_human = result;
+
+        if closest_human == None:
+            userdata.closest_human = None;
+            return 'human_not_found';
+        else:
+            userdata.closest_human = closest_human;
+            return 'human_found';
+#endregion
 
 
 class RegisterFace(smach.State):
