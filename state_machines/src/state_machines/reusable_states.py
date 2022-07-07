@@ -141,7 +141,7 @@ def pose_to_xy_theta(pose:Pose):
 
 #     return pose
 
-
+# Only seems to be used in deprecated stuff or simply commented out.
 def distance_between_poses(pose_1:Pose, pose_2:Pose):
     """Given two poses, this finds the Euclidean distance between them. """
 
@@ -521,7 +521,7 @@ class SearchForGuestNavToNextNode(smach.State):
     def __init__(self):
         smach.State.__init__(self,
                                 outcomes=['searched', 'exhausted_search', 'failure'],
-                                input_keys=['nodes_not_searched'],
+                                input_keys=['nodes_not_searched', 'node_list', 'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
 
     def execute(self, userdata):
