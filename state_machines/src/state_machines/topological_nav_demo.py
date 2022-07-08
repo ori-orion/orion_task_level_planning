@@ -44,14 +44,18 @@ def create_state_machine(userdata=None):
                                 transitions={'success':'TOP_NAV_2',
                                                 'failure':'TOP_NAV_1',
                                                 'repeat_failure':'task_failure'},
-                                remapping={'node_id':'node_id_1'})
+                                remapping={'node_id':'node_id_1',
+                                            'number_of_failures':'nav_failures',
+                                            'failure_threshold':'nav_failure_threshold'})
 
         smach.StateMachine.add('TOP_NAV_2',
                                 TopologicalNavigateState(),
                                 transitions={'success':'task_success',
                                                 'failure':'TOP_NAV_2',
                                                 'repeat_failure':'task_failure'},
-                                remapping={'node_id':'node_id_2'})
+                                remapping={'node_id':'node_id_2',
+                                            'number_of_failures':'nav_failures',
+                                            'failure_threshold':'nav_failure_threshold'})
 
     return sm
 
