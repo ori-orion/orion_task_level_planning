@@ -110,6 +110,8 @@ def create_state_machine():
     # with open(name_file, 'r') as in_file:
     #     sm.userdata.person_names += in_file.read().splitlines()
 
+    sm.userdata.hotword_timeout = 15 # seconds
+
     sm.userdata.speak_and_listen_params_empty = []
     sm.userdata.speak_and_listen_timeout = 5
     sm.userdata.speak_and_listen_failures = 0
@@ -118,7 +120,6 @@ def create_state_machine():
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
 
-    sm.userdata.wait_for_start_signal_phrase = "I am waiting for the start signal."
     sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates! Let's go!"
 
     sm.userdata.nav_repeat_failure_phrase = "Navigation failed too many times, terminating task."
@@ -173,29 +174,26 @@ def create_state_machine():
 
     with sm:
 
-        # save initial robot state
-        # smach.StateMachine.add('STORE_INITIAL_LOCATION',
-        #                         GetRobotLocationState(),
-        #                         transitions={'stored':'INTRO'},
-        #                         remapping={'robot_location':'start_pose'})
-
-        # announce waiting for start signal
-        # smach.StateMachine.add('ANNOUNCE_WAIT_FOR_START_SIGNAL',
-        #                         SpeakState(),
-        #                         transitions={'success':'WAIT_FOR_START_SIGNAL'},
-        #                         remapping={'phrase':'wait_for_start_signal_phrase'})
         
-        # # wait for the start signal - TODO - test
+        # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
+        #   TODO - fix and test the check door state for future competitions
         # smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
         #                         CheckDoorIsOpenState(),
         #                         transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
         #                                         'closed':'WAIT_FOR_START_SIGNAL'})
+
+        # wait for hotword to start the tast
+        smach.StateMachine.add('WAIT_FOR_HOTWORD',
+                                WaitForHotwordState(),
+                                transitions={'success': 'ANNOUNCE_TASK_INTENTIONS',
+                                             'failure': 'WAIT_FOR_HOTWORD'},
+                                remapping={'timeout':'hotword_timeout'})
         
-        # # announce task intentions
-        # smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
-        #                         SpeakState(),
-        #                         transitions={'success':'SAVE_START_TIME'},
-        #                         remapping={'phrase':'task_intentions_phrase'})
+        # announce task intentions
+        smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
+                                SpeakState(),
+                                transitions={'success':'SAVE_START_TIME'},
+                                remapping={'phrase':'task_intentions_phrase'})
 
         # save the start time
         smach.StateMachine.add('SAVE_START_TIME',
@@ -282,13 +280,6 @@ def create_state_machine():
         #                                     'failure':'ANNOUNCE_FINISH_SEARCH'},
         #                         remapping={'node_list':'node_list',
         #                                     'operator_uid':'operator_uid'})
-        
-        # OLD CODE
-        # # Start looking for people
-        # smach.StateMachine.add('LookForPeople',
-        #                        LookForPeopleState(action_dict, global_store),
-        #                        transitions={'PERSON_FOUND':'TalkToPerson',
-        #                                     'NOBODY_FOUND':'SetOpDestination'})
 
         smach.StateMachine.add('LEARN_GUEST_SUB', 
                                 create_learn_guest_sub_state_machine(),

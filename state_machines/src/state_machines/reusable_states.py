@@ -27,7 +27,7 @@ from orion_actions.msg import GiveObjectToOperatorGoal, \
                         PlaceObjectRelativeGoal, PourIntoGoal, \
                             PointToObjectGoal, OpenFurnitureDoorGoal, \
                                 PointingGoal, CloseDrawerGoal, \
-                                    SpeakAndListenAction, SpeakAndListenGoal
+                                    SpeakAndListenAction, Hotword
 from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
 
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
@@ -1503,6 +1503,35 @@ class AnnounceGuestDetailsToOperator(smach.State):
 			call_talk_request_action_server(phrase=talk_phrase)
 
 		return 'success'
+
+class WaitForHotwordState(smach.State):
+    """ Smach state for waiting for the hotword detector to publish a detection message.
+
+    Terminates with 'success' outcome if hotword detection message is received within the timeout (if used),
+    otherwise 'failure'.
+    
+    input_keys:
+		timeout: timeout time in seconds (set to None to wait indefinitely)
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['success', 'failure'],
+                                input_keys=['timeout'])
+
+    def execute(self, userdata):
+        # call_talk_request_action_server(phrase="I'm ready and waiting for the hotword")
+        rospy.loginfo("Waiting for hotword...")
+        try:
+            # Wait for one message on topic
+            hotword_msg = rospy.wait_for_message('/hotword', Hotword, timeout=userdata.timeout)
+            rospy.loginfo("Hotword '{}' received at time: {}".format(hotword_msg.hotword, hotword_msg.stamp.to_sec()))
+            # call_talk_request_action_server(phrase="Hotword received")
+            return 'success'
+        except rospy.ROSException as e:
+            rospy.logwarn("Hotword not received within timeout")
+            return 'failure'
+
 
 # class GiveOperatorInfoState(ActionServiceState):
 #     """ State for giving operator info about mates. """
