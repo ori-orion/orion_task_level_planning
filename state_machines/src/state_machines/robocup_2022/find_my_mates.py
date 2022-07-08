@@ -52,43 +52,6 @@ import time  # TODO - replace calls to rospy.time library
 #             return self._outcomes[1]
 
 
-# class ShouldIContinueState(ActionServiceState):
-#     """ State determines whether we should continue or go back. """
-
-#     def __init__(self, action_dict, global_store):
-#         outcomes = ['YES', 'NO']
-#         super(ShouldIContinueState, self).__init__(action_dict=action_dict,
-#                                                    global_store=global_store,
-#                                                    outcomes=outcomes)
-    
-#     def execute(self, userdata):
-#         time_elapsed = time.time() - self.global_store['start_time']
-#         if time_elapsed > 210: # 3 and a half minutes
-#             return self._outcomes[1]
-#         elif len(self.global_store['people_found']) == 3:
-#             return self._outcomes[1]
-        
-#         return self._outcomes[0]
-
-
-# def go_to_instruction_point(action_dict):
-#     """ Returns the navigation location of the instruction point. """
-#     obj1 = SOMObservation()
-#     obj1.type = 'find_my_mates_point_of_interest'
-
-#     return get_location_of_object(action_dict, obj1, 
-#                                   Relation(), SOMObservation())
-
-
-# def get_operator_location(action_dict, global_store):
-#     """ Gets the location of our operator. """
-
-#     operator = action_dict['SOMLookup'](global_store['operator'])
-
-#     return operator.pose_estimate.most_recent_pose
-
-## TODO - create a duplicate of this in a robocup2022 directory, then refactor
-
 def create_state_machine():
     """ This function creates and returns the state machine for the task. """
 
@@ -119,6 +82,8 @@ def create_state_machine():
 
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
+
+    sm.userdata.topological_navigation_failure_threshold = 3
 
     sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates! Let's go!"
 
@@ -163,17 +128,26 @@ def create_state_machine():
     sm.userdata.announce_finish_phrase = "I have exited the arena. I am now stopping."
 
     sm.userdata.operator_name = "Isaac Asimov"   # a default name for testing, this will be overridden by ASK_OPERATOR_NAME state
-    sm.userdata.operator_uid = ""       # TODO - implement state to set this
+    sm.userdata.operator_som_id = "1234"       # SAVE_OPERATOR_INFO_TO_SOM state will set this
 
     # guest tracking
     sm.userdata.guest_som_human_ids = []
     sm.userdata.guest_som_obj_ids = []
 
     # top nav
-    sm.userdata.node_list = ['Node1', 'Node2']
+    sm.userdata.node_list = ['Node1', 'Node2', 'Node3']
+    sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
     with sm:
-
+        
+        # remove after testing
+        smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
+                                create_search_for_guest_sub_state_machine(),
+                                transitions={'success':'LEARN_GUEST_SUB',
+                                            'failure':'ANNOUNCE_FINISH_SEARCH'},
+                                remapping={'nodes_not_searched':'nodes_not_searched',
+                                            'operator_uid':'operator_som_id',
+                                            'failure_threshold':'topological_navigation_failure_threshold'})
         
         # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
         #   TODO - fix and test the check door state for future competitions

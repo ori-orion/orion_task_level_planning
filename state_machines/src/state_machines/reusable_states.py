@@ -421,25 +421,16 @@ def create_learn_guest_sub_state_machine():
 def create_search_for_guest_sub_state_machine():
     """ Smach sub state machine to search for guests (non-operator people)
 
-    Returns 'success' if a non-operator person is found within the timeout period, `failure` otherwise.
+    Returns 'success' if a non-operator person is found, `failure` otherwise.
 
     input_keys:
-        node_list: list of topological node ids to visit during search, in search order
+        nodes_not_searched: list of topological node ids to visit during search, in search order
         operator_uid: the operator unique id in the SOM object collection, used to ignore detections from the operator
+        failure_threshold: number of allowed failed attempts for each topological navigation action
     output_keys:
         nodes_not_searched: list of topological node ids that were not visited during search (does not include the final node because there may be another person there)
         found_guest_uid: the uid of the found guest, if any
     """
-
-    # # create the sub state machine
-    # sub_sm_top = smach.StateMachine(outcomes=['success', 'failure'],
-    #                             input_keys=['node_list',
-    #                                         'operator_uid'],
-    #                             output_keys=['nodes_not_searched',
-    #                                         'found_guest_uid'])
-    
-    # sub_sm_top.userdata.found_guest_uid = ""
-    # sub_sm_top.userdata.nodes_not_searched = list(sub_sm_top.userdata.node_list)       # initialise the list of unsearched nodes
 
     # TODO - see if we can just return the Concurrence state machine
     # gets called when ANY child state terminates
@@ -468,23 +459,22 @@ def create_search_for_guest_sub_state_machine():
     # creating the concurrence state machine
     sm_con = Concurrence(outcomes=['success', 'failure'],
                     default_outcome='success',
-                    input_keys=['node_list',
-                                 'operator_uid'],
+                    input_keys=['nodes_not_searched',
+                                 'operator_uid',
+                                 'failure_threshold'],
                     output_keys=['nodes_not_searched',
                                     'found_guest_uid'],
                     child_termination_cb = child_term_cb,
                     outcome_cb = out_cb)
 
-    sm_con.userdata.found_guest_uid = ""
-    # sm_con.userdata.nodes_not_searched = list(sm_con.userdata.node_list)       # initialise the list of unsearched nodes # TODO - fix this issue
-    sm_con.userdata.node_list = ['Node1', 'Node2']
-
+    sm_con.userdata.found_guest_uid = "not_set"     # TODO - set with 2nd state in concurrent state
 
     # Open the concurrence container
     with sm_con:
         sub_sm_nav = smach.StateMachine(outcomes=['failure'],
                                 input_keys=['nodes_not_searched',
-                                            'operator_uid'],
+                                            'operator_uid',
+                                            'failure_threshold'],
                                 output_keys=['nodes_not_searched',
                                             'found_guest_uid'])
         # Open the container 
@@ -495,7 +485,8 @@ def create_search_for_guest_sub_state_machine():
                                     transitions={'searched':'NAV_TO_NEXT_TOP_NODE',
                                                 'exhausted_search':'failure',
                                                 'failure':'NAV_TO_NEXT_TOP_NODE'},
-                                    remapping={'nodes_not_searched':'nodes_not_searched'})
+                                    remapping={'nodes_not_searched':'nodes_not_searched',
+                                                'failure_threshold':'failure_threshold'})
         
         # Add states to the container
         smach.Concurrence.add('NAV_SUB', sub_sm_nav)
@@ -519,14 +510,13 @@ class SearchForGuestNavToNextNode(smach.State):
     def __init__(self):
         smach.State.__init__(self,
                                 outcomes=['searched', 'exhausted_search', 'failure'],
-                                input_keys=['nodes_not_searched'],
+                                input_keys=['nodes_not_searched',
+                                            'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
 
     def execute(self, userdata):
-        # TODO
-        userdata.nodes_not_searched = list(userdata.node_list)       # initialise the list of unsearched nodes
 
-        if not userdata.node_list:
+        if not userdata.nodes_not_searched:
             rospy.loginfo('All nodes explored. Nothing to search next.')
             return 'exhausted_search'
 
