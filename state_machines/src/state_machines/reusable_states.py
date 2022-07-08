@@ -155,6 +155,9 @@ def distance_between_poses(pose_1:Pose, pose_2:Pose):
 
     return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq)
 
+def get_point_magnitude(point:Point):
+    return np.sqrt(point.x*point.x + point.y*point.y + point.z*point.z);
+
 
 #region seems to be deprecated
 # Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
@@ -1319,15 +1322,44 @@ class GetNextNavLoc(smach.State):
 
     def execute(self, userdata):
 
-        nav_to_human = True;
+        nav_to_human:bool = True;
         human_loc:Pose = userdata.closest_human.obj_position;
         robot_location:Pose = userdata.robot_location;
+
+        # Proxy for actual next node location. (Need to work out type of this!)
+        next_node_pos = Point();
 
         # [Logic for choosing between node and humans]
         # If the human is behind the robot, go to the human.
         # If the human is infront of the next node, go to the human.
         # If the human is behind the next node, go to the next node.
 
+        # Behind can be determined by whether the dot product between two vectors (the one 
+        # going robot->node and robot->human) is negative.
+        # Nearness can be determined by the distance itself.
+
+        # Is the human behind the robot?
+        robot_to_node:Point = Point();
+        robot_to_node.x = next_node_pos.x - robot_location.position.x;
+        robot_to_node.y = next_node_pos.y - robot_location.position.y;
+        robot_to_node.z = next_node_pos.z - robot_location.position.z;
+
+        robot_to_human:Point = Point();
+        robot_to_human.x = human_loc.position.x - robot_location.position.x;
+        robot_to_human.y = human_loc.position.y - robot_location.position.y;
+        robot_to_human.z = human_loc.position.z - robot_location.position.z;
+
+        # RobotToNode dot RobotToHuman...
+        RTN_dot_RTH = robot_to_node.x*robot_to_human.x + robot_to_node.y*robot_to_human.y + robot_to_node.z*robot_to_human.z;
+        if RTN_dot_RTH < 0:
+            nav_to_human = True;
+        else:
+            robot_to_node_len = get_point_magnitude(robot_to_node);
+            robot_to_human_len = get_point_magnitude(robot_to_human);
+            if robot_to_node_len < robot_to_human_len:
+                nav_to_human = False;
+            else:
+                nav_to_human = True;
 
         # NOTE: This puts the robot a certain distance away from the we are looking for.
         # Potentially can be abstracted out into its own smach state. 
@@ -1338,8 +1370,7 @@ class GetNextNavLoc(smach.State):
             vec_to_human.y = human_loc.position.y - robot_location.position.y;
             vec_to_human.z = human_loc.position.z - robot_location.position.z;
 
-            vec_to_human_len:float = np.sqrt(
-                vec_to_human.x*vec_to_human.x + vec_to_human.y*vec_to_human.y + vec_to_human.z*vec_to_human.z);
+            vec_to_human_len:float = get_point_magnitude(vec_to_human);
 
             vec_to_human.x *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
             vec_to_human.y *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
