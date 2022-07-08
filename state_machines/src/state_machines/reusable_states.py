@@ -1252,11 +1252,15 @@ class GetNearestOperator(smach.State):
     """
     Finds the closest operator to the current robot's position.
     NOTE: currently might return a human with a single observation (which has the possibility of being unreliable).
+    This also sets the current robot pose (for convenience).
+    Outputs:
+        closest_human:(Human|None)
+        robot_pose:Pose
     """
     def __init__(self):
         smach.State.__init__(self, outcomes=['human_found', 'human_not_found'],
                                 input_keys=[],
-                                output_keys=['closest_human'])
+                                output_keys=['closest_human', 'robot_location'])
     
     def execute(self, userdata):
         human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
@@ -1268,6 +1272,7 @@ class GetNearestOperator(smach.State):
 
         # What's the current position of the robot?
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        userdata.robot_location = robot_pose.pose
 
         min_distance = math.inf;
         closest_human:Human = None;
@@ -1286,6 +1291,69 @@ class GetNearestOperator(smach.State):
             userdata.closest_human = closest_human;
             return 'human_found';
 #endregion
+
+
+class GetNextNavLoc(smach.State):
+    """
+    This is set up specifically for the find my mates task.
+    So the overall goal here is to work out where to go to next.
+    Do we want to go to the next search node or do we want to go to the next 
+    nearest human?
+    Note that this is designed to be executed after GetNearestOperator.
+    Inputs:
+        closest_human:Human
+            The closest human entry.
+        robot_location:Pose
+            The current location of the robot.
+    Outputs:
+        pose_to_nav_to:Pose|None
+            The pose we want the robot to navigate to if we're aiming for a pose.
+    """
+    # Gives the distance the robot will come to a stop from the human.
+    DISTANCE_FROM_HUMAN = 0.3;  #m
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', 'failure'],
+                                input_keys=['closest_human', 'robot_location'],
+                                output_keys=['pose_to_nav_to']);
+
+    def execute(self, userdata):
+
+        nav_to_human = True;
+        human_loc:Pose = userdata.closest_human.obj_position;
+        robot_location:Pose = userdata.robot_location;
+
+        # [Logic for choosing between node and humans]
+        # If the human is behind the robot, go to the human.
+        # If the human is infront of the next node, go to the human.
+        # If the human is behind the next node, go to the next node.
+
+
+        # NOTE: This puts the robot a certain distance away from the we are looking for.
+        # Potentially can be abstracted out into its own smach state. 
+        if nav_to_human:
+            pose_to_nav_to:Pose = Pose();
+            vec_to_human = Point();
+            vec_to_human.x = human_loc.position.x - robot_location.position.x;
+            vec_to_human.y = human_loc.position.y - robot_location.position.y;
+            vec_to_human.z = human_loc.position.z - robot_location.position.z;
+
+            vec_to_human_len:float = np.sqrt(
+                vec_to_human.x*vec_to_human.x + vec_to_human.y*vec_to_human.y + vec_to_human.z*vec_to_human.z);
+
+            vec_to_human.x *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+            vec_to_human.y *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+            vec_to_human.z *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+
+            pose_to_nav_to.position.x = human_loc.position.x - vec_to_human.x;
+            pose_to_nav_to.position.y = human_loc.position.y - vec_to_human.y;
+            pose_to_nav_to.position.z = human_loc.position.z - vec_to_human.z;
+
+            userdata.pose_to_nav_to = pose_to_nav_to;
+            
+            return 'nav_to_pose';
+        else:
+            return 'nav_to_node';
 
 
 class RegisterFace(smach.State):
