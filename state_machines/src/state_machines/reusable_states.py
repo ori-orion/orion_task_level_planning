@@ -417,7 +417,6 @@ def create_learn_guest_sub_state_machine():
     return sub_sm
 
 # TODO - create sub state machine for searching for humans
-# TODO - fix this because it throws errors atm
 def create_search_for_guest_sub_state_machine():
     """ Smach sub state machine to search for guests (non-operator people)
 
@@ -432,29 +431,29 @@ def create_search_for_guest_sub_state_machine():
         found_guest_uid: the uid of the found guest, if any
     """
 
-    # TODO - see if we can just return the Concurrence state machine
     # gets called when ANY child state terminates
     def child_term_cb(outcome_map):
-        # TODO - Finish cb
-        # terminate all running states if FOO finished with outcome 'outcome3'
-        # if outcome_map['FOO'] == 'outcome3':
-        #     return True
+        # terminate all running states if CHECK_FOR_NEW_GUEST_SEEN finished with outcome 'success'
+        if outcome_map['CHECK_FOR_NEW_GUEST_SEEN']:
+            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success':
+                rospy.loginfo("Concurrence child_term_cb: outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success'. Terminating")
+                return True
 
-        # # terminate all running states if BAR finished
-        # if outcome_map['BAR']:
-        #     return True
+        # terminate all running states if NAV_SUB finished with outcome 'failure'
+        if outcome_map['NAV_SUB'] == 'failure':
+            rospy.loginfo("Concurrence child_term_cb: outcome_map['NAV_SUB'] == 'failure'. Terminating")
+            return True
 
         # in all other case, just keep running, don't terminate anything
         return False
 
     # gets called when ALL child states are terminated
     def out_cb(outcome_map):
-        # TODO - implement callback function
-        # if outcome_map['FOO'] == 'succeeded':
-        #     return 'outcome1'
-        # else:
-        #     return 'outcome2'
-        return outcome_map['NAV_SUB'] # TODO - remove this basic logic
+        if outcome_map['CHECK_FOR_NEW_GUEST_SEEN']:
+            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success':
+                return 'success'
+        
+        return 'failure'
 
     # creating the concurrence state machine
     sm_con = Concurrence(outcomes=['success', 'failure'],
@@ -467,16 +466,13 @@ def create_search_for_guest_sub_state_machine():
                     child_termination_cb = child_term_cb,
                     outcome_cb = out_cb)
 
-    sm_con.userdata.found_guest_uid = "not_set"     # TODO - set with 2nd state in concurrent state
-
     # Open the concurrence container
     with sm_con:
-        sub_sm_nav = smach.StateMachine(outcomes=['failure'],
+        sub_sm_nav = smach.StateMachine(outcomes=['failure', 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'operator_uid',
                                             'failure_threshold'],
-                                output_keys=['nodes_not_searched',
-                                            'found_guest_uid'])
+                                output_keys=['nodes_not_searched'])
         # Open the container 
         with sub_sm_nav:
             # nav to next top node
@@ -484,17 +480,17 @@ def create_search_for_guest_sub_state_machine():
                                     SearchForGuestNavToNextNode(),
                                     transitions={'searched':'NAV_TO_NEXT_TOP_NODE',
                                                 'exhausted_search':'failure',
-                                                'failure':'NAV_TO_NEXT_TOP_NODE'},
+                                                'failure':'NAV_TO_NEXT_TOP_NODE',
+                                                'preempted':'preempted'},
                                     remapping={'nodes_not_searched':'nodes_not_searched',
                                                 'failure_threshold':'failure_threshold'})
         
         # Add states to the container
         smach.Concurrence.add('NAV_SUB', sub_sm_nav)
-        # smach.Concurrence.add('BAR', Bar()) # TODO - add state to periodically check for person detections
-
+        smach.Concurrence.add('CHECK_FOR_NEW_GUEST_SEEN', CheckForNewGuestSeen())
+        
     return sm_con
 
-# TODO - test with concurrency state machine
 class SearchForGuestNavToNextNode(smach.State):
     """ Smach state to navigate the robot during the search for guests (non-operator people)
 
@@ -509,13 +505,13 @@ class SearchForGuestNavToNextNode(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['searched', 'exhausted_search', 'failure'],
+                                outcomes=['searched', 'exhausted_search', 'failure', 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
 
     def execute(self, userdata):
-
+        # check if any nodes left to visit
         if not userdata.nodes_not_searched:
             rospy.loginfo('All nodes explored. Nothing to search next.')
             return 'exhausted_search'
@@ -528,6 +524,11 @@ class SearchForGuestNavToNextNode(smach.State):
         node_id = userdata.nodes_not_searched[0]
 
         for attempt_num in range(userdata.failure_threshold):
+            # Check for preempt
+            if self.preempt_requested():
+                self.service_preempt()
+                return 'preempted'
+
             # create action goal and call action server
             goal = TraverseToNodeGoal(node_id=node_id)
             rospy.loginfo('Navigating with top nav to node "{}"'.format(node_id))
@@ -550,10 +551,46 @@ class SearchForGuestNavToNextNode(smach.State):
                     # now remove the node from the nodes_not_searched list, because the nav action failed
                     del userdata.nodes_not_searched[0]
                     return 'failure'
-
+            # rospy.sleep(2)  # TODO - remove after testing
         # now remove the node from the nodes_not_searched list, because we have now searched it
         del userdata.nodes_not_searched[0]
         return 'searched'
+
+class CheckForNewGuestSeen(smach.State):
+    """ Smach state to check if we have seen a new guest (i.e., a guest we have not spoken to yet)
+
+    Returns 'success' if a new guest is found, otherwise runs indefinitely. Needs to be preempted in a concurrency state.
+
+    input_keys:
+        
+    output_keys:
+        found_guest_uid: the uid of the found guest, if any
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['success', 'preempted'],
+                                input_keys=[],
+                                output_keys=['found_guest_uid'])
+
+    def execute(self, userdata):
+        userdata.found_guest_uid = "not_set"   # initialise to empty to prepare for case where state gets preempted before new guest is found
+                                        # (SMACH will complain if output key does not exist)
+        
+        # we sit in this loop forever, and only terminate with outcome 'success' if a new guest is found, or 'preempted' if preempted in concurrent state machine
+        while True:
+            # Check for preempt
+            if self.preempt_requested():
+                self.service_preempt()
+                return 'preempted'
+            
+            # Check for new guest found
+            if False:               # TODO - replace this with logic to look up the SOM and check if we found a new guest
+                #userdata.found_guest_uid = <uid from SOM query result>     # TODO - save the uid of the found guest for output
+                return 'success'
+            else:
+                rospy.loginfo("New guest not found yet")
+                rospy.sleep(2)
 
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
