@@ -200,16 +200,28 @@ def create_state_machine():
                                 transitions={'success':'ASK_OPERATOR_NAME'},
                                 remapping={'phrase':'introduction_to_operator_phrase'})
 
-        # ask for operator's name
+        # ask for operator's name - Replaced by AskPersonNameState state below - remove after testing
+        # smach.StateMachine.add('ASK_OPERATOR_NAME',
+        #                        SpeakAndListenState(),
+        #                         transitions={'success': 'SAVE_OPERATOR_INFO_TO_SOM',
+        #                                     'failure':'ANNOUNCE_MISSED_NAME',
+        #                                     'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
+        #                         remapping={'question':'ask_operator_name_phrase',
+        #                                     'operator_response': 'operator_name',
+        #                                     'candidates':'person_names',
+        #                                     'params':'speak_and_listen_params_empty',
+        #                                     'timeout':'speak_and_listen_timeout',
+        #                                     'number_of_failures': 'speak_and_listen_failures',
+        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
+
+        # ask for operator's name - New ask guest name action server - TODO - test        
         smach.StateMachine.add('ASK_OPERATOR_NAME',
-                               SpeakAndListenState(),
+                               AskPersonNameState(),
                                 transitions={'success': 'SAVE_OPERATOR_INFO_TO_SOM',
                                             'failure':'ANNOUNCE_MISSED_NAME',
                                             'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
                                 remapping={'question':'ask_operator_name_phrase',
-                                            'operator_response': 'operator_name',
-                                            'candidates':'person_names',
-                                            'params':'speak_and_listen_params_empty',
+                                            'recognised_name': 'operator_name',
                                             'timeout':'speak_and_listen_timeout',
                                             'number_of_failures': 'speak_and_listen_failures',
                                             'failure_threshold': 'speak_and_listen_failure_threshold'})
