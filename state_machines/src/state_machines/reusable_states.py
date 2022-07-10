@@ -36,7 +36,7 @@ from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionA
 from orion_actions.msg import SOMObservation, Relation
 from orion_actions.srv import SOMObserve
 # new som system
-from orion_actions.msg import SOMObject, Human
+from orion_actions.msg import SOMObject, Human, Match
 from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest, \
 	SOMQueryHumans, SOMQueryHumansRequest, SOMQueryHumansResponse
 import orion_actions.srv;
@@ -1362,7 +1362,7 @@ class SaveGuestToSOM(smach.State):
 
         rospy.loginfo('Storing info for guest "{}" in SOM:\n{}'.format(guest_obs.adding.name, guest_obs.adding))
 
-        rospy.wait_for_service('som/human_observations/input')
+        rospy.wait_for_service('som/human_observations/input');
         som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
 
         result = som_human_obs_input_service_client(guest_obs)
@@ -1414,6 +1414,76 @@ class GetNearestOperator(smach.State):
         else:
             userdata.closest_human = closest_human;
             return 'human_found';
+
+class GetHumanRelativeLoc(smach.State):
+    """
+    We want to be able to give the location of the human relative to other objects around the room.
+    This will work this out.
+    Inputs:
+        human_obj_uid:str   The uid of the human in the objects system that we want to work out the relative information for.
+                            This is given by `object_obj` within a Human.msg.
+    Outputs:
+        relevant_matches    The list of closest matches in the form of a list of dictionaries with the following parameters:#
+            human_obj_uid       The uid within the object collection.
+            relational_str      A string giving the relation in a readable form.
+    """
+    # Gives the objects we want to say we are nearby/next to/... 
+    RELATIVE_OBJS = ["table", "couch", "chair", "potted plant", "bed", "mirror", "dining table", "tv", "door", "sink", "clock", "vase"];
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
+                                input_keys=['human_obj_uid'],
+                                output_keys=['relevant_matches'])
+
+    def get_most_relevant_relation(self, relation:Relation) -> str:
+        if relation.left:
+            return " is to the left of the ";
+        elif relation.right:
+            return " is to the right of the ";
+        elif relation.frontof:
+            return " is infront of the ";
+        elif relation.behind:
+            return " is behind the ";
+        elif relation.near:
+            return " is near to the ";
+        pass;
+
+    def execute(self, userdata):
+        # We want to do a region query here. Then sort by distance.
+        query = orion_actions.srv.SOMRelObjQueryRequest();
+        query.obj1.UID = userdata.human_obj_uid;
+        query.obj2.category = "unknown";        # So anything not in the file of pickupable objects will be given the category of "unknown." We can use this to our advantage.
+
+        rospy.wait_for_service('/som/objects/relational_query');
+        relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
+
+        response:orion_actions.srv.SOMRelObjQueryResponse = relational_query_srv(query);
+
+        def get_relation_dist(rel:Match):
+            return rel.distance;
+        # In ascending order by distance, so it will return the closest objects first.
+        matches_sorted:list = sorted(response.matches, key=get_relation_dist);
+        
+        # The relation is [obj1] [relation] [obj2]. Therefore, if left is true for instance
+        # then it will be [human] is to the left of [object]. 
+
+        relevant_matches = [];
+
+        for match in matches_sorted:
+            match:Match;
+
+            if match.obj2.class_ in GetHumanRelativeLoc.RELATIVE_OBJS:
+                
+                relevant_matches.append({
+                    'human_obj_uid': userdata.human_obj_uid,
+                    'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_
+                });
+        
+        if len(relevant_matches) == 0:
+            return "no_relevant_matches_found";
+        else:
+            userdata.relevant_matches = relevant_matches;
+            return "success"
 #endregion
 
 
