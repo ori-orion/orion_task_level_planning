@@ -152,17 +152,17 @@ def create_state_machine():
         
         # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
         #   TODO - fix and test the check door state for future competitions
-        # smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
-        #                         CheckDoorIsOpenState(),
-        #                         transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
-        #                                         'closed':'WAIT_FOR_START_SIGNAL'})
+        smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
+                                CheckDoorIsOpenState(),
+                                transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
+                                                'closed':'WAIT_FOR_START_SIGNAL'})
 
         # wait for hotword to start the task
-        smach.StateMachine.add('WAIT_FOR_HOTWORD',
-                                WaitForHotwordState(),
-                                transitions={'success': 'ANNOUNCE_TASK_INTENTIONS',
-                                             'failure': 'WAIT_FOR_HOTWORD'},
-                                remapping={'timeout':'hotword_timeout'})
+        # smach.StateMachine.add('WAIT_FOR_HOTWORD',
+        #                         WaitForHotwordState(),
+        #                         transitions={'success': 'ANNOUNCE_TASK_INTENTIONS',
+        #                                      'failure': 'WAIT_FOR_HOTWORD'},
+        #                         remapping={'timeout':'hotword_timeout'})
         
         # announce task intentions
         smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',

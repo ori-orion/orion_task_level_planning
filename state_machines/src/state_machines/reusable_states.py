@@ -335,7 +335,7 @@ def create_learn_guest_sub_state_machine():
         # ask for guest's name - New ask guest name action server - TODO - test
         smach.StateMachine.add('ASK_GUEST_NAME',
                                AskPersonNameState(),
-                                transitions={'success': 'ASK_GUEST_GENDER',
+                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
                                             'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
                                             'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
@@ -358,32 +358,32 @@ def create_learn_guest_sub_state_machine():
                                 remapping={'phrase':'no_one_there_phrase'})
         
         # ask for guest's gender
-        smach.StateMachine.add('ASK_GUEST_GENDER',
-                               SpeakAndListenState(),
-                                transitions={'success': 'ASK_GUEST_PRONOUNS',
-                                            'failure':'ASK_GUEST_GENDER', 
-                                            'repeat_failure':'ASK_GUEST_PRONOUNS'},
-                                remapping={'question':'ask_gender_phrase',
-                                            'operator_response': 'guest_gender',
-                                            'candidates':'ask_gender_candidates',
-                                            'params':'speak_and_listen_params_empty',
-                                            'timeout':'speak_and_listen_timeout',
-                                            'number_of_failures': 'speak_and_listen_failures',
-                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+        # smach.StateMachine.add('ASK_GUEST_GENDER',
+        #                        SpeakAndListenState(),
+        #                         transitions={'success': 'ASK_GUEST_PRONOUNS',
+        #                                     'failure':'ASK_GUEST_GENDER', 
+        #                                     'repeat_failure':'ASK_GUEST_PRONOUNS'},
+        #                         remapping={'question':'ask_gender_phrase',
+        #                                     'operator_response': 'guest_gender',
+        #                                     'candidates':'ask_gender_candidates',
+        #                                     'params':'speak_and_listen_params_empty',
+        #                                     'timeout':'speak_and_listen_timeout',
+        #                                     'number_of_failures': 'speak_and_listen_failures',
+        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
         
         # ask for guest's pronouns
-        smach.StateMachine.add('ASK_GUEST_PRONOUNS',
-                               SpeakAndListenState(),
-                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', 
-                                            'failure':'ASK_GUEST_PRONOUNS', 
-                                            'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
-                                remapping={'question':'ask_pronouns_phrase',
-                                            'operator_response': 'guest_pronouns',
-                                            'candidates':'ask_pronouns_candidates',
-                                            'params':'speak_and_listen_params_empty',
-                                            'timeout':'speak_and_listen_timeout',
-                                            'number_of_failures': 'speak_and_listen_failures',
-                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+        # smach.StateMachine.add('ASK_GUEST_PRONOUNS',
+        #                        SpeakAndListenState(),
+        #                         transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', 
+        #                                     'failure':'ASK_GUEST_PRONOUNS', 
+        #                                     'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
+        #                         remapping={'question':'ask_pronouns_phrase',
+        #                                     'operator_response': 'guest_pronouns',
+        #                                     'candidates':'ask_pronouns_candidates',
+        #                                     'params':'speak_and_listen_params_empty',
+        #                                     'timeout':'speak_and_listen_timeout',
+        #                                     'number_of_failures': 'speak_and_listen_failures',
+        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
         
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
