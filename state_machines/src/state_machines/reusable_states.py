@@ -15,7 +15,7 @@ import actionlib
 import time
 import numpy as np
 from smach import Concurrence
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import tf
 
 import math
@@ -320,6 +320,7 @@ def create_learn_guest_sub_state_machine():
         smach.StateMachine.add('ASK_GUEST_NAME',
                                SpeakAndListenState(),
                                 transitions={'success': 'ASK_GUEST_GENDER',
+                                # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
                                             'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
                                             'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
                                 remapping={'question':'ask_name_phrase',
@@ -359,8 +360,7 @@ def create_learn_guest_sub_state_machine():
         # ask for guest's pronouns
         smach.StateMachine.add('ASK_GUEST_PRONOUNS',
                                SpeakAndListenState(),
-                                # transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', # TODO - change back
-                                transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',
+                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', 
                                             'failure':'ASK_GUEST_PRONOUNS', 
                                             'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
                                 remapping={'question':'ask_pronouns_phrase',
@@ -426,9 +426,8 @@ def create_learn_guest_sub_state_machine():
     
     return sub_sm
 
-# TODO - create sub state machine for searching for humans
 def create_search_for_guest_sub_state_machine():
-    """ Smach sub state machine to search for guests (non-operator people)
+    """ Smach sub state machine to search for guests (non-operator people) not yet spoken to
 
     Returns 'success' if a non-operator person is found, `failure` otherwise.
 
@@ -502,7 +501,7 @@ def create_search_for_guest_sub_state_machine():
     return sm_con
 
 class SearchForGuestNavToNextNode(smach.State):
-    """ Smach state to navigate the robot during the search for guests (non-operator people)
+    """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
 
     Returns 'searched' if arrived at next node, 'exhausted_search' if no more nodes are available to visit, `failure` if navigation fails.
 
@@ -521,6 +520,15 @@ class SearchForGuestNavToNextNode(smach.State):
                                 output_keys=['nodes_not_searched'])
 
     def execute(self, userdata):
+        # If topological nodes aren't working, then uncomment the lines below to skip attempts to use it:
+        # Don't actually try to travel along the topological nodes because it's not working at the moment
+        # while True:
+        #     rospy.sleep(1.0)
+        #     if self.preempt_requested():
+        #         self.service_preempt()
+        #         return 'preempted'
+        # TODO - remove after testing
+
         # check if any nodes left to visit
         if not userdata.nodes_not_searched:
             rospy.loginfo('All nodes explored. Nothing to search next.')
@@ -562,6 +570,10 @@ class SearchForGuestNavToNextNode(smach.State):
                     del userdata.nodes_not_searched[0]
                     return 'failure'
             # rospy.sleep(2)  # TODO - remove after testing
+        # One final check for preempt. We only want to remove the node from the list if nothing was found.
+        if self.preempt_requested():
+            self.service_preempt()
+            return 'preempted'
         # now remove the node from the nodes_not_searched list, because we have now searched it
         del userdata.nodes_not_searched[0]
         return 'searched'
@@ -604,7 +616,6 @@ class CheckForNewGuestSeen(smach.State):
 
             # What's the current position of the robot?
             robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
-            # userdata.robot_location = robot_pose.pose # todo - make another wait for message in other state
 
             min_distance = math.inf;
             closest_human:Human = None;
@@ -642,7 +653,7 @@ class CreatePoseToApproachHuman(smach.State):
     def __init__(self):
         smach.State.__init__(self,
                                 outcomes=['success', 'failure'],
-                                input_keys=['human_id'],
+                                input_keys=['human_id', 'distance_to_human'],
                                 output_keys=['approach_pose'])
 
     def execute(self, userdata):
@@ -663,23 +674,38 @@ class CreatePoseToApproachHuman(smach.State):
         human_pose = human.obj_position
 
         # What's the current position of the robot?
-        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        robot_pose_msg:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        robot_pose:Pose = robot_pose_msg.pose
 
         rospy.loginfo("CreatePoseToApproachHuman: robot pose:\n{} \n\n human pose: \n{}".format(robot_pose, human_pose))
 
         # Compute pose
         approach_pose:Pose = Pose();
         vec_to_human = Point();
-        vec_to_human.x = human_pose.pose.position.x - robot_pose.pose.position.x;
-        vec_to_human.y = human_pose.pose.position.y - robot_pose.pose.position.y;
+        vec_to_human.x = human_pose.position.x - robot_pose.position.x;
+        vec_to_human.y = human_pose.position.y - robot_pose.position.y;
         vec_to_human.z = 0          # don't consider Z-component because it's a 2D Euclidean distance
 
         vec_to_human_len:float = get_point_magnitude(vec_to_human);
 
+        vec_to_human_angle:float = math.atan2(vec_to_human.y, vec_to_human.x)
+        vec_to_human_angle_quat = quaternion_from_euler(0,0,vec_to_human_angle)  # RPY, radians
+        
+        approach_pose_orientation:Quaternion = Quaternion()
+        approach_pose_orientation.x = vec_to_human_angle_quat[0]
+        approach_pose_orientation.y = vec_to_human_angle_quat[1]
+        approach_pose_orientation.z = vec_to_human_angle_quat[2]
+        approach_pose_orientation.w = vec_to_human_angle_quat[3]
+
+        rospy.loginfo("Calculating Pose to Approach Human: Distance to human: {} m, angle to human: {} deg".format(vec_to_human_len, math.degrees(vec_to_human_angle)))
+
         if vec_to_human_len < userdata.distance_to_human:
             # if already within the distance, then just return the current pose
-            rospy.loginfo("Calculating Pose to Approach Human: Already within required distance of human. Keeping current pose:\n{}".format(robot_pose))
-            userdata.approach_pose = robot_pose
+            approach_pose = robot_pose
+            # Update quaternion so we are facing the human
+            approach_pose.orientation = approach_pose_orientation
+            rospy.loginfo("Calculating Pose to Approach Human: Already within required distance of human. Keeping current pos, updating angle:\n{}".format(approach_pose))
+            userdata.approach_pose = approach_pose
             return "success"
 
         # Create unit vector and then scale by required distance to human
@@ -688,9 +714,12 @@ class CreatePoseToApproachHuman(smach.State):
         vec_to_human.z *= userdata.distance_to_human / vec_to_human_len;
 
         # Subtract the scaled vector to human from the human to get the approach position
-        approach_pose.position.x = human_pose.pose.position.x - vec_to_human.x;
-        approach_pose.position.y = human_pose.pose.position.y - vec_to_human.y;
-        approach_pose.position.z = human_pose.pose.position.z - vec_to_human.z;
+        approach_pose.position.x = human_pose.position.x - vec_to_human.x;
+        approach_pose.position.y = human_pose.position.y - vec_to_human.y;
+        approach_pose.position.z = human_pose.position.z - vec_to_human.z;
+
+        # Update quaternion so we are facing the human
+        approach_pose.orientation = approach_pose_orientation
 
         rospy.loginfo("Calculated pose to approach human:\n{}".format(approach_pose))
         userdata.approach_pose = approach_pose;

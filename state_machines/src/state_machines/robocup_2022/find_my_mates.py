@@ -82,6 +82,7 @@ def create_state_machine():
 
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
+    sm.userdata.simple_navigation_distance_to_humans = 0.5 # metres
 
     sm.userdata.topological_navigation_failure_threshold = 3
 
@@ -139,11 +140,11 @@ def create_state_machine():
     sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
     with sm:
-        
-        # remove after testing
+        # TODO - remove after testing
+        # short-ciruit straight to SEARCH_FOR_GUEST_SUB to test logic 
         # smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
         #                         create_search_for_guest_sub_state_machine(),
-        #                         transitions={'success':'LEARN_GUEST_SUB',
+        #                         transitions={'success':'CREATE_POSE_TO_APPROACH_GUEST',
         #                                     'failure':'ANNOUNCE_FINISH_SEARCH'},
         #                         remapping={'nodes_not_searched':'nodes_not_searched',
         #                                     'operator_uid':'operator_som_id',
@@ -156,7 +157,7 @@ def create_state_machine():
         #                         transitions={   'open':'ANNOUNCE_TASK_INTENTIONS', 
         #                                         'closed':'WAIT_FOR_START_SIGNAL'})
 
-        # wait for hotword to start the tast
+        # wait for hotword to start the task
         smach.StateMachine.add('WAIT_FOR_HOTWORD',
                                 WaitForHotwordState(),
                                 transitions={'success': 'ANNOUNCE_TASK_INTENTIONS',
@@ -172,7 +173,7 @@ def create_state_machine():
         # save the start time
         smach.StateMachine.add('SAVE_START_TIME',
                                 GetTime(),
-                                transitions={'success':'NAV_TO_OPERATOR'}, # TODO - switch for testing
+                                transitions={'success':'NAV_TO_OPERATOR'}, # correct transition
                                 # transitions={'success':'SEARCH_FOR_GUEST_SUB'}, # TODO - switch for testing
                                 # transitions={'success':'LEARN_GUEST_SUB'}, # TODO - switch for testing
                                 remapping={'current_time':'task_start_time'})
@@ -202,7 +203,6 @@ def create_state_machine():
         # ask for operator's name
         smach.StateMachine.add('ASK_OPERATOR_NAME',
                                SpeakAndListenState(),
-                                # transitions={'success': 'ANNOUNCE_SEARCH_START',
                                 transitions={'success': 'SAVE_OPERATOR_INFO_TO_SOM',
                                             'failure':'ANNOUNCE_MISSED_NAME',
                                             'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
@@ -247,7 +247,7 @@ def create_state_machine():
                                 transitions={'success':'SEARCH_FOR_GUEST_SUB'},
                                 remapping={'phrase':'announce_search_start_phrase'})
 
-        # TODO - finish sub state machine to search for person 
+        # start the search for an un-spoken-to guest
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
                                 create_search_for_guest_sub_state_machine(),
                                 transitions={'success':'CREATE_POSE_TO_APPROACH_GUEST',
@@ -257,16 +257,13 @@ def create_state_machine():
                                             'failure_threshold':'topological_navigation_failure_threshold',
                                             'found_guest_uid':'guest_uid'})
 
-        # TODO - once we find the guest id, and location, navigate to a suitable position & look up at person's face
-        #       We probably need a new state, or need to extend the search for guest sub, to do this before transitioning
-        #          to LEARN_GUEST_SUB state
-
         # Create pose to approach the guest
         smach.StateMachine.add('CREATE_POSE_TO_APPROACH_GUEST',
                                 CreatePoseToApproachHuman(),
                                 transitions={'success':'NAV_TO_GUEST',
                                              'failure':'SEARCH_FOR_GUEST_SUB'},
                                 remapping={'human_id':'guest_uid',
+                                            'distance_to_human': 'simple_navigation_distance_to_humans',
                                             'approach_pose':'approach_guest_pose'}) 
         
         # navigate to guest
@@ -305,8 +302,8 @@ def create_state_machine():
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
                                 SpeakState(),
-                                transitions={'success':'NAV_RETURN_TO_OPERATOR'},   # TODO - put back in
-                                # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # TODO - nav to operator instead of this
+                                transitions={'success':'NAV_RETURN_TO_OPERATOR'},   # correct transition
+                                # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
                                 remapping={'phrase':'finish_search_phrase'}) 
         
         # navigate back to operator - TODO - consider changing to top nav
