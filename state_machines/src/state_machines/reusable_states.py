@@ -594,13 +594,107 @@ class CheckForNewGuestSeen(smach.State):
                 self.service_preempt()
                 return 'preempted'
             
-            # Check for new guest found
-            if False:               # TODO - replace this with logic to look up the SOM and check if we found a new guest
-                #userdata.found_guest_uid = <uid from SOM query result>     # TODO - save the uid of the found guest for output
+            # Check for new guest found. If there are multiple, then go to the closest one
+            human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+        
+            query = SOMQueryHumansRequest();
+            query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
+            
+            human_query_results:SOMQueryHumansResponse = human_query_srv(query);
+
+            # What's the current position of the robot?
+            robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+            # userdata.robot_location = robot_pose.pose # todo - make another wait for message in other state
+
+            min_distance = math.inf;
+            closest_human:Human = None;
+
+            for result in human_query_results.returns:
+                result:Human;
+                distance = distance_between_poses(result.obj_position, robot_pose.pose);
+                # Don't consider any human results with task role of operator
+                if result.task_role == 'operator':
+                    continue
+                if distance < min_distance:
+                    min_distance = distance;
+                    closest_human = result;
+                
+            if closest_human is not None:
+                userdata.found_guest_uid = closest_human.object_uid
+                rospy.loginfo("Found guest not yet spoken to, object_uid: {}".format(closest_human.object_uid))
                 return 'success'
             else:
-                rospy.loginfo("New guest not found yet")
+                rospy.loginfo("No new guest not found yet")
                 rospy.sleep(2)
+
+class CreatePoseToApproachHuman(smach.State):
+    """ Smach state to generate the pose to approach a human.
+
+    Returns 'success' if calculation is successful, 'failure' otherwise.
+
+    input_keys:
+        human_id: the uid of the human to approach
+        distance_to_human: the (minimum) distance to the human that the robot needs to be in (may already be there and thus might be closer)
+    output_keys:
+        approach_pose: the pose the robot should move to to approach the human
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['success', 'failure'],
+                                input_keys=['human_id'],
+                                output_keys=['approach_pose'])
+
+    def execute(self, userdata):
+        # Call the SOM
+        human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans)
+    
+        query = SOMQueryHumansRequest()
+        query.query.object_uid = userdata.human_id
+        
+        human_query_results:SOMQueryHumansResponse = human_query_srv(query)
+
+        if not human_query_results.returns:
+            rospy.logwarn("Human record not found in SOM with object_uid '{}'".format(userdata.human_id))
+            return "failure"
+        
+        # Extract the pose of the human we want to approach
+        human:Human = human_query_results.returns[0]
+        human_pose = human.obj_position
+
+        # What's the current position of the robot?
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+
+        rospy.loginfo("CreatePoseToApproachHuman: robot pose:\n{} \n\n human pose: \n{}".format(robot_pose, human_pose))
+
+        # Compute pose
+        approach_pose:Pose = Pose();
+        vec_to_human = Point();
+        vec_to_human.x = human_pose.pose.position.x - robot_pose.pose.position.x;
+        vec_to_human.y = human_pose.pose.position.y - robot_pose.pose.position.y;
+        vec_to_human.z = 0          # don't consider Z-component because it's a 2D Euclidean distance
+
+        vec_to_human_len:float = get_point_magnitude(vec_to_human);
+
+        if vec_to_human_len < userdata.distance_to_human:
+            # if already within the distance, then just return the current pose
+            rospy.loginfo("Calculating Pose to Approach Human: Already within required distance of human. Keeping current pose:\n{}".format(robot_pose))
+            userdata.approach_pose = robot_pose
+            return "success"
+
+        # Create unit vector and then scale by required distance to human
+        vec_to_human.x *= userdata.distance_to_human / vec_to_human_len;
+        vec_to_human.y *= userdata.distance_to_human / vec_to_human_len;
+        vec_to_human.z *= userdata.distance_to_human / vec_to_human_len;
+
+        # Subtract the scaled vector to human from the human to get the approach position
+        approach_pose.position.x = human_pose.pose.position.x - vec_to_human.x;
+        approach_pose.position.y = human_pose.pose.position.y - vec_to_human.y;
+        approach_pose.position.z = human_pose.pose.position.z - vec_to_human.z;
+
+        rospy.loginfo("Calculated pose to approach human:\n{}".format(approach_pose))
+        userdata.approach_pose = approach_pose;
+        return "success"            
 
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.

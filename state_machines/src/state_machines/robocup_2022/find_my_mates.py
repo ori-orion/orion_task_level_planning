@@ -250,15 +250,34 @@ def create_state_machine():
         # TODO - finish sub state machine to search for person 
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
                                 create_search_for_guest_sub_state_machine(),
-                                transitions={'success':'LEARN_GUEST_SUB',
+                                transitions={'success':'CREATE_POSE_TO_APPROACH_GUEST',
                                             'failure':'ANNOUNCE_FINISH_SEARCH'},
                                 remapping={'nodes_not_searched':'nodes_not_searched',
                                             'operator_uid':'operator_som_id',
-                                            'failure_threshold':'topological_navigation_failure_threshold'})
+                                            'failure_threshold':'topological_navigation_failure_threshold',
+                                            'found_guest_uid':'guest_uid'})
 
         # TODO - once we find the guest id, and location, navigate to a suitable position & look up at person's face
         #       We probably need a new state, or need to extend the search for guest sub, to do this before transitioning
         #          to LEARN_GUEST_SUB state
+
+        # Create pose to approach the guest
+        smach.StateMachine.add('CREATE_POSE_TO_APPROACH_GUEST',
+                                CreatePoseToApproachHuman(),
+                                transitions={'success':'NAV_TO_GUEST',
+                                             'failure':'SEARCH_FOR_GUEST_SUB'},
+                                remapping={'human_id':'guest_uid',
+                                            'approach_pose':'approach_guest_pose'}) 
+        
+        # navigate to guest
+        smach.StateMachine.add('NAV_TO_GUEST',
+                               SimpleNavigateState(),
+                               transitions={'success':'LEARN_GUEST_SUB',
+                                            'failure':'NAV_TO_GUEST',
+                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+                                remapping={'pose':'approach_guest_pose',
+                                           'number_of_failures': 'simple_navigation_failures',
+                                           'failure_threshold':'simple_navigation_failure_threshold'})
 
         # run the LEARN_GUEST_SUB sub-state machine  
         smach.StateMachine.add('LEARN_GUEST_SUB', 
