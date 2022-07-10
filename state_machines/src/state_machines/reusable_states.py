@@ -1223,7 +1223,7 @@ class SaveGuestToSOM(smach.State):
         guest_obs.adding.obj_position = guest_som_obj.obj_position    # same as before
 
         # We don't want to speak to the same guest twice.
-        guest_obs.adding.spoken_to_state = Human.SPOKEN_TO;
+        guest_obs.adding.spoken_to_state = Human._SPOKEN_TO;
 
         if("name" in userdata.guest_attributes):
             guest_obs.adding.name = userdata.guest_attributes["name"]
@@ -1269,7 +1269,7 @@ class GetNearestOperator(smach.State):
         human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
         
         query = SOMQueryHumansRequest();
-        query.query.spoken_to_state = Human.NOT_SPOKEN_TO;
+        query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
         
         human_query_results:SOMQueryHumansResponse = human_query_srv(query);
 
