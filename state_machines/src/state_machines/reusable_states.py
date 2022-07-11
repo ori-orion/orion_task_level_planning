@@ -49,7 +49,7 @@ from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 from strands_navigation_msgs.srv import GetTaggedNodesResponse
 from strands_navigation_msgs.msg import TopologicalMap
 from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
-from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal
+from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay
 from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
 	ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
 		ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
@@ -144,17 +144,19 @@ def pose_to_xy_theta(pose:Pose):
 
 #     return pose
 
+def distance_between_points(pos_1:Point, pos_2:Point):
+    delta_x_sq = np.power(pos_2.x - pos_1.x, 2)
+    delta_y_sq = np.power(pos_2.y - pos_1.y, 2)
+    delta_z_sq = np.power(pos_2.z - pos_1.z, 2)
+
+    return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq);
 def distance_between_poses(pose_1:Pose, pose_2:Pose):
     """Given two poses, this finds the Euclidean distance between them. """
 
     pos_1 = pose_1.position
     pos_2 = pose_2.position
 
-    delta_x_sq = np.power(pos_2.x - pos_1.x, 2)
-    delta_y_sq = np.power(pos_2.y - pos_1.y, 2)
-    delta_z_sq = np.power(pos_2.z - pos_1.z, 2)
-
-    return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq)
+    return distance_between_points(pos_1, pos_2);
 
 def get_point_magnitude(point:Point):
     return np.sqrt(point.x*point.x + point.y*point.y + point.z*point.z);
