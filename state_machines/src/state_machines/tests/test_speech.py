@@ -47,7 +47,7 @@ def create_state_machine(userdata=None):
     sm.userdata.one_word_question_candidates = OBJECTS   # change this as you need
 
     sm.userdata.task_question_phrase = "What do you want me to do?"   # change this as you need
-    sm.userdata.task_question_candidates = []   # change this as you need
+    sm.userdata.task_question_candidates = ["pick up the trash", "tidy the room", "give me a hug"]   # change this as you need
 
     # override default userdata with input arguments
     if userdata is not None:
@@ -56,18 +56,16 @@ def create_state_machine(userdata=None):
     with sm:
 
         smach.StateMachine.add('ASK_OPERATOR_NAME',
-                               SpeakAndListenState(),
-                                transitions={'success': 'ASK_ONE_WORD_QUESTION',
-                                            'failure':'ASK_OPERATOR_NAME',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'question':'ask_name_phrase',
-                                            'operator_response': 'operator_name',
-                                            'candidates':'operator_names',
-                                            'params':'speak_and_listen_params_empty',
-                                            'timeout':'speak_and_listen_timeout',
-                                            'number_of_failures': 'speak_listen_failures',
-                                            'failure_threshold': 'speak_listen_failure_threshold'})
-        
+                               AskPersonNameState(),
+                               transitions={'success': 'ASK_ONE_WORD_QUESTION',
+                                            'failure': 'ASK_OPERATOR_NAME',
+                                            'repeat_failure': 'task_failure'},
+                               remapping={'question': 'ask_name_phrase',
+                                          'recognised_name': 'operator_name',
+                                          'timeout': 'speak_and_listen_timeout',
+                                          'number_of_failures': 'speak_listen_failures',
+                                          'failure_threshold': 'speak_listen_failure_threshold'})
+
         smach.StateMachine.add('ASK_ONE_WORD_QUESTION',
                                SpeakAndListenState(),
                                 transitions={'success': 'ASK_TASK_QUESTION',

@@ -1099,17 +1099,10 @@ class AskPersonNameState(smach.State):
                 return 'repeat_failure'
             return 'failure'
 
-        if result.succeeded:
-            userdata.operator_response = result.answer
-            userdata.number_of_failures = 0
-            return 'success'
-        else:
-            userdata.number_of_failures+= 1
-            if userdata.number_of_failures >= userdata.failure_threshold:
-                # reset number of failures because we've already triggered the repeat failure
-                userdata.number_of_failures = 0
-                return 'repeat_failure'
-            return 'failure'
+        userdata.recognised_name = result.answer
+        userdata.number_of_failures = 0
+        return 'success'
+
 
 class SimpleNavigateState(smach.State):
     """ State for navigating directly to a location on the map.
