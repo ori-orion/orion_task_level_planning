@@ -607,7 +607,7 @@ def create_search_for_human():
                 'success':'success',
                 'failure':'NavToPose',
                 'repeat_failure':'failure'},
-            remapping={'pose':'pose'});
+            remapping={'pose':'pose_out'});
 
     return sub_sm;
 
@@ -1215,6 +1215,8 @@ class SimpleNavigateState(smach.State):
                                 output_keys=['number_of_failures'])
 
     def execute(self, userdata):
+
+        print(dir(userdata));
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
@@ -1809,9 +1811,11 @@ class SetSafePoseFromObject(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['success'],
                                 input_keys=['pose', 'robot_location'],
-                                output_keys=['pose']);
+                                output_keys=['pose_out']);
 
     def execute(self, userdata):
+        print(userdata.keys);
+
         robot_location:Pose = userdata.robot_location;
         pose:Pose = userdata.pose;
 
@@ -1839,8 +1843,9 @@ class SetSafePoseFromObject(smach.State):
         new_pose.position.x = pose.position.x - vec_to_pose.x;
         new_pose.position.y = pose.position.y - vec_to_pose.y;
         new_pose.position.z = pose.position.z - vec_to_pose.z;
+        new_pose.orientation.w = 1;
 
-        userdata.pose = new_pose;
+        userdata.pose_out = new_pose;
             
         return 'success';
 
