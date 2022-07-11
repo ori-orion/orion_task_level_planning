@@ -556,7 +556,7 @@ def create_topo_nav_state_machine():
 def create_search_for_human():
     sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
                             input_keys=['room_node_uid'],
-                            output_keys=[]);
+                            output_keys=['closest_human']);
 
     with sub_sm:
         smach.StateMachine.add(
@@ -1445,6 +1445,7 @@ class CheckDoorIsOpenState(smach.State):
             return 'open'
         else:
             rospy.loginfo("Detected closed door")
+            rospy.sleep(0.5);
             return 'closed'
 
 
@@ -1616,7 +1617,7 @@ class GetNearestHuman(smach.State):
         query = SOMQueryHumansRequest();
         query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
 
-        closest_human = self.perform_query(query, robot_pose);
+        closest_human:Human = self.perform_query(query, robot_pose);
 
         if closest_human == None:
             query.query.spoken_to_state = Human._NULL;
