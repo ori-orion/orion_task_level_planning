@@ -185,10 +185,10 @@ def create_state_machine():
         
         # navigate to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_TO_OPERATOR',
-                                create_topo_nav_state_machine(),
+                                create_search_for_human(),
                                 transitions={'success':'INTRODUCTION_TO_OPERATOR',
                                             'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
-                                remapping={'goal_pose':'operator_pose'})
+                                remapping={'room_node_uid':'operator_room_node_id'})
 
         # announce nav repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',

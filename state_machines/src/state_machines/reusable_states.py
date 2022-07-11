@@ -49,7 +49,7 @@ from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 from strands_navigation_msgs.srv import GetTaggedNodesResponse
 from strands_navigation_msgs.msg import TopologicalMap
 from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
-from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay
+from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
 	ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
 		ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
@@ -1276,9 +1276,9 @@ class TopologicalNavigateState(smach.State):
         topological_navigate_action_client.wait_for_server()
         topological_navigate_action_client.send_goal(goal)
         topological_navigate_action_client.wait_for_result()
-        result = topological_navigate_action_client.get_result()
+        result:TraverseToNodeResult = topological_navigate_action_client.get_result()
 
-        rospy.loginfo('result = ' + str(result.success))
+        # rospy.loginfo('result = ' + str(result.success))
 
         # Process action result
         #   Note: result.success returns True if node_id was reached
@@ -1587,14 +1587,6 @@ class GetNearestHuman(smach.State):
         smach.State.__init__(self, outcomes=['new_human_found', 'human_not_found', 'existing_human_found'],
                                 input_keys=[],
                                 output_keys=['closest_human', 'robot_location', 'human_pose'])
-
-    def execute(self, userdata):
-        human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
-
-        query = SOMQueryHumansRequest();
-        query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
-
-        human_query_results:SOMQueryHumansResponse = human_query_srv(query);
 
         self.human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
     

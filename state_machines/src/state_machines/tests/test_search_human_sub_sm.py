@@ -7,8 +7,9 @@ if __name__ == '__main__':
 
     sub_sm = create_search_for_human();
 
-    sub_sm.userdata.room_node_uid = 'Node4';
+    sub_sm.userdata.room_node_uid = 'Node5';
     sub_sm.userdata.number_of_failures = 3;
+    sub_sm.userdata.failure_threshold = 3;
 
     # sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
     # sis.start()
