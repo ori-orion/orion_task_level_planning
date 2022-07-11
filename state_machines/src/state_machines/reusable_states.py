@@ -261,6 +261,11 @@ def call_talk_request_action_server(phrase : str):
 
 	return
 
+def attribute_to_sentence(attribute):
+    # function to convert attributes like Wearing_Hat into pronouncable wearing hat
+    atr = attribute.split('_')
+    return atr
+
 def positional_to_cardinal(num: int) -> str:
 	# function to convert positional numbers to cardinal numbers. returns a string.
 	mapping = {1:"first", 2: "second", 3:"third", 4:"fourth", 5:"fifth", 6:"sixth", 7:"seventh", 8:"eighth", 9:"nineth", 10:"tenth"}
@@ -2129,7 +2134,35 @@ class AnnounceGuestDetailsToOperator(smach.State):
 						person_talk_phrase += " Their pronouns are '{}'.".format(human_record.pronouns)
 
 				if human_record.face_attributes:
-					person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
+					all_are_attributes = ['Bald', 'Wearing_Hat', 'Wearing_Necklace', 'Wearing_Necktie']
+					all_have_attributes = ['5_o_Clock_Shadow', 'Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'High_Cheekbones', 'Mustache', 'No_Beard', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
+
+					are_attributes = []
+					have_attributes = []
+
+					for attribute in human_record.face_attributes:
+						if(attribute in all_are_attributes):
+							are_attributes.append(attribute)
+						elif(attribute in all_have_attributes):
+							have_attributes.append(attribute)
+
+					if(len(are_attributes)>1):
+						""" Making sure it can pronounce things like Wearing_Necklace"""
+						list1 = []
+						for attribute in are_attributes[:-1]:
+							list1.append(attribute_to_sentence(attribute))
+						person_talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
+					elif(len(are_attributes)==1):
+						person_talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
+
+					if(len(have_attributes)>1):
+						list2 = []
+						for attribute in have_attributes[:-1]:
+							list2.append(attribute_to_sentence(attribute))
+						person_talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
+					elif(len(have_attributes)==1):
+						person_talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
+					#person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
 
 				# speak the details for this person
 				call_talk_request_action_server(phrase=person_talk_phrase)
