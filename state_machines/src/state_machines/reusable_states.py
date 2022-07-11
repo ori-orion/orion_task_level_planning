@@ -57,7 +57,7 @@ from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_
 FAILURE_THRESHOLD = 3       # TODO - remove
 
 # People
-NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie', 
+NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
           'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'John',
           'Michael', 'Matthew', 'Clarissa', 'Ricardo', 'Mia', 'Shu', 'Owen',
           'Jianeng', 'Kim', 'Liam', 'Kelvin', 'Benoit', 'Mark']
@@ -78,7 +78,7 @@ FACE_ATTRIBUTES_EXCLUSION_LIST = ['Attractive',	'Bags_Under_Eyes',	'Bald',	'Big_
 
 # Objects & Things
 #  Be careful of space/underscore representations of 'cleaning stuff'
-OBJECT_CATEGORIES = ['cleaning stuff', 'containers', 'cutlery', 'drinks', 'food', 'fruits', 'snacks', 'tableware']  
+OBJECT_CATEGORIES = ['cleaning stuff', 'containers', 'cutlery', 'drinks', 'food', 'fruits', 'snacks', 'tableware']
 FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
           'nectarine'] # TODO: Fill in with the YCB benchmark
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
@@ -109,9 +109,9 @@ def pose_to_xy_theta(pose:Pose):
     x = pose.position.x
     y = pose.position.y
 
-    quat = [pose.orientation.x, pose.orientation.y, 
+    quat = [pose.orientation.x, pose.orientation.y,
             pose.orientation.z, pose.orientation.w]
-    
+
     (_, _, yaw) = euler_from_quaternion(quat)
 
     theta = yaw
@@ -120,8 +120,8 @@ def pose_to_xy_theta(pose:Pose):
 
 # Deprecated!!! (Not using the current som system.)
 # def get_location_of_object(action_dict, obj_1, rel, obj_2):
-#     """ Function returns the location of an object in terms of a pose. 
-    
+#     """ Function returns the location of an object in terms of a pose.
+
 #     This function uses the semantic mapping to get the closest location of an
 #     object.
 
@@ -130,16 +130,16 @@ def pose_to_xy_theta(pose:Pose):
 #         obj_1: The first SOMObservation message
 #         rel: The Relation message between the objects
 #         obj_2: The second SOMObservation message
-    
-#     Returns: 
+
+#     Returns:
 #         pose: The pose of the object
 
 #     """
 #     matches = action_dict['SOMQuery'](obj_1, rel, obj_2, Pose()).matches
-    
+
 #     if len(matches) == 0:
 #         raise Exception("No matches found in Semantic Map")
-    
+
 #     pose = matches[0].obj1.pose_estimate.most_likely_pose
 
 #     return pose
@@ -216,13 +216,13 @@ def filter_face_attributes_by_exclusion(attributes):
 
 def get_most_recent_obj_from_som(class_=None):
     ''' Function to get the most recently observed object from the som (optionally filtered by class_ field)
-    
+
     '''
     # call a query by class_ and sort results by most recent observation - return the newest one
     query = SOMQueryObjectsRequest()
     if(class_ is not None):
         query.query.class_ = class_
-    
+
     rospy.wait_for_service('som/objects/basic_query')
     som_obj_query_service_client = rospy.ServiceProxy('som/objects/basic_query', SOMQueryObjects);
 
@@ -241,14 +241,14 @@ def get_most_recent_obj_from_som(class_=None):
 
 def call_talk_request_action_server(phrase : str):
 	''' Function to call the Toyota talk request action server
-	
+
 	'''
 	action_goal = TalkRequestGoal()
 	action_goal.data.language = Voice.kEnglish  # enum for value: 1
 	action_goal.data.sentence = phrase
 
 	rospy.loginfo("HSR speaking phrase: '{}'".format(phrase))
-	speak_action_client = actionlib.SimpleActionClient('/talk_request_action', 
+	speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
 									TalkRequestAction)
 
 	speak_action_client.wait_for_server()
@@ -267,7 +267,7 @@ def positional_to_cardinal(num: int) -> str:
 		raise Exception("Input number is out of range for this function. Supported mapping: {}".format(mapping))
 
 def create_learn_guest_sub_state_machine():
-    
+
     # create the sub state machine
     sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
                                 input_keys=['guest_som_human_ids',
@@ -309,42 +309,27 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.guest_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
     sub_sm.userdata.guest_face_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
 
-    # Open the container 
+    # Open the container
     with sub_sm:
         # introduction to guest
         smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
                                 SpeakState(),
                                 transitions={'success':'ASK_GUEST_NAME'},
                                 remapping={'phrase':'introduction_to_guest_phrase'})
-        
-        # ask for guest's name - replaced with new AskPersonNameState state below. Remove this after tested.
-        # smach.StateMachine.add('ASK_GUEST_NAME',
-        #                        SpeakAndListenState(),
-        #                         transitions={'success': 'ASK_GUEST_GENDER',
-        #                         # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
-        #                                     'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
-        #                                     'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
-        #                         remapping={'question':'ask_name_phrase',
-        #                                     'operator_response': 'guest_name',
-        #                                     'candidates':'person_names',
-        #                                     'params':'speak_and_listen_params_empty',
-        #                                     'timeout':'speak_and_listen_timeout',
-        #                                     'number_of_failures': 'speak_and_listen_failures',
-        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-        
-        # ask for guest's name - New ask guest name action server - TODO - test
+
+        # ask for guest's name - New ask guest name action server
         smach.StateMachine.add('ASK_GUEST_NAME',
                                AskPersonNameState(),
                                 transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
-                                            'failure':'ANNOUNCE_MISSED_GUEST_NAME', 
+                                            'failure':'ANNOUNCE_MISSED_GUEST_NAME',
                                             'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
                                 remapping={'question':'ask_name_phrase',
                                             'recognised_name': 'guest_name',
                                             'timeout':'speak_and_listen_timeout',
                                             'number_of_failures': 'speak_and_listen_failures',
                                             'failure_threshold': 'speak_and_listen_failure_threshold'})
-        
+
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
                                 SpeakState(),
@@ -356,12 +341,12 @@ def create_learn_guest_sub_state_machine():
                                 SpeakState(),
                                 transitions={'success':'failure'},
                                 remapping={'phrase':'no_one_there_phrase'})
-        
+
         # ask for guest's gender
         # smach.StateMachine.add('ASK_GUEST_GENDER',
         #                        SpeakAndListenState(),
         #                         transitions={'success': 'ASK_GUEST_PRONOUNS',
-        #                                     'failure':'ASK_GUEST_GENDER', 
+        #                                     'failure':'ASK_GUEST_GENDER',
         #                                     'repeat_failure':'ASK_GUEST_PRONOUNS'},
         #                         remapping={'question':'ask_gender_phrase',
         #                                     'operator_response': 'guest_gender',
@@ -370,12 +355,12 @@ def create_learn_guest_sub_state_machine():
         #                                     'timeout':'speak_and_listen_timeout',
         #                                     'number_of_failures': 'speak_and_listen_failures',
         #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-        
+
         # ask for guest's pronouns
         # smach.StateMachine.add('ASK_GUEST_PRONOUNS',
         #                        SpeakAndListenState(),
-        #                         transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START', 
-        #                                     'failure':'ASK_GUEST_PRONOUNS', 
+        #                         transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+        #                                     'failure':'ASK_GUEST_PRONOUNS',
         #                                     'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
         #                         remapping={'question':'ask_pronouns_phrase',
         #                                     'operator_response': 'guest_pronouns',
@@ -384,7 +369,7 @@ def create_learn_guest_sub_state_machine():
         #                                     'timeout':'speak_and_listen_timeout',
         #                                     'number_of_failures': 'speak_and_listen_failures',
         #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-        
+
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
@@ -397,7 +382,7 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
                                             'failure':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 remapping={'face_id':'guest_name'})
-        
+
         # detect guest face attributes
         smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
                                 DetectFaceAttributes(),
@@ -405,13 +390,13 @@ def create_learn_guest_sub_state_machine():
                                 remapping={'face_id':'guest_name',
                                             'face_attributes':'guest_face_attributes',
                                             'num_attributes':'guest_num_attributes'  })
-        
+
         # tell guest face registration is finished
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
                                 SpeakState(),
                                 transitions={'success':'ANNOUNCE_SAVE_GUEST_TO_SOM'},
                                 remapping={'phrase':'finish_face_registration_phrase'})
-        
+
         # tell guest we are saving their details
         smach.StateMachine.add('ANNOUNCE_SAVE_GUEST_TO_SOM',
                                 SpeakState(),
@@ -437,7 +422,7 @@ def create_learn_guest_sub_state_machine():
                                 SpeakState(),
                                 transitions={'success':'success'},
                                 remapping={'phrase':'farewell_guest'})
-    
+
     return sub_sm
 
 def create_search_for_guest_sub_state_machine():
@@ -475,7 +460,7 @@ def create_search_for_guest_sub_state_machine():
         if outcome_map['CHECK_FOR_NEW_GUEST_SEEN']:
             if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success':
                 return 'success'
-        
+
         return 'failure'
 
     # creating the concurrence state machine
@@ -496,7 +481,7 @@ def create_search_for_guest_sub_state_machine():
                                             'operator_uid',
                                             'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
-        # Open the container 
+        # Open the container
         with sub_sm_nav:
             # nav to next top node
             smach.StateMachine.add('NAV_TO_NEXT_TOP_NODE',
@@ -507,11 +492,11 @@ def create_search_for_guest_sub_state_machine():
                                                 'preempted':'preempted'},
                                     remapping={'nodes_not_searched':'nodes_not_searched',
                                                 'failure_threshold':'failure_threshold'})
-        
+
         # Add states to the container
         smach.Concurrence.add('NAV_SUB', sub_sm_nav)
         smach.Concurrence.add('CHECK_FOR_NEW_GUEST_SEEN', CheckForNewGuestSeen())
-        
+
     return sm_con
 
 class SearchForGuestNavToNextNode(smach.State):
@@ -598,7 +583,7 @@ class CheckForNewGuestSeen(smach.State):
     Returns 'success' if a new guest is found, otherwise runs indefinitely. Needs to be preempted in a concurrency state.
 
     input_keys:
-        
+
     output_keys:
         found_guest_uid: the uid of the found guest, if any
     """
@@ -612,20 +597,20 @@ class CheckForNewGuestSeen(smach.State):
     def execute(self, userdata):
         userdata.found_guest_uid = "not_set"   # initialise to empty to prepare for case where state gets preempted before new guest is found
                                         # (SMACH will complain if output key does not exist)
-        
+
         # we sit in this loop forever, and only terminate with outcome 'success' if a new guest is found, or 'preempted' if preempted in concurrent state machine
         while True:
             # Check for preempt
             if self.preempt_requested():
                 self.service_preempt()
                 return 'preempted'
-            
+
             # Check for new guest found. If there are multiple, then go to the closest one
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
-        
+
             query = SOMQueryHumansRequest();
             query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
-            
+
             human_query_results:SOMQueryHumansResponse = human_query_srv(query);
 
             # What's the current position of the robot?
@@ -643,7 +628,7 @@ class CheckForNewGuestSeen(smach.State):
                 if distance < min_distance:
                     min_distance = distance;
                     closest_human = result;
-                
+
             if closest_human is not None:
                 userdata.found_guest_uid = closest_human.object_uid
                 rospy.loginfo("Found guest not yet spoken to, object_uid: {}".format(closest_human.object_uid))
@@ -673,16 +658,16 @@ class CreatePoseToApproachHuman(smach.State):
     def execute(self, userdata):
         # Call the SOM
         human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans)
-    
+
         query = SOMQueryHumansRequest()
         query.query.object_uid = userdata.human_id
-        
+
         human_query_results:SOMQueryHumansResponse = human_query_srv(query)
 
         if not human_query_results.returns:
             rospy.logwarn("Human record not found in SOM with object_uid '{}'".format(userdata.human_id))
             return "failure"
-        
+
         # Extract the pose of the human we want to approach
         human:Human = human_query_results.returns[0]
         human_pose = human.obj_position
@@ -704,7 +689,7 @@ class CreatePoseToApproachHuman(smach.State):
 
         vec_to_human_angle:float = math.atan2(vec_to_human.y, vec_to_human.x)
         vec_to_human_angle_quat = quaternion_from_euler(0,0,vec_to_human_angle)  # RPY, radians
-        
+
         approach_pose_orientation:Quaternion = Quaternion()
         approach_pose_orientation.x = vec_to_human_angle_quat[0]
         approach_pose_orientation.y = vec_to_human_angle_quat[1]
@@ -737,7 +722,7 @@ class CreatePoseToApproachHuman(smach.State):
 
         rospy.loginfo("Calculated pose to approach human:\n{}".format(approach_pose))
         userdata.approach_pose = approach_pose;
-        return "success"            
+        return "success"
 
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
@@ -746,7 +731,7 @@ class GetTime(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes = ['success'],
                                 output_keys=['current_time'])
 
@@ -764,7 +749,7 @@ class CreateGuestAttributesDict(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes = ['success'],
                                 input_keys=['guest_attributes','name','gender','pronouns','face_id','face_attributes'],
                                 output_keys=['guest_attributes'])
@@ -776,29 +761,29 @@ class CreateGuestAttributesDict(smach.State):
         userdata.guest_attributes["pronouns"] = userdata.pronouns
         userdata.guest_attributes["face_id"] = userdata.face_id
         userdata.guest_attributes["face_attributes"] = userdata.face_attributes
-        
+
         # rospy.loginfo("Created guest_attributes dict: {}".format(userdata.guest_attributes))
         return 'success'
 
 class ShouldIContinueGuestSearchState(smach.State):
-    """ State determines whether we should continue or go back. 
-    
+    """ State determines whether we should continue or go back.
+
     input_keys:
         max_search_duration: search duration (seconds)
         start_time: time we started the task (ros Time object)
         guest_som_obj_ids: the list of guest som object ids (only the length is used)
     output_keys:
-    
+
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes = ['yes', 'no'],
                                 input_keys=['max_search_duration',
                                             'expected_num_guests',
                                             'start_time',
                                             'guest_som_obj_ids'])
-    
+
     def execute(self, userdata):
         # fetch the current time
         now = rospy.Time.now()
@@ -808,12 +793,12 @@ class ShouldIContinueGuestSearchState(smach.State):
         if time_elapsed > rospy.Duration(userdata.max_search_duration):
             rospy.loginfo("Exceeded max search time ({}/{} sec) - stop searching!".format(time_elapsed.to_sec(), userdata.max_search_duration))
             return "no"
-        
+
         num_guests_found = len(userdata.guest_som_obj_ids)
         if num_guests_found >= userdata.expected_num_guests:
             rospy.loginfo("Found all the guests ({}) - stop searching!".format(num_guests_found))
             return "no"
-        
+
         rospy.loginfo("I'll keep searching! Time: {}/{} sec, Found: {}/{} guests".format(time_elapsed.to_sec(), userdata.max_search_duration, num_guests_found,userdata.expected_num_guests))
         return "yes"
 
@@ -826,17 +811,17 @@ class SpeakState(smach.State):
         phrase: What we want the robot to say
     """
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success'],
                                 input_keys=['phrase'])
-    
+
     def execute(self, userdata):
         action_goal = TalkRequestGoal()
         action_goal.data.language = Voice.kEnglish  # enum for value: 1
         action_goal.data.sentence = userdata.phrase
 
         rospy.loginfo("HSR speaking phrase: '{}'".format(userdata.phrase))
-        speak_action_client = actionlib.SimpleActionClient('/talk_request_action', 
+        speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
                                         TalkRequestAction)
 
         speak_action_client.wait_for_server()
@@ -851,7 +836,7 @@ class SpeakState(smach.State):
 #region Create Phrase stuff.
 # This seems to set `userdata.phrase` for subsequent speaking.
 # Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow
-# one of these. 
+# one of these.
 class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
     """ Smach state to create the phrase to announce the retreival of an item to a named operator
 
@@ -864,11 +849,11 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success'],
                                 input_keys=['operator_name', 'object_name'],
                                 output_keys=['phrase'])
-    
+
     def execute(self, userdata):
         userdata.phrase = "Hi, " + userdata.operator_name + ", I've brought you the " + userdata.object_name
 
@@ -886,13 +871,13 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success'],
                                 input_keys=['object_name'],
                                 output_keys=['phrase'])
-    
+
     def execute(self, userdata):
-        userdata.phrase = ("Can someone please help me pick up the " + userdata.object_name + 
+        userdata.phrase = ("Can someone please help me pick up the " + userdata.object_name +
                                 " and say ready when they are ready?")
 
         # Can only succeed
@@ -909,11 +894,11 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success'],
                                 input_keys=['operator_name'],
                                 output_keys=['phrase'])
-    
+
     def execute(self, userdata):
         userdata.phrase = "Ok, " + userdata.operator_name + ", I am now going to search for your friends. I'll be back soon!"
 
@@ -928,11 +913,11 @@ class HandoverObjectToOperatorState(smach.State):
     """
     def __init__(self):
         smach.State.__init__(self, outcomes=['success','failure'])
-    
+
     def execute(self, userdata):
         handover_goal = GiveObjectToOperatorGoal()
 
-        give_object_to_operator_action_client = actionlib.SimpleActionClient('give_object_to_operator', 
+        give_object_to_operator_action_client = actionlib.SimpleActionClient('give_object_to_operator',
                                          GiveObjectToOperatorAction)
         give_object_to_operator_action_client.wait_for_server()
         give_object_to_operator_action_client.send_goal(handover_goal)
@@ -953,7 +938,7 @@ class ReceiveObjectFromOperatorState(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success','failure'])
-    
+
     def execute(self, userdata):
         receive_goal = ReceiveObjectFromOperatorGoal()
 
@@ -978,7 +963,7 @@ class GetRobotLocationState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes = ['stored'],
                                 output_keys=['robot_location'])
 
@@ -993,8 +978,8 @@ class GetRobotLocationState(smach.State):
 class SpeakAndListenState(smach.State):
     """ Smach state for speaking and then listening for a response.
 
-    This state will calll the speak and listen action server, 
-    to get the robot to say something, wait for a response, 
+    This state will calll the speak and listen action server,
+    to get the robot to say something, wait for a response,
     parse the response, and return it as an output key.
 
     input_keys:
@@ -1010,11 +995,11 @@ class SpeakAndListenState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success','failure','repeat_failure'],
                                 input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['operator_response', 'number_of_failures'])
-    
+
     def execute(self, userdata):
         speak_listen_goal = SpeakAndListenGoal()
         speak_listen_goal.question = userdata.question
@@ -1047,7 +1032,7 @@ class SpeakAndListenState(smach.State):
 class AskPersonNameState(smach.State):
     """ Smach state for the robot to ask for the person's name, executed by the ask_person_name action server.
 
-    This state will call the ask_person_name action server, 
+    This state will call the ask_person_name action server,
     wait for a response, parse the response, and return it as an output key.
 
     input_keys:
@@ -1061,11 +1046,11 @@ class AskPersonNameState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success','failure','repeat_failure'],
                                 input_keys=['question','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['recognised_name', 'number_of_failures'])
-    
+
     def execute(self, userdata):
         ask_name_goal = AskPersonNameGoal()
         ask_name_goal.question = userdata.question
@@ -1109,11 +1094,11 @@ class SimpleNavigateState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success', 'failure', 'repeat_failure'],
                                 input_keys=['pose', 'number_of_failures', 'failure_threshold'],
                                 output_keys=['number_of_failures'])
-    
+
     def execute(self, userdata):
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
@@ -1160,18 +1145,18 @@ class TopologicalNavigateState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success', 'failure', 'repeat_failure'],
                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold'],
                                 output_keys=['number_of_failures'])
-    
+
     def execute(self, userdata):
         # Navigating with top nav
         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
 
         # create action goal and call action server
         goal = TraverseToNodeGoal(node_id=userdata.node_id)
-       
+
         topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
         topological_navigate_action_client.wait_for_server()
         topological_navigate_action_client.send_goal(goal)
@@ -1208,11 +1193,11 @@ class PickUpObjectState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes=['success', 'failure', 'repeat_failure'],
                                 input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
                                 output_keys=['number_of_failures'])
-    
+
     def execute(self, userdata):
         pick_up_goal = PickUpObjectGoal()
         pick_up_goal.goal_tf = userdata.object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
@@ -1223,10 +1208,10 @@ class PickUpObjectState(smach.State):
         frames = tf_listener.getFrameStrings()
 
         matched_tf_from_tf_tree = "NOT_FOUND" # the matched tf name from the tree
-        
+
         found_by_name = False
         for frame in frames:
-            # perform a sub-string search in the frame string so we find the 
+            # perform a sub-string search in the frame string so we find the
             # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
             if pick_up_goal.goal_tf in frame:
                 found_by_name = True
@@ -1238,10 +1223,10 @@ class PickUpObjectState(smach.State):
             if userdata.object_name in userdata.ar_marker_ids:
                 ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[userdata.object_name])
                 rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(pick_up_goal.goal_tf, ar_tf_string))
-                
+
                 found_by_ar_marker = False
                 for frame in frames:
-                    # perform a sub-string search in the frame string so we find the 
+                    # perform a sub-string search in the frame string so we find the
                     # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
                     if ar_tf_string in frame:
                         found_by_ar_marker = True
@@ -1299,14 +1284,14 @@ class CheckDoorIsOpenState(smach.State):
     This is a common start signal for tasks.
 
     input_keys:
-        
+
     output_keys:
-        
+
     """
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['open', 'closed'])
-    
+
     def execute(self, userdata):
         is_door_open_goal = DoorCheckGoal()
         is_door_open_goal.n_closed_door = 20 # Same as Bruno's code
@@ -1335,7 +1320,7 @@ class SaveOperatorToSOM(smach.State):
         operator_name: the operator's name
     output_keys:
         operator_som_human_id: the operator's UID in the SOM human collection, returned by SOM observation service call
-        operator_som_obj_id: the operator's corresponding UID in the SOM object collection 
+        operator_som_obj_id: the operator's corresponding UID in the SOM object collection
                              (assumed to be the most recently observed human-class object)
     """
 
@@ -1344,9 +1329,9 @@ class SaveOperatorToSOM(smach.State):
                                 input_keys=['operator_name'],
                                 output_keys=['operator_som_human_id',
                                             'operator_som_obj_id'])
-    
+
     def execute(self, userdata):
-        
+
         # retreive the most recently observed human-class object in the SOM
         operator_som_obj = get_most_recent_obj_from_som(class_="person")
         if(operator_som_obj is None):
@@ -1362,7 +1347,7 @@ class SaveOperatorToSOM(smach.State):
         operator_obs.adding.name = userdata.operator_name
         operator_obs.adding.task_role = 'operator'
         operator_obs.adding.obj_position = operator_som_obj.obj_position    # same as before
-        
+
         # todo - check if used
         # pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
 
@@ -1393,12 +1378,12 @@ class SaveGuestToSOM(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'failure'],
-                                input_keys=['guest_attributes', 
+                                input_keys=['guest_attributes',
                                             'guest_som_human_ids',
                                             'guest_som_obj_ids'],
                                 output_keys=['guest_som_human_ids',
                                             'guest_som_obj_ids'])
-    
+
     def execute(self, userdata):
         # retreive the most recently observed human-class object in the SOM
         guest_som_obj = get_most_recent_obj_from_som(class_="person")
@@ -1406,16 +1391,16 @@ class SaveGuestToSOM(smach.State):
             # couldn't find any "person"-class objects in the SOM
             rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
             return 'failure'
-        
+
         # This check has been removed - now, if we have previously saved details for this person then it will override it in the SOM
         # if(guest_som_obj.UID in userdata.guest_som_obj_ids):
         #     # we have already saved details for this person
-        #     # we haven't seen a new person since last time, 
+        #     # we haven't seen a new person since last time,
         #     # so something has gone wrong. return failure
         #     rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
-        #     return 'failure'       
+        #     return 'failure'
 
-        rospy.loginfo("Found most recent SOM object with class_ 'person' with UID: {}".format(guest_som_obj.UID))    
+        rospy.loginfo("Found most recent SOM object with class_ 'person' with UID: {}".format(guest_som_obj.UID))
 
         # create the service message
         guest_obs = SOMAddHumanObsRequest()
@@ -1467,13 +1452,13 @@ class GetNearestOperator(smach.State):
         smach.State.__init__(self, outcomes=['human_found', 'human_not_found'],
                                 input_keys=[],
                                 output_keys=['closest_human', 'robot_location'])
-    
+
     def execute(self, userdata):
         human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
-        
+
         query = SOMQueryHumansRequest();
         query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
-        
+
         human_query_results:SOMQueryHumansResponse = human_query_srv(query);
 
         # What's the current position of the robot?
@@ -1509,7 +1494,7 @@ class GetHumanRelativeLoc(smach.State):
             human_obj_uid       The uid within the object collection.
             relational_str      A string giving the relation in a readable form.
     """
-    # Gives the objects we want to say we are nearby/next to/... 
+    # Gives the objects we want to say we are nearby/next to/...
     RELATIVE_OBJS = ["table", "couch", "chair", "potted plant", "bed", "mirror", "dining table", "tv", "door", "sink", "clock", "vase"];
 
     def __init__(self):
@@ -1545,9 +1530,9 @@ class GetHumanRelativeLoc(smach.State):
             return rel.distance;
         # In ascending order by distance, so it will return the closest objects first.
         matches_sorted:list = sorted(response.matches, key=get_relation_dist);
-        
+
         # The relation is [obj1] [relation] [obj2]. Therefore, if left is true for instance
-        # then it will be [human] is to the left of [object]. 
+        # then it will be [human] is to the left of [object].
 
         relevant_matches = [];
 
@@ -1555,12 +1540,12 @@ class GetHumanRelativeLoc(smach.State):
             match:Match;
 
             if match.obj2.class_ in GetHumanRelativeLoc.RELATIVE_OBJS:
-                
+
                 relevant_matches.append({
                     'human_obj_uid': userdata.human_obj_uid,
                     'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_
                 });
-        
+
         if len(relevant_matches) == 0:
             return "no_relevant_matches_found";
         else:
@@ -1573,7 +1558,7 @@ class GetNextNavLoc(smach.State):
     """
     This is set up specifically for the find my mates task.
     So the overall goal here is to work out where to go to next.
-    Do we want to go to the next search node or do we want to go to the next 
+    Do we want to go to the next search node or do we want to go to the next
     nearest human?
     Note that this is designed to be executed after GetNearestOperator.
     Inputs:
@@ -1607,7 +1592,7 @@ class GetNextNavLoc(smach.State):
         # If the human is infront of the next node, go to the human.
         # If the human is behind the next node, go to the next node.
 
-        # Behind can be determined by whether the dot product between two vectors (the one 
+        # Behind can be determined by whether the dot product between two vectors (the one
         # going robot->node and robot->human) is negative.
         # Nearness can be determined by the distance itself.
 
@@ -1635,7 +1620,7 @@ class GetNextNavLoc(smach.State):
                 nav_to_human = True;
 
         # NOTE: This puts the robot a certain distance away from the we are looking for.
-        # Potentially can be abstracted out into its own smach state. 
+        # Potentially can be abstracted out into its own smach state.
         if nav_to_human:
             pose_to_nav_to:Pose = Pose();
             vec_to_human = Point();
@@ -1654,7 +1639,7 @@ class GetNextNavLoc(smach.State):
             pose_to_nav_to.position.z = human_loc.position.z - vec_to_human.z;
 
             userdata.pose_to_nav_to = pose_to_nav_to;
-            
+
             return 'nav_to_pose';
         else:
             return 'nav_to_node';
@@ -1676,9 +1661,9 @@ class RegisterFace(smach.State):
 		smach.State.__init__(self, outcomes=['success','failure'],
 								input_keys=['face_id'],
 								output_keys=['registered_face_id'])
-		
+
 	def execute(self, userdata):
-		# if the face_id is not given, then set it to an empty string; 
+		# if the face_id is not given, then set it to an empty string;
 		# the capface server will automatically generate one for us
 		if("face_id" not in userdata):
 			face_id = ""
@@ -1687,7 +1672,7 @@ class RegisterFace(smach.State):
 
 		# set action goal and call action server
 		capface_goal = ActionServer_CapFaceGoal(face_id=face_id)
-		
+
 		capface_action_client = actionlib.SimpleActionClient('as_Capface', ActionServer_CapFaceAction)
 		capface_action_client.wait_for_server()
 		rospy.loginfo("Calling CapFace action server...")
@@ -1720,7 +1705,7 @@ class RecogniseFace(smach.State):
 
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['success', 'failure'],
-								input_keys=['min_score_threshold'],	
+								input_keys=['min_score_threshold'],
 								output_keys=['face_id','face_match_score'])
 
 	def execute(self, userdata):
@@ -1732,7 +1717,7 @@ class RecogniseFace(smach.State):
 
 		# set action goal and call action server
 		findmatch_goal = ActionServer_FindMatchGoal()
-		
+
 		findmatch_action_client = actionlib.SimpleActionClient('as_Findmatch', ActionServer_FindMatchAction)
 		findmatch_action_client.wait_for_server()
 		rospy.loginfo("Calling face match action server...")
@@ -1760,15 +1745,15 @@ class RecogniseFace(smach.State):
 
 class DetectFaceAttributes(smach.State):
 	""" State for the robot to detect face attributes
-	
-	Uses the FaceLib FindAttrs action server. 
+
+	Uses the FaceLib FindAttrs action server.
 	Always succeeds; an empty attributes list is not a failure.
 
 	input_keys:
 		face_id: (optional) If given, the action server will analyse the saved face for this face_id,
 							otherwise it will analyse the face that currently appears in the image topic
 	output_keys:
-		face_attributes: A list of detected facial attributes, represented as strings. 
+		face_attributes: A list of detected facial attributes, represented as strings.
 						 If a certain feature is detected, it will be present in this list.
 						 Thus, features not in the list were not detected.
 		num_attributes: The number of detected facial attributes
@@ -1778,9 +1763,9 @@ class DetectFaceAttributes(smach.State):
 		smach.State.__init__(self, outcomes=['success'],
 								input_keys=['face_id'],
 								output_keys=['face_attributes', 'num_attributes'])
-		
+
 	def execute(self, userdata):
-		# if the face_id is not given, then set it to an empty string; 
+		# if the face_id is not given, then set it to an empty string;
 		# the capface server will use the live camera topic feed (rather than the pre-registered face)
 		if("face_id" not in userdata):
 			face_id = ""
@@ -1789,7 +1774,7 @@ class DetectFaceAttributes(smach.State):
 
 		# set action goal and call action server
 		find_face_attrs_goal = ActionServer_FindAttrsGoal(face_id=face_id)
-		
+
 		find_face_attrs_action_client = actionlib.SimpleActionClient('as_Findattrs', ActionServer_FindAttrsAction)
 		find_face_attrs_action_client.wait_for_server()
 		rospy.loginfo("Calling find face attributes action server...")
@@ -1809,7 +1794,7 @@ class DetectFaceAttributes(smach.State):
 
 class ClearFaceDB(smach.State):
 	""" State for the robot to clear the face database
-	
+
 	Uses the FaceLib as_Cleardatabase action server
 
 	input_keys:
@@ -1820,11 +1805,11 @@ class ClearFaceDB(smach.State):
 
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['success'])
-		
+
 	def execute(self, userdata):
 		# set action goal and call action server
 		clear_face_db_goal = ActionServer_ClearDatabaseGoal()
-		
+
 		clear_face_db_action_client = actionlib.SimpleActionClient('as_Cleardatabase', ActionServer_ClearDatabaseAction)
 		clear_face_db_action_client.wait_for_server()
 		rospy.loginfo("Calling clear face db action server...")
@@ -1840,7 +1825,7 @@ class ClearFaceDB(smach.State):
 # TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
 	""" State for the robot to give the operator info about mates
-	
+
 	Always succeeds.
 
 	input_keys:
@@ -1848,13 +1833,13 @@ class AnnounceGuestDetailsToOperator(smach.State):
 		guest_som_obj_ids: TODO
 
 	output_keys:
-		
+
 	"""
 
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['success'],
 								input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
-		
+
 	def execute(self, userdata):
 		number_of_guests_found = min(len(userdata.guest_som_human_ids), len(userdata.guest_som_obj_ids))
 
@@ -1862,16 +1847,16 @@ class AnnounceGuestDetailsToOperator(smach.State):
 			talk_phrase = "I could not find any of your mates. Don't worry, I'm sure they will arrive soon!"
 			call_talk_request_action_server(phrase=talk_phrase)
 			return 'success'
-		
+
 		if number_of_guests_found > 0:
 			talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
 			call_talk_request_action_server(phrase=talk_phrase)
 			for guest_num in range(number_of_guests_found):
 				# Query human from human collection
 				# call a query by class_ and sort results by most recent observation - return the newest one
-				query = SOMQueryHumansRequest() 
+				query = SOMQueryHumansRequest()
 				query.query.object_uid = userdata.guest_som_obj_ids[guest_num]
-				
+
 				rospy.wait_for_service('som/humans/basic_query')
 				som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
 
@@ -1907,7 +1892,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 						pass
 					else:
 						person_talk_phrase += " They identify as {}.".format(human_record.gender)
-				
+
 				if not human_record.pronouns:
 					pass
 				else:
@@ -1915,7 +1900,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 						pass
 					else:
 						person_talk_phrase += " Their pronouns are '{}'.".format(human_record.pronouns)
-						
+
 				if human_record.face_attributes:
 					person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
 
@@ -1933,13 +1918,13 @@ class WaitForHotwordState(smach.State):
 
     Terminates with 'success' outcome if hotword detection message is received within the timeout (if used),
     otherwise 'failure'.
-    
+
     input_keys:
 		timeout: timeout time in seconds (set to None to wait indefinitely)
     """
 
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(self,
                                 outcomes = ['success', 'failure'],
                                 input_keys=['timeout'])
 
@@ -1965,12 +1950,12 @@ class WaitForHotwordState(smach.State):
 #         super(GiveOperatorInfoState, self).__init__(action_dict=action_dict,
 #                                                     global_store=global_store,
 #                                                     outcomes=outcomes)
-    
+
 #     def execute(self, userdata):
 #         obj1 = SOMObservation()
 #         obj1.type = 'person'
 
-#         matches = self.action_dict['SOMQuery'](obj1, Relation(), 
+#         matches = self.action_dict['SOMQuery'](obj1, Relation(),
 #                                                SOMObservation())
 
 #         operator_name = ''
@@ -1989,32 +1974,32 @@ class WaitForHotwordState(smach.State):
 #                 person_info['shirt_colour'] = person.shirt_colour
 #                 person_info['room'].pose_estimate.most_likely_room
 #                 people_information.append(person_info)
-        
+
 #         info_string = ("Hi " + operator_name + ", I have some people to tell " +
 #                       "you about.")
-        
+
 #         for person in people_information:
 #             person_string = ""
 #             if person['room'] != '':
 #                 person_string += " In the " + person['room'] + " I met "
 #             else:
 #                 person_string += " I met "
-            
+
 #             if person['name'] != '':
 #                 person_string += person['name'] + ', '
 #             else:
 #                 person_string += 'someone, '
-            
+
 #             if person['age'] != 0:
-#                 person_string += ('who I think is around the age of ' + 
+#                 person_string += ('who I think is around the age of ' +
 #                                   str(person['age']) + ', ')
-            
+
 #             if person['gender'] != '':
 #                 person_string += 'who is ' + person['gender'] + ', '
-            
+
 #             if person['shirt_colour'] != '':
 #                 person_string += 'and who is wearing ' + person['shirt_colour']
-            
+
 #             if person_string[-2] == ',':
 #                 person_string = person_string[0:-2] + '.'
 #             else:
@@ -2059,7 +2044,7 @@ class ActionServiceState(smach.State):
         self._outcomes = outcomes
 
 class SetNavGoalState(ActionServiceState):
-    """ State for setting nav goal to something arbitrary defined by lambda. 
+    """ State for setting nav goal to something arbitrary defined by lambda.
         DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
         TODO - REMOVE
     """
@@ -2071,7 +2056,7 @@ class SetNavGoalState(ActionServiceState):
         super(SetNavGoalState, self).__init__(action_dict=action_dict,
                                               global_store=global_store,
                                               outcomes=outcomes)
-    
+
     def execute(self, userdata):
         self.global_store['nav_location'] = self.function()
         return self._outcomes[0]
@@ -2079,7 +2064,7 @@ class SetNavGoalState(ActionServiceState):
 
 class NavToLocationState(ActionServiceState):
     """ State for setting nav goal and then navigating there. """
-    
+
     def __init__(self, action_dict, global_store, function):
         """ Function must have 0 parameters and return new nav goal. """
         outcomes = ['SUCCESS', 'FAILURE', 'REPEAT_FAILURE']
@@ -2113,8 +2098,8 @@ class NavToLocationState(ActionServiceState):
 
 
 class SetPickupState(ActionServiceState):
-    """ State for setting pick up to something arbitrary passed in. 
-        
+    """ State for setting pick up to something arbitrary passed in.
+
         DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
         TODO - REMOVE
     """
@@ -2125,14 +2110,14 @@ class SetPickupState(ActionServiceState):
         super(SetPickupState, self).__init__(action_dict=action_dict,
                                              global_store=global_store,
                                              outcomes=outcomes)
-    
+
     def execute(self, userdata):
         self.global_store['pick_up'] = self.obj
         return self._outcomes[0]
 
 
 class SetPickupFuncState(ActionServiceState):
-    """ State for setting pick up to something arbitrary defined by lambda. 
+    """ State for setting pick up to something arbitrary defined by lambda.
 
         DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
         TODO - REMOVE
@@ -2144,7 +2129,7 @@ class SetPickupFuncState(ActionServiceState):
         super(SetPickupFuncState, self).__init__(action_dict=action_dict,
                                              global_store=global_store,
                                              outcomes=outcomes)
-    
+
     def execute(self, userdata):
         self.global_store['pick_up'] = self.func()
         return self._outcomes[0]
@@ -2159,7 +2144,7 @@ class OpenDrawerState(ActionServiceState):
         super(OpenDrawerState, self).__init__(action_dict=action_dict,
                                               global_store=global_store,
                                               outcomes=outcomes)
-    
+
     def execute(self, userdata):
         drawer_goal = OpenDrawerGoal()
         drawer_goal.goal_tf = self.global_store['drawer_handle']
@@ -2181,7 +2166,7 @@ class CloseDrawerState(ActionServiceState):
         super(CloseDrawerState, self).__init__(action_dict=action_dict,
                                               global_store=global_store,
                                               outcomes=outcomes)
-    
+
     def execute(self, userdata):
         drawer_goal = CloseDrawerGoal()
         drawer_goal.goal_tf = self.global_store['drawer_handle']
@@ -2206,7 +2191,7 @@ class PlaceObjectRelativeState(ActionServiceState):
                                                        global_store=
                                                        global_store,
                                                        outcomes=outcomes)
-    
+
     def execute(self, userdata):
         """Relative position in global_store['rel_pos'] as a 4-tuple"""
         place_goal = PlaceObjectRelativeGoal()
@@ -2223,7 +2208,7 @@ class PlaceObjectRelativeState(ActionServiceState):
         if result:
             return self._outcomes[0]
         else:
-            return self._outcomes[1] 
+            return self._outcomes[1]
 
 
 class PourIntoState(ActionServiceState):
@@ -2234,10 +2219,10 @@ class PourIntoState(ActionServiceState):
         super(PourIntoState, self).__init__(action_dict=action_dict,
                                             global_store=global_store,
                                             outcomes=outcomes)
-    
+
     def execute(self, userdata):
         pour_goal = PourIntoGoal()
-        pour_goal.goal_tf_frame = self.global_store['pour_into']   
+        pour_goal.goal_tf_frame = self.global_store['pour_into']
 
         self.action_dict['PourInto'].send_goal(pour_goal)
         self.action_dict['PourInto'].wait_for_result()
@@ -2247,7 +2232,7 @@ class PourIntoState(ActionServiceState):
         if result:
             return self._outcomes[0]
         else:
-            return self._outcomes[1]  
+            return self._outcomes[1]
 
 
 class PointToObjectState(ActionServiceState):
@@ -2258,7 +2243,7 @@ class PointToObjectState(ActionServiceState):
         super(PointToObjectState, self).__init__(action_dict=action_dict,
                                                  global_store=global_store,
                                                  outcomes=outcomes)
-    
+
     def execute(self, userdata):
         point_goal = PointToObjectGoal()
         point_goal.object_tf_frame = self.global_store['point_at']
@@ -2285,7 +2270,7 @@ class CheckAndOpenDoorState(ActionServiceState):
         super(CheckAndOpenDoorState, self).__init__(action_dict=action_dict,
                                                     global_store=global_store,
                                                     outcomes=outcomes)
-    
+
     def execute(self, userdata):
         is_door_open_goal = DoorCheckGoal()
         is_door_open_goal.n_closed_door = 20
@@ -2316,7 +2301,7 @@ class OpenFurnitureDoorState(ActionServiceState):
         super(OpenFurnitureDoorState, self).__init__(action_dict=action_dict,
                                                      global_store=global_store,
                                                      outcomes=outcomes)
-    
+
     def execute(self, userdata):
         goal = OpenFurnitureDoorGoal()
         goal.goal_tf = self.global_store['furniture_door']
@@ -2338,7 +2323,7 @@ class PutObjectOnFloorState(ActionServiceState):
         super(PutObjectOnFloorState, self).__init__(action_dict=action_dict,
                                                     global_store=global_store,
                                                     outcomes=outcomes)
-    
+
     def execute(self, userdata):
         put_on_floor_goal = PutObjectOnFloorGoal()
         self.action_dict['PutObjectOnFloor'].send_goal(put_on_floor_goal)
@@ -2361,7 +2346,7 @@ class PutObjectOnSurfaceState(ActionServiceState):
         super(PutObjectOnSurfaceState, self).__init__(action_dict=action_dict,
                                                       global_store=global_store,
                                                       outcomes=outcomes)
-    
+
     def execute(self, userdata):
         put_on_surface_goal = PutObjectOnSurfaceGoal()
         self.action_dict['PutObjectOnSurface'].send_goal(put_on_surface_goal)
@@ -2385,7 +2370,7 @@ class CheckForBarDrinksState(ActionServiceState):
         super(CheckForBarDrinksState, self).__init__(action_dict=action_dict,
                                                      global_store=global_store,
                                                      outcomes=outcomes)
-    
+
     def execute(self, userdata):
         check_drinks_goal = CheckForBarDrinksGoal()
         self.action_dict['CheckForBarDrinks'].send_goal(check_drinks_goal)
@@ -2399,7 +2384,7 @@ class CheckForBarDrinksState(ActionServiceState):
 class SpeakAndHotwordState(ActionServiceState):
     """ Smach state for speaking and then listening for a hotword. """
     def __init__(self, action_dict, global_store, question, hotwords, timeout):
-        """ Constructor initialises fields. 
+        """ Constructor initialises fields.
 
         Args:
             action_dict: A dictionary of action clients
@@ -2464,7 +2449,7 @@ class HotwordListenState(ActionServiceState):
         super(HotwordListenState, self).__init__(action_dict=action_dict,
                                                  global_store=global_store,
                                                  outcomes=outcomes)
-    
+
     def execute(self, userdata):
         hotword_goal = HotwordListenGoal()
         hotword_goal.hotwords = self.hotwords
@@ -2477,7 +2462,7 @@ class HotwordListenState(ActionServiceState):
             goal_finished = \
                 self.action_dict['HotwordListen'].wait_for_result(timeout=
                                                                   timeout)
-        
+
         if goal_finished:
             result = self.action_dict['HotwordListen'].get_result()
 
@@ -2502,20 +2487,20 @@ class PickUpPointedObject(ActionServiceState):
         super(PickUpPointedObject, self).__init__(action_dict=action_dict,
                                                   global_store=global_store,
                                                   outcomes=outcomes)
-    
+
     def execute(self, userdata):
         self.action_dict['GetPointedObject'].send_goal(PointingGoal())
         self.action_dict['GetPointedObject'].wait_for_result()
-        
+
         result_point = self.action_dict['GetPointedObject'].get_result()
         if not result_point.is_present:
             return self._outcomes[1]
-        
+
         objects = result_point.pointing_array[0].pointings.detections
 
         # specified to luggage!
         detected_obj = None
-        options = OBJECTS    # TODO - replace global variable with input userdata dictionary element 
+        options = OBJECTS    # TODO - replace global variable with input userdata dictionary element
         for obj in objects:
             for option in options:
                 if option in obj.label:
@@ -2549,7 +2534,7 @@ class OperatorDetectState(ActionServiceState):
                                      - HOWEVER, THE UN-USED SOM INTEGRATION MAY BE USEFUL TO RE-IMPLEMENT ELSEWHERE?
         TODO - REMOVE/MOVE SOM INTEGRATION ELSEWHERE
 
-        TODO - 
+        TODO -
     """
 
     def __init__(self, action_dict, global_store):
@@ -2557,11 +2542,11 @@ class OperatorDetectState(ActionServiceState):
         super(OperatorDetectState, self).__init__(action_dict=action_dict,
                                                   global_store=global_store,
                                                   outcomes=outcomes)
-    
+
     def execute(self, userdata):
         self.global_store['operator_name'] = self.global_store['last_response']
-        return self._outcomes[0]                        
-        # RC: Given this early return statement, this state seems to have been down-scoped. 
+        return self._outcomes[0]
+        # RC: Given this early return statement, this state seems to have been down-scoped.
         #     It now just sets the global variable, which is no longer used following the refactor. TODO - remove
         failed = 0
         operator = SOMObservation()
@@ -2571,13 +2556,13 @@ class OperatorDetectState(ActionServiceState):
 
         operator.type = 'person'
         operator.task_role = 'operator'
-        
+
 
         pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         operator.robot_pose = pose
-        
+
         operator.room_name = self.action_dict['SOMGetRoom'](pose).room_name
-        
+
         for name in NAMES:  # TODO - replace global variable with input userdata dictionary element
             if name in self.global_store['last_response']:
                 operator.name = name
@@ -2636,7 +2621,7 @@ class MemorisePersonState(ActionServiceState):
         super(MemorisePersonState, self).__init__(action_dict=action_dict,
                                                   global_store=global_store,
                                                   outcomes=outcomes)
-    
+
     def execute(self, userdata):
         failed = 0
         person = SOMObservation()
@@ -2648,16 +2633,16 @@ class MemorisePersonState(ActionServiceState):
 
         pose = rospy.wait_for_message('/global_pose', PoseStamped).pose
         person.robot_pose = pose
-        
+
         person.room_name = self.action_dict['SOMGetRoom'](pose).room_name
 
         for name in NAMES:  # TODO - replace global variable with input userdata dictionary element
             if name in self.global_store['last_response']:
                 person.name = name
                 break
-        
+
         try:
-            person_msg = rospy.wait_for_message('/vision/bbox_detections', 
+            person_msg = rospy.wait_for_message('/vision/bbox_detections',
                                                 DetectionArray, timeout=5)
             for detection in person_msg.detections:
                 if 'person' in detection.label.name:
@@ -2665,7 +2650,7 @@ class MemorisePersonState(ActionServiceState):
                     break
         except:
             failed += 1
-        
+
         try:
             listen = tf.TransformListener()
             tf_frame = 'person_' + person.shirt_colour
@@ -2680,10 +2665,10 @@ class MemorisePersonState(ActionServiceState):
             failed += 1
 
         try:
-            face_msg = rospy.wait_for_message('/vision/face_bbox_detections', 
-                                              FaceDetectionArray, 
+            face_msg = rospy.wait_for_message('/vision/face_bbox_detections',
+                                              FaceDetectionArray,
                                               timeout=5)
-            
+
             face = face_msg.detections[0]
             person.age = face.age
             person.gender = face.gender
@@ -2701,7 +2686,7 @@ class MemorisePersonState(ActionServiceState):
             return self._outcomes[0]
 
 
-#--- Code for following while listening for a hotword    
+#--- Code for following while listening for a hotword
 class FollowState(ActionServiceState):
     """ This state follows a person until it is preempted or fails. """
 
@@ -2713,14 +2698,14 @@ class FollowState(ActionServiceState):
 
         if 'follow_failure' not in self.global_store:
             self.global_store['follow_failure'] = 0
-    
+
     def execute(self, userdata):
         follow_goal = FollowGoal()
 
         obs = SOMObservation()
         obs.type = 'person'
         obs.task_role = 'operator'
-        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(), 
+        matches = self.action_dict['SOMQuery'](obs,Relation(),SOMObservation(),
                                                Pose()).matches
         if len(matches) == 0:
             colour = 'green'
@@ -2737,9 +2722,9 @@ class FollowState(ActionServiceState):
             if finished:
                 current_result = self.action_dict['Follow'].get_result().succeeded
                 break
-        
+
         self.action_dict['Follow'].cancel_all_goals()
-    
+
         if current_result == False:
             self.global_store['follow_failure'] += 1
             if self.global_store['follow_failure'] >= FAILURE_THRESHOLD:    # TODO - replace global variable with input userdata dictionary element
@@ -2764,7 +2749,7 @@ def follow_child_cb(outcome_map, global_store):
         return True
     if outcome_map['Follow'] == 'REPEAT_FAILURE':
         return True
-    
+
     return False
 
 def follow_out_cb(outcome_map, global_store):
@@ -2788,14 +2773,14 @@ def make_follow_hotword_state(action_dict, global_store):
                       default_outcome='FAILURE',
                       child_termination_cb=(lambda om: (follow_child_cb(om, global_store))),
                       outcome_cb=(lambda om: follow_out_cb(om, global_store)))
-    
+
     with con:
         Concurrence.add('Follow', FollowState(action_dict, global_store))
-        Concurrence.add('Hotword', HotwordListenState(action_dict, 
+        Concurrence.add('Hotword', HotwordListenState(action_dict,
                                                       global_store,
                                                       ['cancel'],
                                                       180))
-    
+
     return con
 # --- End of follow code
 
@@ -2803,7 +2788,7 @@ class NavigateState(ActionServiceState):
     """ State for navigating to location on map.
 
     This state is given a pose and navigates there.
-        
+
         DEPRECATED SINCE REFACTORING - NO LONGER NEEDED DUE TO REMOVAL OF GLOBAL VARIABLES
         TODO - REMOVE
     """
@@ -2813,10 +2798,10 @@ class NavigateState(ActionServiceState):
         super(NavigateState, self).__init__(action_dict=action_dict,
                                             global_store=global_store,
                                             outcomes=outcomes)
-        
+
         if 'nav_failure' not in self.global_store:
             self.global_store['nav_failure'] = 0
-    
+
     def execute(self, userdata):
         dest_pose = self.global_store['nav_location']
 
