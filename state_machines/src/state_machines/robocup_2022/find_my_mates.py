@@ -139,6 +139,11 @@ def create_state_machine():
     sm.userdata.node_list = ['Node1', 'Node2', 'Node3']
     sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
+    # Where is the operator starting out?
+    sm.userdata.operator_room_node_id = "kitchen";
+    # Which room are the guests in?
+    sm.userdata.guest_room_node_id = "lounge";
+
     with sm:
         # TODO - remove after testing
         # short-ciruit straight to SEARCH_FOR_GUEST_SUB to test logic 
@@ -180,13 +185,10 @@ def create_state_machine():
         
         # navigate to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_TO_OPERATOR',
-                               SimpleNavigateState(),
-                               transitions={'success':'INTRODUCTION_TO_OPERATOR',
-                                            'failure':'NAV_TO_OPERATOR',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
-                                remapping={'pose':'operator_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+                                create_topo_nav_state_machine(),
+                                transitions={'success':'INTRODUCTION_TO_OPERATOR',
+                                            'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+                                remapping={'goal_pose':'operator_pose'})
 
         # announce nav repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',

@@ -54,6 +54,8 @@ from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_
 	ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
 		ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
 
+from orion_spin.msg import SpinAction, SpinGoal;
+
 FAILURE_THRESHOLD = 3       # TODO - remove
 
 # People
@@ -267,6 +269,24 @@ def positional_to_cardinal(num: int) -> str:
 		return mapping[num]
 	else:
 		raise Exception("Input number is out of range for this function. Supported mapping: {}".format(mapping))
+
+def get_closest_node(point:Point) -> str:
+    """
+    We want to be able to get the closest node to a given point.
+    """
+    node_pose:PoseOverlay = rospy.wait_for_message('/topological_map/overlays/node_poses', PoseOverlay);
+    
+    min_distance = math.inf;
+    node_id:str = None;
+    for i in range(len(node_pose.graph_ids)):
+        val:PoseStamped = node_pose.values[i];
+        dist = distance_between_points(val.pose.position, point);
+        if dist < min_distance:
+            min_distance = dist;
+            node_id = node_pose.graph_ids[i];
+    
+    return node_id;
+
 
 def create_learn_guest_sub_state_machine():
     
@@ -515,6 +535,99 @@ def create_search_for_guest_sub_state_machine():
         smach.Concurrence.add('CHECK_FOR_NEW_GUEST_SEEN', CheckForNewGuestSeen())
         
     return sm_con
+
+def create_topo_nav_state_machine():
+    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
+                            input_keys=['goal_pose'],
+                            output_keys=[]);
+
+    
+
+    with sub_sm:
+        smach.StateMachine.add('GetClosestNode',
+                                GetClosestNodeState(),
+                                transitions={'success':'NavToNearestNode'});
+        
+        smach.StateMachine.add(
+            'NavToNearestNode',
+            TopologicalNavigateState(),
+            transitions={
+                'success':'NavToFinalGoal',
+                'failure':'NavToNearestNode',
+                'repeat_failure':'NavToFinalGoal'},
+            remapping={'node_id':'closest_node'});
+
+        smach.StateMachine.add(
+            'NavToFinalGoal',
+            SimpleNavigateState(),
+            transitions={
+                'success':'success',
+                'failure':'NavToFinalGoal',
+                'repeat_failure':'failure'},
+            remapping={'pose':'goal_pose'});
+
+    return sub_sm;
+
+def create_search_for_human():
+    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
+                            input_keys=['room_node_uid'],
+                            output_keys=[]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'NavToNearestNode',
+            TopologicalNavigateState(),
+            transitions={
+                'success':'SearchForHuman_1',
+                'failure':'NavToNearestNode',
+                'repeat_failure':'failure'},
+            remapping={'node_id':'room_node_uid'});
+
+        smach.StateMachine.add(
+            'SearchForHuman_1',
+            GetNearestHuman(),
+            transitions={
+                'new_human_found':'SetSafePoseFromHuman',
+                'human_not_found':'SpinOnSpot',
+                'existing_human_found':'SetSafePoseFromHuman'},
+            remapping={});
+        
+        smach.StateMachine.add(
+            'SpinOnSpot',
+            SpinState(),
+            transitions={
+                'success':'SearchForHuman_2'},
+            remapping={});
+
+        smach.StateMachine.add(
+            'SearchForHuman_2',
+            GetNearestHuman(),
+            transitions={
+                'new_human_found':'SetSafePoseFromHuman',
+                'human_not_found':'failure',
+                'existing_human_found':'SetSafePoseFromHuman'},
+            remapping={});
+
+        smach.StateMachine.add(
+            'SetSafePoseFromHuman',
+            SetSafePoseFromObject(),
+            transitions={
+                'success':'NavToPose'},
+            remapping={'pose':'human_pose'});
+
+        smach.StateMachine.add(
+            'NavToPose',
+            SimpleNavigateState(),
+            transitions={
+                'success':'success',
+                'failure':'NavToPose',
+                'repeat_failure':'failure'},
+            remapping={'pose':'pose'});
+
+    return sub_sm;
+
+
+
 
 class SearchForGuestNavToNextNode(smach.State):
     """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
@@ -1113,6 +1226,7 @@ class AskPersonNameState(smach.State):
                 return 'repeat_failure'
             return 'failure'
 
+#region navigation states
 class SimpleNavigateState(smach.State):
     """ State for navigating directly to a location on the map.
 
@@ -1210,6 +1324,25 @@ class TopologicalNavigateState(smach.State):
                 userdata.number_of_failures = 0
                 return 'repeat_failure'
             return 'failure'
+
+class GetClosestNodeState(smach.State):
+    """
+    Inputs:
+        goal_pose:Pose:     The pose we want to navigate to.
+    Outputs:
+        closest_node:str:   The node we will go via.
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes=['success'],
+                                input_keys=['goal_pose'],
+                                output_keys=['closest_node']);
+
+    def execute(self, userdata):
+        goal_pose:Pose = userdata.goal_pose;
+        userdata.closest_node = get_closest_node(goal_pose.position);
+        return 'success';
+#endregion
 
 class PickUpObjectState(smach.State):
     """ State for picking up an object
@@ -1472,7 +1605,7 @@ class SaveGuestToSOM(smach.State):
         userdata.guest_som_obj_ids.append(guest_obs.adding.object_uid)
         return 'success'
 
-class GetNearestOperator(smach.State):
+class GetNearestHuman(smach.State):
     """
     Finds the closest operator to the current robot's position.
     NOTE: currently might return a human with a single observation (which has the possibility of being unreliable).
@@ -1480,23 +1613,17 @@ class GetNearestOperator(smach.State):
     Outputs:
         closest_human:(Human|None)
         robot_pose:Pose
+        human_pose:Pose
     """
     def __init__(self):
-        smach.State.__init__(self, outcomes=['human_found', 'human_not_found'],
+        smach.State.__init__(self, outcomes=['new_human_found', 'human_not_found', 'existing_human_found'],
                                 input_keys=[],
-                                output_keys=['closest_human', 'robot_location'])
-    
-    def execute(self, userdata):
-        human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
-        
-        query = SOMQueryHumansRequest();
-        query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
-        
-        human_query_results:SOMQueryHumansResponse = human_query_srv(query);
+                                output_keys=['closest_human', 'robot_location', 'human_pose'])
 
-        # What's the current position of the robot?
-        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
-        userdata.robot_location = robot_pose.pose
+        self.human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+    
+    def perform_query(self, query:SOMQueryHumansRequest, robot_pose:Pose) -> Human:
+        human_query_results:SOMQueryHumansResponse = self.human_query_srv(query);
 
         min_distance = math.inf;
         closest_human:Human = None;
@@ -1507,13 +1634,35 @@ class GetNearestOperator(smach.State):
             if distance < min_distance:
                 min_distance = distance;
                 closest_human = result;
+        
+        return closest_human;
+
+    def execute(self, userdata):
+        
+        # What's the current position of the robot?
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        userdata.robot_location = robot_pose.pose
+        
+        query = SOMQueryHumansRequest();
+        query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
+
+        closest_human = self.perform_query(query, robot_pose);
 
         if closest_human == None:
-            userdata.closest_human = None;
-            return 'human_not_found';
+            query.query.spoken_to_state = Human._NULL;
+
+            closest_human = self.perform_query(query, robot_pose);
+
+            if closest_human == None:
+                return 'human_not_found';
+            else:
+                userdata.closest_human = closest_human;
+                userdata.human_pose = closest_human.obj_position;
+                return 'existing_human_found';
         else:
             userdata.closest_human = closest_human;
-            return 'human_found';
+            userdata.human_pose = closest_human.obj_position;
+            return 'new_human_found';
 
 class GetHumanRelativeLoc(smach.State):
     """
@@ -1676,6 +1825,57 @@ class GetNextNavLoc(smach.State):
             return 'nav_to_pose';
         else:
             return 'nav_to_node';
+
+class SetSafePoseFromObject(smach.State):
+    """
+    Adjust a pose in to be a fixed distance from the point of interest.
+    Inputs:
+        pose:Pose
+    Outputs:
+        pose:Pose
+    """
+
+    # Gives the distance the robot will come to a stop from the human.
+    DISTANCE_FROM_POSE = 1;  #m
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'],
+                                input_keys=['pose', 'robot_location'],
+                                output_keys=['pose']);
+
+    def execute(self, userdata):
+        robot_location:Pose = userdata.robot_location;
+        pose:Pose = userdata.pose;
+
+        # [Logic for choosing between node and humans]
+        # If the human is behind the robot, go to the human.
+        # If the human is infront of the next node, go to the human.
+        # If the human is behind the next node, go to the next node.
+
+        # Behind can be determined by whether the dot product between two vectors (the one 
+        # going robot->node and robot->human) is negative.
+        # Nearness can be determined by the distance itself.
+
+        vec_to_pose = Point();
+        vec_to_pose.x = pose.position.x - robot_location.position.x;
+        vec_to_pose.y = pose.position.y - robot_location.position.y;
+        vec_to_pose.z = pose.position.z - robot_location.position.z;
+
+        vec_to_pose_len:float = get_point_magnitude(vec_to_pose);
+
+        vec_to_pose.x *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+        vec_to_pose.y *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+        vec_to_pose.z *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+
+        new_pose:Pose = Pose();
+        new_pose.position.x = pose.position.x - vec_to_pose.x;
+        new_pose.position.y = pose.position.y - vec_to_pose.y;
+        new_pose.position.z = pose.position.z - vec_to_pose.z;
+
+        userdata.pose = new_pose;
+            
+        return 'success';
+
 
 
 class RegisterFace(smach.State):
@@ -2046,6 +2246,21 @@ class WaitForHotwordState(smach.State):
 #         return self._outcomes[0]
 
 ###################### NEEDS REVIEWING #################################
+
+class SpinState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, 
+                                outcomes = ['success', 'failure'],
+                                input_keys=[], output_keys=[]);
+
+    def execute(self, userdata):
+        client = actionlib.SimpleActionClient('spin', SpinAction);
+        client.wait_for_server();
+        client.send_goal(SpinGoal());
+        client.wait_for_result();
+
+        return 'success';
+
 
 # TODO - remove this once refactoring is complete
 class ActionServiceState(smach.State):
