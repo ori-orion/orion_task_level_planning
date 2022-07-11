@@ -14,7 +14,10 @@ def create_human_observation(observed_at:Pose, size:Point=Point()) -> SOMAddObse
     obs.adding.observation_batch_num = 1;
     obs.adding.size = size;
 
+    return obs;
+
 def prime_SOM_system():
+    rospy.init_node("iuawfh");
     typical_size = Point();
     typical_size.x = 0.1;
     typical_size.y = 0.1;
@@ -87,3 +90,6 @@ def prime_SOM_system():
     pose_3.orientation.z = 0.025698261608417518;
     pose_3.orientation.w = 0.9996697451410167;
     som_observation_input_srv(create_human_observation(pose_3, typical_size));
+
+if __name__ == '__main__':
+    prime_SOM_system();

@@ -142,7 +142,9 @@ def create_state_machine():
     # Where is the operator starting out?
     sm.userdata.operator_room_node_id = "Node3";
     # Which room are the guests in?
-    sm.userdata.guest_room_node_id = "Node5";
+    sm.userdata.guest_room_node_id = "Node6";
+
+    sm.userdata.number_of_failures = 0;
 
     with sm:
         # TODO - remove after testing
@@ -193,7 +195,8 @@ def create_state_machine():
                                 create_search_for_human(),
                                 transitions={'success':'INTRODUCTION_TO_OPERATOR',
                                             'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
-                                remapping={'room_node_uid':'operator_room_node_id'})
+                                remapping={'room_node_uid':'operator_room_node_id',
+                                            'failure_threshold':'simple_navigation_failure_threshold'})
 
         # announce nav repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',
@@ -270,7 +273,7 @@ def create_state_machine():
         # create_search_for_guest_sub_state_machine()
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
                                 create_search_for_human(),
-                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH',
+                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
                                             'failure':'ANNOUNCE_FINISH_SEARCH'},
                                 remapping={'room_node_uid':'guest_room_node_id',
                                             'failure_threshold':'topological_navigation_failure_threshold'})
@@ -294,7 +297,7 @@ def create_state_machine():
         #                                    'number_of_failures': 'simple_navigation_failures',
         #                                    'failure_threshold':'simple_navigation_failure_threshold'})
 
-        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
+        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE', 
                                 ShouldIContinueGuestSearchState(),
                                 transitions={'yes':'LEARN_GUEST_SUB',
                                             'no':'ANNOUNCE_FINISH_SEARCH'},
@@ -306,13 +309,13 @@ def create_state_machine():
         # run the LEARN_GUEST_SUB sub-state machine  
         smach.StateMachine.add('LEARN_GUEST_SUB', 
                                 create_learn_guest_sub_state_machine(),
-                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH',
-                                            'failure':'SHOULD_I_CONTINUE_GUEST_SEARCH'},
+                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST',
+                                            'failure':'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST'},
                                 remapping={'guest_som_human_ids':'guest_som_human_ids',
                                             'guest_som_obj_ids':'guest_som_obj_ids',
                                             'person_names':'person_names'})
 
-        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
+        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST', 
                                 ShouldIContinueGuestSearchState(),
                                 transitions={'yes':'ANNOUNCE_CONTINUE_SEARCH',
                                             'no':'ANNOUNCE_FINISH_SEARCH'},
