@@ -140,9 +140,9 @@ def create_state_machine():
     sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
     # Where is the operator starting out?
-    sm.userdata.operator_room_node_id = "kitchen";
+    sm.userdata.operator_room_node_id = "Node3";
     # Which room are the guests in?
-    sm.userdata.guest_room_node_id = "lounge";
+    sm.userdata.guest_room_node_id = "Node5";
 
     with sm:
         # TODO - remove after testing
@@ -183,7 +183,12 @@ def create_state_machine():
                                 # transitions={'success':'LEARN_GUEST_SUB'}, # TODO - switch for testing
                                 remapping={'current_time':'task_start_time'})
         
-        # navigate to operator - TODO - consider changing to top nav
+        """
+        navigate to operator
+        Outputs: 
+            closest_human:Human     - Does none of the talking to the human.
+            human_object_uid:str    - What is the object uid of the human in question. (Makes it slightly more general for later logic)
+        """
         smach.StateMachine.add('NAV_TO_OPERATOR',
                                 create_search_for_human(),
                                 transitions={'success':'INTRODUCTION_TO_OPERATOR',
@@ -218,7 +223,7 @@ def create_state_machine():
 
         # ask for operator's name - New ask guest name action server - TODO - test        
         smach.StateMachine.add('ASK_OPERATOR_NAME',
-                               AskPersonNameState(),
+                                AskPersonNameState(),
                                 transitions={'success': 'SAVE_OPERATOR_INFO_TO_SOM',
                                             'failure':'ANNOUNCE_MISSED_NAME',
                                             'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
@@ -262,33 +267,41 @@ def create_state_machine():
                                 remapping={'phrase':'announce_search_start_phrase'})
 
         # start the search for an un-spoken-to guest
+        # create_search_for_guest_sub_state_machine()
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
-                                create_search_for_guest_sub_state_machine(),
-                                transitions={'success':'CREATE_POSE_TO_APPROACH_GUEST',
+                                create_search_for_human(),
+                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH',
                                             'failure':'ANNOUNCE_FINISH_SEARCH'},
-                                remapping={'nodes_not_searched':'nodes_not_searched',
-                                            'operator_uid':'operator_som_id',
-                                            'failure_threshold':'topological_navigation_failure_threshold',
-                                            'found_guest_uid':'guest_uid'})
+                                remapping={'room_node_uid':'guest_room_node_id',
+                                            'failure_threshold':'topological_navigation_failure_threshold'})
 
-        # Create pose to approach the guest
-        smach.StateMachine.add('CREATE_POSE_TO_APPROACH_GUEST',
-                                CreatePoseToApproachHuman(),
-                                transitions={'success':'NAV_TO_GUEST',
-                                             'failure':'SEARCH_FOR_GUEST_SUB'},
-                                remapping={'human_id':'guest_uid',
-                                            'distance_to_human': 'simple_navigation_distance_to_humans',
-                                            'approach_pose':'approach_guest_pose'}) 
+        # # Create pose to approach the guest
+        # smach.StateMachine.add('CREATE_POSE_TO_APPROACH_GUEST',
+        #                         CreatePoseToApproachHuman(),
+        #                         transitions={'success':'NAV_TO_GUEST',
+        #                                      'failure':'SEARCH_FOR_GUEST_SUB'},
+        #                         remapping={'human_id':'guest_uid',
+        #                                     'distance_to_human': 'simple_navigation_distance_to_humans',
+        #                                     'approach_pose':'approach_guest_pose'}) 
         
-        # navigate to guest
-        smach.StateMachine.add('NAV_TO_GUEST',
-                               SimpleNavigateState(),
-                               transitions={'success':'LEARN_GUEST_SUB',
-                                            'failure':'NAV_TO_GUEST',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
-                                remapping={'pose':'approach_guest_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+        # # navigate to guest
+        # smach.StateMachine.add('NAV_TO_GUEST',
+        #                        SimpleNavigateState(),
+        #                        transitions={'success':'LEARN_GUEST_SUB',
+        #                                     'failure':'NAV_TO_GUEST',
+        #                                     'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+        #                         remapping={'pose':'approach_guest_pose',
+        #                                    'number_of_failures': 'simple_navigation_failures',
+        #                                    'failure_threshold':'simple_navigation_failure_threshold'})
+
+        smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
+                                ShouldIContinueGuestSearchState(),
+                                transitions={'yes':'LEARN_GUEST_SUB',
+                                            'no':'ANNOUNCE_FINISH_SEARCH'},
+                                remapping={'guest_som_human_ids':'guest_som_human_ids',
+                                            'max_search_duration':'max_search_duration',
+                                            'expected_num_guests':'expected_num_guests',
+                                            'start_time':'task_start_time'})
 
         # run the LEARN_GUEST_SUB sub-state machine  
         smach.StateMachine.add('LEARN_GUEST_SUB', 
@@ -302,7 +315,7 @@ def create_state_machine():
         smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH', 
                                 ShouldIContinueGuestSearchState(),
                                 transitions={'yes':'ANNOUNCE_CONTINUE_SEARCH',
-                                            'no':'ANNOUNCE_FINISH_SEARCH'}, 
+                                            'no':'ANNOUNCE_FINISH_SEARCH'},
                                 remapping={'guest_som_human_ids':'guest_som_human_ids',
                                             'max_search_duration':'max_search_duration',
                                             'expected_num_guests':'expected_num_guests',
