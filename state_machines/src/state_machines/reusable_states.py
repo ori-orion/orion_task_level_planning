@@ -304,6 +304,7 @@ def create_learn_guest_sub_state_machine():
     # create the sub state machine
     sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
                                 input_keys=['guest_som_human_ids',
+                                            'closest_human',
                                             'guest_som_obj_ids',
                                             'person_names'],
                                 output_keys=['guest_som_human_ids',
@@ -332,9 +333,9 @@ def create_learn_guest_sub_state_machine():
     # sub_sm.userdata.ask_age_candidates = [str(x) for x in range(1,101)]     # TODO - test recognition of numbers
 
     sub_sm.userdata.start_face_registration_phrase = "I am registering your face so I can tell the host what you look like. Please stand still."
-    sub_sm.userdata.finish_face_registration_phrase = "I have finished registering your face. Thank you!"
+    sub_sm.userdata.finish_face_registration_phrase = "I have finished registering your face."
     sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
-    sub_sm.userdata.farewell_guest = "Thank you. I need to go now. It was nice to meet you!"
+    sub_sm.userdata.farewell_guest = "I need to go now. It was nice to meet you!"
 
     sub_sm.userdata.guest_name = ""
     sub_sm.userdata.guest_gender = ""
@@ -406,7 +407,7 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
-                                transitions={'success':'CAPTURE_GUEST_FACE'},
+                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
@@ -427,14 +428,14 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is finished
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
                                 SpeakState(),
-                                transitions={'success':'ANNOUNCE_SAVE_GUEST_TO_SOM'},
+                                transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
                                 remapping={'phrase':'finish_face_registration_phrase'})
 
         # tell guest we are saving their details
-        smach.StateMachine.add('ANNOUNCE_SAVE_GUEST_TO_SOM',
-                                SpeakState(),
-                                transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
-                                remapping={'phrase':'save_to_som_phrase'})
+        # smach.StateMachine.add('ANNOUNCE_SAVE_GUEST_TO_SOM',
+        #                         SpeakState(),
+        #                         transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
+        #                         remapping={'phrase':'save_to_som_phrase'})
 
         # create the guest_attributes dictionary
         smach.StateMachine.add('CREATE_GUEST_ATTRIBUTES_DICT',
@@ -576,18 +577,22 @@ def create_search_for_human():
     Outputs:
         closest_human:Human     - The human that was found.
         human_object_uid:str    - What is the object uid of the human in question. (Makes it slightly more general for later logic)
+        human_pose:Pose         - Returns the pose at which the human was found.        
     """
 
-    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
-                            input_keys=['room_node_uid', 'failure_threshold'],
-                            output_keys=['closest_human', 'human_object_uid']);
+    sub_sm = smach.StateMachine(
+        outcomes=['success', 'failure'],
+        input_keys=[
+            'room_node_uid', 'failure_threshold', 'prev_node_nav_to'],
+        output_keys=[
+            'closest_human', 'human_object_uid', 'human_pose', 'prev_node_nav_to']);
                         
     sub_sm.userdata.number_of_failures = 0;
 
     with sub_sm:
         smach.StateMachine.add(
             'NavToNearestNode',
-            TopologicalNavigateState(),
+            TopologicalNavigateState(stop_repeat_navigation=True),
             transitions={
                 'success':'SearchForHuman_1',
                 'failure':'NavToNearestNode',
@@ -619,18 +624,6 @@ def create_search_for_human():
                 'existing_human_found':'GoToSafePoseFromHuman'},
             remapping={});
 
-        # smach.StateMachine.add(
-        #     'SetSafePoseFromHuman',
-        #     SetSafePoseFromObject(),
-        #     transitions={
-        #         'success':'LookUp'},
-        #     remapping={'pose':'human_pose'});
-
-        # smach.StateMachine.add(
-        #     'LookUp',
-        #     LookUpState(),
-        #     transitions={'success':'NavToPose'});
-
         smach.StateMachine.add(
             'GoToSafePoseFromHuman',
             NavigateDistanceFromGoalSafely(),
@@ -641,15 +634,6 @@ def create_search_for_human():
             'LookAtHuman',
             LookAtHuman(),
             transitions={'success':'success'});
-
-        # smach.StateMachine.add(
-        #     'NavToPose',
-        #     SimpleNavigateState(),
-        #     transitions={
-        #         'success':'success',
-        #         'failure':'NavToPose',
-        #         'repeat_failure':'failure'},
-        #     remapping={'pose':'pose_out'});
 
     return sub_sm;
 
@@ -918,6 +902,8 @@ class CreateGuestAttributesDict(smach.State):
         userdata.guest_attributes["pronouns"] = userdata.pronouns
         userdata.guest_attributes["face_id"] = userdata.face_id
         userdata.guest_attributes["face_attributes"] = userdata.face_attributes
+
+        print(userdata.guest_attributes);
 
         # rospy.loginfo("Created guest_attributes dict: {}".format(userdata.guest_attributes))
         return 'success'
@@ -1300,6 +1286,7 @@ class TopologicalNavigateState(smach.State):
         failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
     output_keys:
         number_of_failures: the updated failure counter upon state exit
+        prev_node_nav_to    The node we just navigated to.
     """
     
     # If the robot is staying in the same location while the robot is trying to go to a node,
@@ -1308,17 +1295,30 @@ class TopologicalNavigateState(smach.State):
     # the goal.  
     MAX_DISTANCE_TOPO_HALTED = 0.05;
 
-    def __init__(self):
+    def __init__(self, stop_repeat_navigation:bool = False):
+        """
+        stop_repeat_navigation:bool  - If we have just navigated to a node, we may get asked to go there in the near 
+            future. In some cases, there is no point in this. (Say you are searching a room and have found something, 
+            and then nav to the room node again). 
+            If True then it will prevent us from navigating to the same node twice in a row.
+            Otherwise it will navigate to the node as per normal.
+        """
+        self.stop_repeat_navigation = stop_repeat_navigation;
+
         smach.State.__init__(self,
                                 outcomes=['success', 'failure', 'repeat_failure'],
-                                input_keys=['node_id', 'number_of_failures', 'failure_threshold'],
-                                output_keys=['number_of_failures'])
+                                input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
+                                output_keys=['number_of_failures', 'prev_node_nav_to']);
 
     def get_robot_pose(self) -> Pose:
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
         return robot_pose.pose;
 
     def execute(self, userdata):
+        if self.stop_repeat_navigation==True and userdata.node_id == userdata.prev_node_nav_to:
+            rospy.loginfo("Repeat navigation to the same node prevented.")
+            return 'success'
+
         # Navigating with top nav
         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
 
@@ -1347,7 +1347,8 @@ class TopologicalNavigateState(smach.State):
         # Process action result
         #   Note: result.success returns True if node_id was reached
         if result.success:
-            userdata.number_of_failures = 0
+            userdata.number_of_failures = 0;
+            userdata.prev_node_nav_to = userdata.node_id;
             return 'success'
         else:
             userdata.number_of_failures += 1
@@ -1415,7 +1416,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
         while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
             rospy.sleep(0.1);
-            rospy.loginfo("Checking location");
+            # rospy.loginfo("Checking location");
             robot_pose = self.get_robot_pose();
             robot_pose.position.z = 0;
             dist_between_poses = distance_between_poses(robot_pose, target_pose);
@@ -1820,6 +1821,27 @@ class GetHumanRelativeLoc(smach.State):
         else:
             userdata.relevant_matches = relevant_matches;
             return "success"
+
+class GetOperatorLoc(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'],
+                                input_keys=[],
+                                output_keys=['operator_pose'])
+        self.human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+
+    def execute(self, userdata):
+        query = SOMQueryHumansRequest();
+        query.query.spoken_to_state = Human._OPERATOR;
+        responses:SOMQueryHumansResponse = self.human_query_srv(query);
+
+        if len(responses.returns) == 0:
+            return 'failure';
+
+        operator_entry:Human = responses.returns[0];
+        userdata.operator_pose = operator_entry.obj_position;
+
+        return 'success';
+    pass;
 #endregion
 
 

@@ -61,8 +61,8 @@ def create_state_machine():
     # Create state machine userdata dictionary elements
     
     # Task params
-    sm.userdata.expected_num_guests = 2 # TODO - change to 3
-    sm.userdata.max_search_duration = 2000 # seconds
+    sm.userdata.expected_num_guests = 3 # TODO - change to 3
+    sm.userdata.max_search_duration = 200 # seconds
 
     sm.userdata.person_names = NAMES
     # Load up huge database of additional names (if necessary)
@@ -140,11 +140,16 @@ def create_state_machine():
     sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
     # Where is the operator starting out?
-    sm.userdata.operator_room_node_id = "Node3";
+    sm.userdata.operator_room_node_id = "Kitchen1";
     # Which room are the guests in?
-    sm.userdata.guest_room_node_id = "Node5";
+    sm.userdata.guest_room_node_id = "Living3";
 
     sm.userdata.number_of_failures = 0;
+    
+    # In some cases, we don't want to navigate to the topological node 
+    # if the last one we went to was that node. (I.e., if we're then#
+    # simply going to search for something in that room.)
+    sm.userdata.prev_node_nav_to = "NONE";
 
     with sm:
         # TODO - remove after testing
@@ -190,13 +195,18 @@ def create_state_machine():
         Outputs: 
             closest_human:Human     - Does none of the talking to the human.
             human_object_uid:str    - What is the object uid of the human in question. (Makes it slightly more general for later logic)
+            operator_pose:Pose      - Returns the pose of the operator.
         """
-        smach.StateMachine.add('NAV_TO_OPERATOR',
-                                create_search_for_human(),
-                                transitions={'success':'INTRODUCTION_TO_OPERATOR',
-                                            'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
-                                remapping={'room_node_uid':'operator_room_node_id',
-                                            'failure_threshold':'simple_navigation_failure_threshold'})
+        smach.StateMachine.add(
+            'NAV_TO_OPERATOR',
+            create_search_for_human(),
+            transitions={
+                'success':'INTRODUCTION_TO_OPERATOR',
+                'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+            remapping={
+                'room_node_uid':'operator_room_node_id',
+                'failure_threshold':'simple_navigation_failure_threshold',
+                'human_pose':'operator_pose'})
 
         # announce nav repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',
@@ -336,6 +346,8 @@ def create_state_machine():
                                 # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
                                 remapping={'phrase':'finish_search_phrase'}) 
         
+        # smach.StateMachine.add("GetOperatorPose")
+
         # navigate back to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_RETURN_TO_OPERATOR',
                                SimpleNavigateState(),
