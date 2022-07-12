@@ -36,7 +36,7 @@ def create_state_machine(userdata=None):
     with sm:   
         smach.StateMachine.add('SAVE_GUEST_TO_SOM',
                                 SaveGuestToSOM(),
-                                transitions={'success':'task_success',
+                                transitions={'success':'ANNOUNCE_GUEST_DETAILS',
                                             'failure':'task_failure'},
                                 remapping={'guest_attributes':'guest_attributes'})
                 
