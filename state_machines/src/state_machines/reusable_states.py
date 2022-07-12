@@ -612,21 +612,32 @@ def create_search_for_human():
             'SearchForHuman_2',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'SetSafePoseFromHuman',
+                'new_human_found':'GoToSafePoseFromHuman',
                 'human_not_found':'failure',
                 'existing_human_found':'SetSafePoseFromHuman'},
             remapping={});
 
+        # smach.StateMachine.add(
+        #     'SetSafePoseFromHuman',
+        #     SetSafePoseFromObject(),
+        #     transitions={
+        #         'success':'LookUp'},
+        #     remapping={'pose':'human_pose'});
+
+        # smach.StateMachine.add(
+        #     'LookUp',
+        #     LookUpState(),
+        #     transitions={'success':'NavToPose'});
+
         smach.StateMachine.add(
-            'SetSafePoseFromHuman',
-            SetSafePoseFromObject(),
-            transitions={
-                'success':'LookUp'},
+            'GoToSafePoseFromHuman',
+            NavigateDistanceFromGoalSafely(),
+            transitions={'success':'LookAtHuman'},
             remapping={'pose':'human_pose'});
 
         smach.StateMachine.add(
-            'LookUp',
-            LookUpState(),
+            'LookAtHuman',
+            LookAtHuman(),
             transitions={'success':'NavToPose'});
 
         smach.StateMachine.add(
@@ -1374,7 +1385,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, 
-            outcomes=['success', 'failure'],
+            outcomes=['success'],
             input_keys=['pose']);
 
         self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
