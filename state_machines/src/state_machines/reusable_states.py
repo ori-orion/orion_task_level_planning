@@ -1316,15 +1316,15 @@ class TopologicalNavigateState(smach.State):
         topological_navigate_action_client.wait_for_server()
         topological_navigate_action_client.send_goal(goal)
 
-        old_robot_pose = self.get_robot_pose();
-        while topological_navigate_action_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
-            rospy.sleep(1);
-            new_robot_pose = self.get_robot_pose();
-            dist_between_poses = distance_between_poses(old_robot_pose, new_robot_pose);
-            if dist_between_poses < TopologicalNavigateState.MAX_DISTANCE_TOPO_HALTED:
-                rospy.loginfo("Preempting and rerunning topological nav goal.")                
-                topological_navigate_action_client.cancel_all_goals();
-                topological_navigate_action_client.send_goal(goal);
+        # old_robot_pose = self.get_robot_pose();
+        # while topological_navigate_action_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
+        #     rospy.sleep(1);
+        #     new_robot_pose = self.get_robot_pose();
+        #     dist_between_poses = distance_between_poses(old_robot_pose, new_robot_pose);
+        #     if dist_between_poses < TopologicalNavigateState.MAX_DISTANCE_TOPO_HALTED:
+        #         rospy.loginfo("Preempting and rerunning topological nav goal.")                
+        #         topological_navigate_action_client.cancel_all_goals();
+        #         topological_navigate_action_client.send_goal(goal);
         
         topological_navigate_action_client.wait_for_result()
         result:TraverseToNodeResult = topological_navigate_action_client.get_result()
@@ -1361,6 +1361,53 @@ class GetClosestNodeState(smach.State):
         goal_pose:Pose = userdata.goal_pose;
         userdata.closest_node = get_closest_node(goal_pose.position);
         return 'success';
+
+class NavigateDistanceFromGoalSafely(smach.State):
+    """
+    We want to be able to navigate to a human and sit 1m away from them without colliding into anything.
+
+    DISTANCE_FROM_POSE gives the distance we want to sit from the target pose 'pose'.
+    """
+
+    DISTANCE_FROM_POSE = 1;
+
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=['success', 'failure'],
+            input_keys=['pose']);
+
+        self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
+        self._mb_client.wait_for_server()
+
+    def get_robot_pose(self) -> Pose:
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        return robot_pose.pose;
+
+    def execute(self, userdata):
+        target_pose:Pose = userdata.pose;
+
+        rospy.loginfo('Navigating without top nav')
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = target_pose;
+        rospy.loginfo(goal.target_pose.pose)
+        
+        self._mb_client.send_goal(goal)
+
+        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
+            rospy.sleep(0.1);
+            robot_pose = self.get_robot_pose();
+            dist_between_poses = distance_between_poses(robot_pose, target_pose);
+            if dist_between_poses < NavigateDistanceFromGoalSafely.DISTANCE_FROM_POSE:
+                rospy.loginfo("Preempting and rerunning topological nav goal.");
+                self._mb_client.cancel_all_goals();
+                break;
+            pass;
+
+        return 'success';
+
 #endregion
 
 class PickUpObjectState(smach.State):
@@ -1897,19 +1944,47 @@ class SetSafePoseFromObject(smach.State):
             
         return 'success';
 
+# Look at states
 class LookUpState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['success']);
 
-    def execute(self, userdata):
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
 
+    def execute(self, userdata):
         self.whole_body.gaze_point(
             point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
             ref_frame_id="base_link");
 
         return 'success';
+
+class LookAtHuman(smach.State):
+    """
+    Look at the last human observed.
+    
+    Inputs:
+        closest_human:(Human|None)
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=['success'],
+            input_keys=['closest_human']);
+
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+    
+    def execute(self, userdata):
+        closest_human:Human = userdata.closest_human;
+        human_loc = closest_human.obj_position.position;
+        point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 1.4);
+        
+        self.whole_body.gaze_point(
+            point=point_look_at,
+            ref_frame_id="map");
+        return 'success';
+#endregion
 
 #region Facial stuff
 class RegisterFace(smach.State):
