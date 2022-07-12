@@ -44,8 +44,7 @@ def create_state_machine(userdata=None):
                 
         smach.StateMachine.add('ANNOUNCE_GUEST_DETAILS',
                                 AnnounceGuestDetailsToOperator(),
-                                transitions={'success':'task_success',
-                                            'failure':'task_failure'},
+                                transitions={'success':'task_success'},
                                 remapping={'guest_attributes':'guest_attributes'})
 
 
@@ -60,6 +59,7 @@ if __name__ == '__main__':
     adding.adding.class_ = 'person';
     adding.adding.observed_at = rospy.Time.now();
     adding.adding.observation_batch_num = 1;
+    object_observation_srv(adding);
 
     # Create the state machine
     sm = create_state_machine()
