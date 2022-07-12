@@ -51,7 +51,9 @@ def create_state_machine(userdata=None):
 
 
 if __name__ == '__main__':
-    rospy.init_node('SaveGuestToSOM_test')
+    rospy.init_node('AnnounceGuest_test')
+
+
 
     # Create the state machine
     sm = create_state_machine()
