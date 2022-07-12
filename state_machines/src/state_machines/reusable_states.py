@@ -39,7 +39,7 @@ from orion_actions.srv import SOMObserve
 # new som system
 from orion_actions.msg import SOMObject, Human, Match
 from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest, \
-	SOMQueryHumans, SOMQueryHumansRequest, SOMQueryHumansResponse
+    SOMQueryHumans, SOMQueryHumansRequest, SOMQueryHumansResponse
 import orion_actions.srv;
 
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
@@ -51,8 +51,8 @@ from strands_navigation_msgs.msg import TopologicalMap
 from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
-	ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
-		ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
+    ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
+        ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
 
 from orion_spin.msg import SpinAction, SpinGoal;
 
@@ -75,8 +75,8 @@ COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
            "Black", "White", "Grey", "Brown", "Beige"]
 RELATIONS = ['left', 'right', 'above', 'below', 'front', 'behind', 'near']
 AR_MARKERS = {'bottle': 151}
-FACE_ATTRIBUTES_EXCLUSION_LIST = ['Attractive',	'Bags_Under_Eyes',	'Bald',	'Big_Lips',	'Big_Nose', 'Blurry', 'Chubby',	'Double_Chin', 'Heavy_Makeup',	'Mouth_Slightly_Open',	'Narrow_Eyes',	'Pale_Skin',	'Pointy_Nose',	'Receding_Hairline', 'Smiling',  'Young']
-#FACE_ATTRIBUTES_LIST = ['5_o_Clock_Shadow',	'Arched_Eyebrows',	'Attractive',	'Bags_Under_Eyes',	'Bald',	'Bangs',	'Big_Lips',	'Big_Nose',	'Black_Hair',	'Blond_Hair',	'Blurry',	'Brown_Hair',	'Bushy_Eyebrows',	'Chubby',	'Double_Chin',	'Eyeglasses',	'Goatee',	'Gray_Hair',	'Heavy_Makeup',	'High_Cheekbones',	'Male',	'Mouth_Slightly_Open',	'Mustache',	'Narrow_Eyes',	'No_Beard',	'Oval_Face',	'Pale_Skin',	'Pointy_Nose',	'Receding_Hairline',	'Rosy_Cheeks',	'Sideburns',	'Smiling',	'Straight_Hair',	'Wavy_Hair',	'Wearing_Earrings',	'Wearing_Hat',	'Wearing_Lipstick',	'Wearing_Necklace',	'Wearing_Necktie',	'Young']
+FACE_ATTRIBUTES_EXCLUSION_LIST = ['Attractive',    'Bags_Under_Eyes',    'Bald',    'Big_Lips',    'Big_Nose', 'Blurry', 'Chubby',    'Double_Chin', 'Heavy_Makeup',    'Mouth_Slightly_Open',    'Narrow_Eyes',    'Pale_Skin',    'Pointy_Nose',    'Receding_Hairline', 'Smiling',  'Young']
+#FACE_ATTRIBUTES_LIST = ['5_o_Clock_Shadow',    'Arched_Eyebrows',    'Attractive',    'Bags_Under_Eyes',    'Bald',    'Bangs',    'Big_Lips',    'Big_Nose',    'Black_Hair',    'Blond_Hair',    'Blurry',    'Brown_Hair',    'Bushy_Eyebrows',    'Chubby',    'Double_Chin',    'Eyeglasses',    'Goatee',    'Gray_Hair',    'Heavy_Makeup',    'High_Cheekbones',    'Male',    'Mouth_Slightly_Open',    'Mustache',    'Narrow_Eyes',    'No_Beard',    'Oval_Face',    'Pale_Skin',    'Pointy_Nose',    'Receding_Hairline',    'Rosy_Cheeks',    'Sideburns',    'Smiling',    'Straight_Hair',    'Wavy_Hair',    'Wearing_Earrings',    'Wearing_Hat',    'Wearing_Lipstick',    'Wearing_Necklace',    'Wearing_Necktie',    'Young']
 
 # Objects & Things
 #  Be careful of space/underscore representations of 'cleaning stuff'
@@ -213,10 +213,10 @@ def get_closest_node(dest_pose):
 
 
 def filter_face_attributes_by_exclusion(attributes):
-	""" Filter the list of facial attributes by removing items in the exclusion list. """
-	filtered_attributes = [attr for attr in attributes if attr not in FACE_ATTRIBUTES_EXCLUSION_LIST]
+    """ Filter the list of facial attributes by removing items in the exclusion list. """
+    filtered_attributes = [attr for attr in attributes if attr not in FACE_ATTRIBUTES_EXCLUSION_LIST]
 
-	return filtered_attributes
+    return filtered_attributes
 
 def get_most_recent_obj_from_som(class_=None) -> SOMObject:
     ''' Function to get the most recently observed object from the som (optionally filtered by class_ field)
@@ -244,22 +244,22 @@ def get_most_recent_obj_from_som(class_=None) -> SOMObject:
     return most_recent_object
 
 def call_talk_request_action_server(phrase : str):
-	''' Function to call the Toyota talk request action server
+    ''' Function to call the Toyota talk request action server
 
-	'''
-	action_goal = TalkRequestGoal()
-	action_goal.data.language = Voice.kEnglish  # enum for value: 1
-	action_goal.data.sentence = phrase
+    '''
+    action_goal = TalkRequestGoal()
+    action_goal.data.language = Voice.kEnglish  # enum for value: 1
+    action_goal.data.sentence = phrase
 
-	rospy.loginfo("HSR speaking phrase: '{}'".format(phrase))
-	speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
-									TalkRequestAction)
+    rospy.loginfo("HSR speaking phrase: '{}'".format(phrase))
+    speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
+                                    TalkRequestAction)
 
-	speak_action_client.wait_for_server()
-	speak_action_client.send_goal(action_goal)
-	speak_action_client.wait_for_result()
+    speak_action_client.wait_for_server()
+    speak_action_client.send_goal(action_goal)
+    speak_action_client.wait_for_result()
 
-	return
+    return
 
 def attribute_to_sentence(attribute):
     # function to convert attributes like Wearing_Hat into pronouncable wearing hat
@@ -267,13 +267,13 @@ def attribute_to_sentence(attribute):
     return atr
 
 def positional_to_cardinal(num: int) -> str:
-	# function to convert positional numbers to cardinal numbers. returns a string.
-	mapping = {1:"first", 2: "second", 3:"third", 4:"fourth", 5:"fifth", 6:"sixth", 7:"seventh", 8:"eighth", 9:"nineth", 10:"tenth"}
+    # function to convert positional numbers to cardinal numbers. returns a string.
+    mapping = {1:"first", 2: "second", 3:"third", 4:"fourth", 5:"fifth", 6:"sixth", 7:"seventh", 8:"eighth", 9:"nineth", 10:"tenth"}
 
-	if num in mapping:
-		return mapping[num]
-	else:
-		raise Exception("Input number is out of range for this function. Supported mapping: {}".format(mapping))
+    if num in mapping:
+        return mapping[num]
+    else:
+        raise Exception("Input number is out of range for this function. Supported mapping: {}".format(mapping))
 
 def get_closest_node(point:Point) -> str:
     """
@@ -1573,6 +1573,8 @@ class SaveGuestToSOM(smach.State):
         # We don't want to speak to the same guest twice.
         guest_obs.adding.spoken_to_state = Human._SPOKEN_TO;
 
+        print(userdata.guest_attributes)
+
         if("name" in userdata.guest_attributes):
             guest_obs.adding.name = userdata.guest_attributes["name"]
         if("gender" in userdata.guest_attributes):
@@ -1878,300 +1880,291 @@ class SetSafePoseFromObject(smach.State):
 
 
 class RegisterFace(smach.State):
-	""" State for robot to register a new face using facial capture action server
+    """ State for robot to register a new face using facial capture action server
 
-	The action server detects faces from the robot RGB-D sensor's RGB camera image topic
+    The action server detects faces from the robot RGB-D sensor's RGB camera image topic
 
-	input_keys:
-		face_id: (optional) the name or identifier of the person whose face is being registered
-	output_keys:
-		registered_face_id: the id assigned to the registered face. This will be the input face_id if given,
-							else a unique sequential id generated by the facial capture action server
-	"""
+    input_keys:
+        face_id: (optional) the name or identifier of the person whose face is being registered
+    output_keys:
+        registered_face_id: the id assigned to the registered face. This will be the input face_id if given,
+                            else a unique sequential id generated by the facial capture action server
+    """
 
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['success','failure'],
-								input_keys=['face_id'],
-								output_keys=['registered_face_id'])
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success','failure'],
+                                input_keys=['face_id'],
+                                output_keys=['registered_face_id'])
 
-	def execute(self, userdata):
-		# if the face_id is not given, then set it to an empty string;
-		# the capface server will automatically generate one for us
-		if("face_id" not in userdata):
-			face_id = ""
-		else:
-			face_id = userdata["face_id"]
+    def execute(self, userdata):
+        # if the face_id is not given, then set it to an empty string;
+        # the capface server will automatically generate one for us
+        if("face_id" not in userdata):
+            face_id = ""
+        else:
+            face_id = userdata["face_id"]
 
-		# set action goal and call action server
-		capface_goal = ActionServer_CapFaceGoal(face_id=face_id)
+        # set action goal and call action server
+        capface_goal = ActionServer_CapFaceGoal(face_id=face_id)
 
-		capface_action_client = actionlib.SimpleActionClient('as_Capface', ActionServer_CapFaceAction)
-		capface_action_client.wait_for_server()
-		rospy.loginfo("Calling CapFace action server...")
-		capface_action_client.send_goal(capface_goal)
-		capface_action_client.wait_for_result()
+        capface_action_client = actionlib.SimpleActionClient('as_Capface', ActionServer_CapFaceAction)
+        capface_action_client.wait_for_server()
+        rospy.loginfo("Calling CapFace action server...")
+        capface_action_client.send_goal(capface_goal)
+        capface_action_client.wait_for_result()
 
-		# process result
-		found_face = capface_action_client.get_result().If_saved
-		if not found_face:
-			# no faces were found in the image
-			rospy.logwarn("Capface action server failed. Did not find any faces in the image")
-			return "failure"
-		# success
-		registered_face_id = capface_action_client.get_result().name
-		userdata["registered_face_id"] = registered_face_id
-		rospy.loginfo("Capface action server registered face with id: {}".format(registered_face_id))
-		return "success"
+        # process result
+        found_face = capface_action_client.get_result().If_saved
+        if not found_face:
+            # no faces were found in the image
+            rospy.logwarn("Capface action server failed. Did not find any faces in the image")
+            return "failure"
+        # success
+        registered_face_id = capface_action_client.get_result().name
+        userdata["registered_face_id"] = registered_face_id
+        rospy.loginfo("Capface action server registered face with id: {}".format(registered_face_id))
+        return "success"
 
 
 class RecogniseFace(smach.State):
-	""" State for robot to recognise a face and match it to a previously registered face,
-		using the facial capture action server
+    """ State for robot to recognise a face and match it to a previously registered face,
+        using the facial capture action server
 
-	input_keys:
-		min_score_threshold: (optional) the minimum score for a matched face to be considered a valid match
-	output_keys:
-		face_id: the id of the detected face, used in the facelib system / capface action server
-		face_match_score: the match score of the recognised face
-	"""
+    input_keys:
+        min_score_threshold: (optional) the minimum score for a matched face to be considered a valid match
+    output_keys:
+        face_id: the id of the detected face, used in the facelib system / capface action server
+        face_match_score: the match score of the recognised face
+    """
 
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['success', 'failure'],
-								input_keys=['min_score_threshold'],
-								output_keys=['face_id','face_match_score'])
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'],
+                                input_keys=['min_score_threshold'],
+                                output_keys=['face_id','face_match_score'])
 
-	def execute(self, userdata):
-		# use min_score_threshold, if set
-		if "min_score_threshold" in userdata:
-			min_score_threshold = userdata["min_score_threshold"]
-		else:
-			min_score_threshold = 0.1
+    def execute(self, userdata):
+        # use min_score_threshold, if set
+        if "min_score_threshold" in userdata:
+            min_score_threshold = userdata["min_score_threshold"]
+        else:
+            min_score_threshold = 0.1
 
-		# set action goal and call action server
-		findmatch_goal = ActionServer_FindMatchGoal()
+        # set action goal and call action server
+        findmatch_goal = ActionServer_FindMatchGoal()
 
-		findmatch_action_client = actionlib.SimpleActionClient('as_Findmatch', ActionServer_FindMatchAction)
-		findmatch_action_client.wait_for_server()
-		rospy.loginfo("Calling face match action server...")
-		findmatch_action_client.send_goal(findmatch_goal)
-		findmatch_action_client.wait_for_result()
+        findmatch_action_client = actionlib.SimpleActionClient('as_Findmatch', ActionServer_FindMatchAction)
+        findmatch_action_client.wait_for_server()
+        rospy.loginfo("Calling face match action server...")
+        findmatch_action_client.send_goal(findmatch_goal)
+        findmatch_action_client.wait_for_result()
 
-		# process result
-		if(not findmatch_action_client.get_result().If_find):
-			# face not found
-			rospy.loginfo("Face FindMatch action server did not find any faces in the image")
-			return "failure"
-		# face was found
-		matched_face_id = findmatch_action_client.get_result().face_id
-		matched_face_score = findmatch_action_client.get_result().best_match_score
-		# matched_face_file_name = findmatch_action_client.get_result().file_name
-		if(matched_face_score < min_score_threshold):
-			# no faces found with high enough score/confidence
-			rospy.logwarn("Face FindMatch action server failed. Did not find any matches above min score threshold ({}); best score is '{}'.".format(min_score_threshold, matched_face_score))
-			return "failure"
-		# result was good!
-		userdata["face_id"] = matched_face_id
-		userdata["face_match_score"] = matched_face_score
-		rospy.loginfo("Face FindMatch action server recognised face_id '{}', face_score: {}".format(matched_face_id, matched_face_score))
-		return "success"
+        # process result
+        if(not findmatch_action_client.get_result().If_find):
+            # face not found
+            rospy.loginfo("Face FindMatch action server did not find any faces in the image")
+            return "failure"
+        # face was found
+        matched_face_id = findmatch_action_client.get_result().face_id
+        matched_face_score = findmatch_action_client.get_result().best_match_score
+        # matched_face_file_name = findmatch_action_client.get_result().file_name
+        if(matched_face_score < min_score_threshold):
+            # no faces found with high enough score/confidence
+            rospy.logwarn("Face FindMatch action server failed. Did not find any matches above min score threshold ({}); best score is '{}'.".format(min_score_threshold, matched_face_score))
+            return "failure"
+        # result was good!
+        userdata["face_id"] = matched_face_id
+        userdata["face_match_score"] = matched_face_score
+        rospy.loginfo("Face FindMatch action server recognised face_id '{}', face_score: {}".format(matched_face_id, matched_face_score))
+        return "success"
 
 class DetectFaceAttributes(smach.State):
-	""" State for the robot to detect face attributes
+    """ State for the robot to detect face attributes
 
-	Uses the FaceLib FindAttrs action server.
-	Always succeeds; an empty attributes list is not a failure.
+    Uses the FaceLib FindAttrs action server.
+    Always succeeds; an empty attributes list is not a failure.
 
-	input_keys:
-		face_id: (optional) If given, the action server will analyse the saved face for this face_id,
-							otherwise it will analyse the face that currently appears in the image topic
-	output_keys:
-		face_attributes: A list of detected facial attributes, represented as strings.
-						 If a certain feature is detected, it will be present in this list.
-						 Thus, features not in the list were not detected.
-		num_attributes: The number of detected facial attributes
-	"""
+    input_keys:
+        face_id: (optional) If given, the action server will analyse the saved face for this face_id,
+                            otherwise it will analyse the face that currently appears in the image topic
+    output_keys:
+        face_attributes: A list of detected facial attributes, represented as strings.
+                         If a certain feature is detected, it will be present in this list.
+                         Thus, features not in the list were not detected.
+        num_attributes: The number of detected facial attributes
+    """
 
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['success'],
-								input_keys=['face_id'],
-								output_keys=['face_attributes', 'num_attributes'])
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'],
+                                input_keys=['face_id'],
+                                output_keys=['face_attributes', 'num_attributes'])
 
-	def execute(self, userdata):
-		# if the face_id is not given, then set it to an empty string;
-		# the capface server will use the live camera topic feed (rather than the pre-registered face)
-		if("face_id" not in userdata):
-			face_id = ""
-		else:
-			face_id = userdata["face_id"]
+    def execute(self, userdata):
+        # if the face_id is not given, then set it to an empty string;
+        # the capface server will use the live camera topic feed (rather than the pre-registered face)
+        if("face_id" not in userdata):
+            face_id = ""
+        else:
+            face_id = userdata["face_id"]
 
-		# set action goal and call action server
-		find_face_attrs_goal = ActionServer_FindAttrsGoal(face_id=face_id)
+        # set action goal and call action server
+        find_face_attrs_goal = ActionServer_FindAttrsGoal(face_id=face_id)
 
-		find_face_attrs_action_client = actionlib.SimpleActionClient('as_Findattrs', ActionServer_FindAttrsAction)
-		find_face_attrs_action_client.wait_for_server()
-		rospy.loginfo("Calling find face attributes action server...")
-		find_face_attrs_action_client.send_goal(find_face_attrs_goal)
-		find_face_attrs_action_client.wait_for_result()
+        find_face_attrs_action_client = actionlib.SimpleActionClient('as_Findattrs', ActionServer_FindAttrsAction)
+        find_face_attrs_action_client.wait_for_server()
+        rospy.loginfo("Calling find face attributes action server...")
+        find_face_attrs_action_client.send_goal(find_face_attrs_goal)
+        find_face_attrs_action_client.wait_for_result()
 
-		# process result
-		face_attributes_raw = find_face_attrs_action_client.get_result().attrs
-		num_attributes_raw = find_face_attrs_action_client.get_result().num_attrs
-		face_attributes = filter_face_attributes_by_exclusion(face_attributes_raw) 		# remove unwanted labels
-		num_attributes = len(face_attributes)
-		userdata["face_attributes"] = face_attributes
-		userdata["num_attributes"] = num_attributes
-		rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}".format(num_attributes, face_attributes))
-		# rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}\nFound {} unfiltered attributes: \n\t{}".format(num_attributes, face_attributes, num_attributes_raw, face_attributes_raw))
-		return "success"
+        # process result
+        face_attributes_raw = find_face_attrs_action_client.get_result().attrs
+        num_attributes_raw = find_face_attrs_action_client.get_result().num_attrs
+        face_attributes = filter_face_attributes_by_exclusion(face_attributes_raw)         # remove unwanted labels
+        num_attributes = len(face_attributes)
+        userdata["face_attributes"] = face_attributes
+        userdata["num_attributes"] = num_attributes
+        rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}".format(num_attributes, face_attributes))
+        # rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}\nFound {} unfiltered attributes: \n\t{}".format(num_attributes, face_attributes, num_attributes_raw, face_attributes_raw))
+        return "success"
 
 class ClearFaceDB(smach.State):
-	""" State for the robot to clear the face database
+    """ State for the robot to clear the face database
 
-	Uses the FaceLib as_Cleardatabase action server
+    Uses the FaceLib as_Cleardatabase action server
 
-	input_keys:
+    input_keys:
 
-	output_keys:
+    output_keys:
 
-	"""
+    """
 
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['success'])
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'])
 
-	def execute(self, userdata):
-		# set action goal and call action server
-		clear_face_db_goal = ActionServer_ClearDatabaseGoal()
+    def execute(self, userdata):
+        # set action goal and call action server
+        clear_face_db_goal = ActionServer_ClearDatabaseGoal()
 
-		clear_face_db_action_client = actionlib.SimpleActionClient('as_Cleardatabase', ActionServer_ClearDatabaseAction)
-		clear_face_db_action_client.wait_for_server()
-		rospy.loginfo("Calling clear face db action server...")
-		clear_face_db_action_client.send_goal(clear_face_db_goal)
-		clear_face_db_action_client.wait_for_result()
+        clear_face_db_action_client = actionlib.SimpleActionClient('as_Cleardatabase', ActionServer_ClearDatabaseAction)
+        clear_face_db_action_client.wait_for_server()
+        rospy.loginfo("Calling clear face db action server...")
+        clear_face_db_action_client.send_goal(clear_face_db_goal)
+        clear_face_db_action_client.wait_for_result()
 
-		# process result
-		# is_success = clear_face_db_action_client.get_result().Is_success - is this used? it's not essential atm
+        # process result
+        # is_success = clear_face_db_action_client.get_result().Is_success - is this used? it's not essential atm
 
-		rospy.loginfo("ClearFaceDatabase action server cleared the database")
-		return "success"
+        rospy.loginfo("ClearFaceDatabase action server cleared the database")
+        return "success"
 
 # TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
-	""" State for the robot to give the operator info about mates
+    """ State for the robot to give the operator info about mates
 
-	Always succeeds.
+    Always succeeds.
 
-	input_keys:
-		guest_som_human_ids: TODO
-		guest_som_obj_ids: TODO
+    input_keys:
+        guest_som_human_ids: TODO
+        guest_som_obj_ids: TODO
 
-	output_keys:
+    output_keys:
 
-	"""
+    """
 
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['success'],
-								input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'],
+                                input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
 
-	def execute(self, userdata):
-		number_of_guests_found = min(len(userdata.guest_som_human_ids), len(userdata.guest_som_obj_ids))
+    def execute(self, userdata):
+        rospy.wait_for_service('som/humans/basic_query')
+        som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
+        
+        query = SOMQueryHumansRequest();
+        query.query.task_role = "guest";
+        responses:SOMQueryHumansResponse = som_humans_query_service_client(query);
 
-		if number_of_guests_found == 0:
-			talk_phrase = "I could not find any of your mates. Don't worry, I'm sure they will arrive soon!"
-			call_talk_request_action_server(phrase=talk_phrase)
-			return 'success'
+        number_of_guests_found = len(responses.returns);
 
-		if number_of_guests_found > 0:
-			talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
-			call_talk_request_action_server(phrase=talk_phrase)
-			for guest_num in range(number_of_guests_found):
-				# Query human from human collection
-				# call a query by class_ and sort results by most recent observation - return the newest one
-				query = SOMQueryHumansRequest()
-				query.query.object_uid = userdata.guest_som_obj_ids[guest_num]
+        if number_of_guests_found == 0:
+            talk_phrase = "I could not find any of your mates. Don't worry, I'm sure they will arrive soon!"
+            call_talk_request_action_server(phrase=talk_phrase)
+            return 'success'
 
-				rospy.wait_for_service('som/humans/basic_query')
-				som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
+        if number_of_guests_found > 0:
+            talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
+            call_talk_request_action_server(phrase=talk_phrase)
+            guest_num = 0;
+            for human_record in responses.returns:
+                human_record:Human;
 
-				# call the service
-				response = som_humans_query_service_client(query);
+                # build the string to tell the operator about the mate
+                person_talk_phrase = ""
+                if human_record.name:
+                    person_talk_phrase += "The {} person I met was {}.".format(positional_to_cardinal(guest_num+1), human_record.name)
+                else:
+                    if guest_num == 0:
+                        person_talk_phrase += "I met the {} person.".format(positional_to_cardinal(guest_num+1))
+                    else:
+                        person_talk_phrase += "I met a {} person.".format(positional_to_cardinal(guest_num+1))
 
-				# if the SOM didn't return any records that match the object_uid, then skip it
-				if len(response.returns) == 0:
-					# let the operator know there was a problem
-					talk_phrase = "Something has gone wrong and I cannot retreive information about person number {}".format(guest_num+1)
-					call_talk_request_action_server(phrase=talk_phrase)
-					continue
+                # TODO - build in information about person location (maybe query the SOM to find out?)
 
-				# just take the first return because there should only ever be one human entry for a given object_uid
-				human_record = response.returns[0]
+                if not human_record.gender:
+                    pass
+                else:
+                    if human_record.gender == "prefer not to say":
+                        pass
+                    else:
+                        person_talk_phrase += " They identify as {}.".format(human_record.gender)
 
-				# build the string to tell the operator about the mate
-				person_talk_phrase = ""
-				if human_record.name:
-					person_talk_phrase += "The {} person I met was {}.".format(positional_to_cardinal(guest_num+1), human_record.name)
-				else:
-					if guest_num == 0:
-						person_talk_phrase += "I met the {} person.".format(positional_to_cardinal(guest_num+1))
-					else:
-						person_talk_phrase += "I met a {} person.".format(positional_to_cardinal(guest_num+1))
+                if not human_record.pronouns:
+                    pass
+                else:
+                    if human_record.pronouns == "prefer not to say":
+                        pass
+                    else:
+                        person_talk_phrase += " Their pronouns are '{}'.".format(human_record.pronouns)
 
-				# TODO - build in information about person location (maybe query the SOM to find out?)
+                if human_record.face_attributes:
+                    all_are_attributes = ['Bald', 'Wearing_Hat', 'Wearing_Necklace', 'Wearing_Necktie']
+                    all_have_attributes = ['5_o_Clock_Shadow', 'Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'High_Cheekbones', 'Mustache', 'No_Beard', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
 
-				if not human_record.gender:
-					pass
-				else:
-					if human_record.gender == "prefer not to say":
-						pass
-					else:
-						person_talk_phrase += " They identify as {}.".format(human_record.gender)
+                    are_attributes = []
+                    have_attributes = []
 
-				if not human_record.pronouns:
-					pass
-				else:
-					if human_record.pronouns == "prefer not to say":
-						pass
-					else:
-						person_talk_phrase += " Their pronouns are '{}'.".format(human_record.pronouns)
+                    for attribute in human_record.face_attributes:
+                        if(attribute in all_are_attributes):
+                            are_attributes.append(attribute)
+                        elif(attribute in all_have_attributes):
+                            have_attributes.append(attribute)
 
-				if human_record.face_attributes:
-					all_are_attributes = ['Bald', 'Wearing_Hat', 'Wearing_Necklace', 'Wearing_Necktie']
-					all_have_attributes = ['5_o_Clock_Shadow', 'Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'High_Cheekbones', 'Mustache', 'No_Beard', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
+                    if(len(are_attributes)>1):
+                        """ Making sure it can pronounce things like Wearing_Necklace"""
+                        list1 = []
+                        for attribute in are_attributes[:-1]:
+                            list1.append(attribute_to_sentence(attribute))
+                        person_talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
+                    elif(len(are_attributes)==1):
+                        person_talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
 
-					are_attributes = []
-					have_attributes = []
+                    if(len(have_attributes)>1):
+                        list2 = []
+                        for attribute in have_attributes[:-1]:
+                            list2.append(attribute_to_sentence(attribute))
+                        person_talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
+                    elif(len(have_attributes)==1):
+                        person_talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
+                    #person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
 
-					for attribute in human_record.face_attributes:
-						if(attribute in all_are_attributes):
-							are_attributes.append(attribute)
-						elif(attribute in all_have_attributes):
-							have_attributes.append(attribute)
+                # speak the details for this person
+                call_talk_request_action_server(phrase=person_talk_phrase)
 
-					if(len(are_attributes)>1):
-						""" Making sure it can pronounce things like Wearing_Necklace"""
-						list1 = []
-						for attribute in are_attributes[:-1]:
-							list1.append(attribute_to_sentence(attribute))
-						person_talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
-					elif(len(are_attributes)==1):
-						person_talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
+                guest_num += 1;
 
-					if(len(have_attributes)>1):
-						list2 = []
-						for attribute in have_attributes[:-1]:
-							list2.append(attribute_to_sentence(attribute))
-						person_talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
-					elif(len(have_attributes)==1):
-						person_talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
-					#person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
+            # wrap up
+            talk_phrase = "That's everyone I met!"
+            call_talk_request_action_server(phrase=talk_phrase)
 
-				# speak the details for this person
-				call_talk_request_action_server(phrase=person_talk_phrase)
-
-			# wrap up
-			talk_phrase = "That's everyone I met!"
-			call_talk_request_action_server(phrase=talk_phrase)
-
-		return 'success'
+        return 'success'
 
 class WaitForHotwordState(smach.State):
     """ Smach state for waiting for the hotword detector to publish a detection message.
@@ -2180,7 +2173,7 @@ class WaitForHotwordState(smach.State):
     otherwise 'failure'.
 
     input_keys:
-		timeout: timeout time in seconds (set to None to wait indefinitely)
+        timeout: timeout time in seconds (set to None to wait indefinitely)
     """
 
     def __init__(self):
