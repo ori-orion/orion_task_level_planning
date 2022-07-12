@@ -25,6 +25,7 @@ def construct_qualification_sm():
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
 
     sm.userdata.navigate_to_node = "Node3";
+    sm.userdata.exit_node = "Node5";
 
     sm.userdata.hotword_timeout = 3;
 
@@ -64,9 +65,18 @@ def construct_qualification_sm():
             'WAIT_FOR_HOTWORD',
             WaitForHotwordState(),
             transitions={
-                'success':'NAV_TO_START', 
+                'success':'NAV_TO_EXIT', 
                 'failure':'WAIT_FOR_HOTWORD'},
             remapping={'timeout':'hotword_timeout'});
+
+        smach.StateMachine.add(
+            'NAV_TO_EXIT',
+            TopologicalNavigateState(),
+            transitions={
+                'success':'task_success', 
+                'failure':'NAV_TO_EXIT', 
+                'repeat_failure':'task_failure'},
+            remapping={'node_id':'exit_node'});
 
         smach.StateMachine.add(
             'NAV_TO_START',
