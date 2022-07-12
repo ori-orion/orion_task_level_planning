@@ -2327,20 +2327,24 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
                     if(len(are_attributes)>1):
                         """ Making sure it can pronounce things like Wearing_Necklace"""
-                        list1 = []
+                        string1 = ""
                         for attribute in are_attributes[:-1]:
-                            list1.append(attribute_to_sentence(attribute))
-                        person_talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
+                            list1 = attribute_to_sentence(attribute)
+                            string1 = string1 +" " + " ".join(e for e in list1)
+                        string2 = " ".join(e for e in are_attributes[-1])
+                        person_talk_phrase += " They are {} and {}.".format(string1, string2)
                     elif(len(are_attributes)==1):
-                        person_talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
+                        person_talk_phrase += " They are {}.".format(" ".join(e for e in attribute_to_sentence(are_attributes)))
 
                     if(len(have_attributes)>1):
-                        list2 = []
+                        string3 = ""
                         for attribute in have_attributes[:-1]:
-                            list2.append(attribute_to_sentence(attribute))
-                        person_talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
+                            list3 = attribute_to_sentence(attribute)
+                            string3 = string3 +" " + " ".join(e for e in list3)
+                        string4 = " ".join(e for e in have_attributes[-1])
+                        person_talk_phrase += " They have {} and {}.".format(string3, string4)
                     elif(len(have_attributes)==1):
-                        person_talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
+                        person_talk_phrase += " They have {}.".format(" ".join(e for e in attribute_to_sentence(have_attributes)))
                     #person_talk_phrase += " They have the following facial attributes: {}.".format(human_record.face_attributes)
 
                 # speak the details for this person

@@ -27,7 +27,7 @@ def create_state_machine(userdata=None):
     """
 
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
-    sm.userdata.guest_attributes = {'name':'Mia', 'face_attributes': ['Blond_Hair', 'No_Beard', 'Striaght_Hair', 'Pale_Skin']}
+    sm.userdata.guest_attributes = {'name':'Mia', 'face_attributes': ['Blond_Hair', 'No_Beard', 'Straight_Hair', 'Pale_Skin']}
     sm.userdata.guest_som_human_ids = ['1']
     sm.userdata.guest_som_obj_ids = ['1']
     
