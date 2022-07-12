@@ -56,6 +56,9 @@ from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_
 
 from orion_spin.msg import SpinAction, SpinGoal;
 
+import actionlib_msgs.msg;
+
+
 FAILURE_THRESHOLD = 3       # TODO - remove
 
 # People
@@ -1274,12 +1277,22 @@ class TopologicalNavigateState(smach.State):
     output_keys:
         number_of_failures: the updated failure counter upon state exit
     """
+    
+    # If the robot is staying in the same location while the robot is trying to go to a node,
+    # then we should preempt and retry. The preemption check is done at 1 second intervals. 
+    # This is then the maximum distance it can have travelled in that time for us to preempt
+    # the goal.  
+    MAX_DISTANCE_TOPO_HALTED = 0.05;
 
     def __init__(self):
         smach.State.__init__(self,
                                 outcomes=['success', 'failure', 'repeat_failure'],
                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold'],
                                 output_keys=['number_of_failures'])
+
+    def get_robot_pose(self) -> Pose:
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        return robot_pose.pose;
 
     def execute(self, userdata):
         # Navigating with top nav
@@ -1291,6 +1304,17 @@ class TopologicalNavigateState(smach.State):
         topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
         topological_navigate_action_client.wait_for_server()
         topological_navigate_action_client.send_goal(goal)
+
+        old_robot_pose = self.get_robot_pose();
+        while topological_navigate_action_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
+            rospy.sleep(1);
+            new_robot_pose = self.get_robot_pose();
+            dist_between_poses = distance_between_poses(old_robot_pose, new_robot_pose);
+            if dist_between_poses < TopologicalNavigateState.MAX_DISTANCE_TOPO_HALTED:
+                rospy.loginfo("Preempting and rerunning topological nav goal.")                
+                topological_navigate_action_client.cancel_all_goals();
+                topological_navigate_action_client.send_goal(goal);
+        
         topological_navigate_action_client.wait_for_result()
         result:TraverseToNodeResult = topological_navigate_action_client.get_result()
 

@@ -26,6 +26,8 @@ def construct_qualification_sm():
 
     sm.userdata.navigate_to_node = "Node3";
 
+    sm.userdata.hotword_timeout = 3;
+
     with sm:
 
 
@@ -56,7 +58,8 @@ def construct_qualification_sm():
             WaitForHotwordState(),
             transitions={
                 'success':'NAV_TO_START', 
-                'failure':'WAIT_FOR_HOTWORD'});
+                'failure':'WAIT_FOR_HOTWORD'},
+            remapping={'timeout':'hotword_timeout'});
 
         smach.StateMachine.add(
             'NAV_TO_START',
