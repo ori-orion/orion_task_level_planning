@@ -1871,7 +1871,7 @@ class SetSafePoseFromObject(smach.State):
         return 'success';
 
 
-
+#region Facial stuff
 class RegisterFace(smach.State):
 	""" State for robot to register a new face using facial capture action server
 
@@ -1917,7 +1917,6 @@ class RegisterFace(smach.State):
 		userdata["registered_face_id"] = registered_face_id
 		rospy.loginfo("Capface action server registered face with id: {}".format(registered_face_id))
 		return "success"
-
 
 class RecogniseFace(smach.State):
 	""" State for robot to recognise a face and match it to a previously registered face,
@@ -2048,6 +2047,7 @@ class ClearFaceDB(smach.State):
 
 		rospy.loginfo("ClearFaceDatabase action server cleared the database")
 		return "success"
+#endregion
 
 # TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
@@ -2139,6 +2139,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 			call_talk_request_action_server(phrase=talk_phrase)
 
 		return 'success'
+
 
 class WaitForHotwordState(smach.State):
     """ Smach state for waiting for the hotword detector to publish a detection message.
