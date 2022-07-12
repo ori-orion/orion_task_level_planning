@@ -62,7 +62,7 @@ def create_state_machine():
     
     # Task params
     sm.userdata.expected_num_guests = 2 # TODO - change to 3
-    sm.userdata.max_search_duration = 3000 # seconds
+    sm.userdata.max_search_duration = 2000 # seconds
 
     sm.userdata.person_names = NAMES
     # Load up huge database of additional names (if necessary)
@@ -142,7 +142,7 @@ def create_state_machine():
     # Where is the operator starting out?
     sm.userdata.operator_room_node_id = "Node3";
     # Which room are the guests in?
-    sm.userdata.guest_room_node_id = "Node6";
+    sm.userdata.guest_room_node_id = "Node5";
 
     sm.userdata.number_of_failures = 0;
 
