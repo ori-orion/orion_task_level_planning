@@ -28,6 +28,14 @@ def construct_qualification_sm():
 
     sm.userdata.hotword_timeout = 3;
 
+    sm.userdata.number_of_failures = 0;
+    sm.userdata.failure_threshold = 3;
+
+    end_loc = Pose();
+    end_loc.orientation.w = 1;    
+    sm.userdata.pose = end_loc;
+    
+
     with sm:
 
 
@@ -42,7 +50,6 @@ def construct_qualification_sm():
             GetRobotLocationState(),
             transitions={'stored':'NAV_TO_NEAREST_NODE'},
             remapping={'robot_location':'start_pose'});
-
 
         smach.StateMachine.add(
             'NAV_TO_NEAREST_NODE',
@@ -68,7 +75,7 @@ def construct_qualification_sm():
                 'success':'task_success', 
                 'failure':'NAV_TO_START', 
                 'repeat_failure':'task_failure'},
-            remapping={'pose','start_pose'});
+            remapping={'pose':'start_pose'});
 
     return sm;
 

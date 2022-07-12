@@ -1239,6 +1239,7 @@ class SimpleNavigateState(smach.State):
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
+        print(userdata.pose);
         goal.target_pose.pose = userdata.pose
         rospy.loginfo(goal.target_pose.pose)
 
@@ -2194,6 +2195,22 @@ class WaitForHotwordState(smach.State):
             return 'failure'
 
 
+class DebugState(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes = ['success'],
+            input_keys=['start_pose']);
+
+    def execute(self, userdata):
+        print(userdata.start_pose);
+        return 'success';
+
+
+
+
+
+
 # class GiveOperatorInfoState(ActionServiceState):
 #     """ State for giving operator info about mates. """
 
@@ -2263,6 +2280,9 @@ class WaitForHotwordState(smach.State):
 #         self.action_dict['Speak'].wait_for_result()
 
 #         return self._outcomes[0]
+
+
+
 
 ###################### NEEDS REVIEWING #################################
 
@@ -3116,3 +3136,5 @@ class NavigateState(ActionServiceState):
             if self.global_store['nav_failure'] >= FAILURE_THRESHOLD:   # TODO - replace global variable with input userdata dictionary element
                 return self._outcomes[2]
             return self._outcomes[1]
+
+
