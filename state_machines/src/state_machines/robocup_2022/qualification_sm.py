@@ -25,7 +25,7 @@ def construct_qualification_sm():
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
 
     sm.userdata.navigate_to_node = "Node1";
-    sm.userdata.exit_node = "Node2";
+    sm.userdata.exit_node = "Node3";
 
     sm.userdata.hotword_timeout = 3;
 
