@@ -270,6 +270,7 @@ def call_talk_request_action_server(phrase : str):
 def attribute_to_sentence(attribute):
     # function to convert attributes like Wearing_Hat into pronouncable wearing hat
     atr = attribute.split('_')
+    atr = [a.lower() for a in atr]
     return atr
 
 def positional_to_cardinal(num: int) -> str:
@@ -2331,7 +2332,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
                         for attribute in are_attributes[:-1]:
                             list1 = attribute_to_sentence(attribute)
                             string1 = string1 +" " + " ".join(e for e in list1)
-                        string2 = " ".join(e for e in are_attributes[-1])
+                        string2 = " ".join(e for e in attribute_to_sentence(are_attributes[-1]))
                         person_talk_phrase += " They are {} and {}.".format(string1, string2)
                     elif(len(are_attributes)==1):
                         person_talk_phrase += " They are {}.".format(" ".join(e for e in attribute_to_sentence(are_attributes)))
@@ -2341,7 +2342,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
                         for attribute in have_attributes[:-1]:
                             list3 = attribute_to_sentence(attribute)
                             string3 = string3 +" " + " ".join(e for e in list3)
-                        string4 = " ".join(e for e in have_attributes[-1])
+                        string4 = " ".join(e for e in attribute_to_sentence(have_attributes[-1]))
                         person_talk_phrase += " They have {} and {}.".format(string3, string4)
                     elif(len(have_attributes)==1):
                         person_talk_phrase += " They have {}.".format(" ".join(e for e in attribute_to_sentence(have_attributes)))
