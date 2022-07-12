@@ -1186,7 +1186,7 @@ class AskPersonNameState(smach.State):
 
     def execute(self, userdata):
         ask_name_goal = AskPersonNameGoal()
-        rospy.loginfo("Asking question " + userdata.question + " with timeout " + userdata.timeout);
+        rospy.loginfo(f"Asking question {userdata.question} with timeout {userdata.timeout}")
         ask_name_goal.question = userdata.question
         ask_name_goal.timeout = userdata.timeout
 
