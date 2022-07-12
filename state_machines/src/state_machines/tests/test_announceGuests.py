@@ -13,6 +13,8 @@ import actionlib
 
 from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 
+from orion_actions.srv import SOMAddObservationRequest, SOMAddObservation; 
+
 
 def create_state_machine(userdata=None):
     """ This function builds the state machine for the test.
@@ -53,7 +55,11 @@ def create_state_machine(userdata=None):
 if __name__ == '__main__':
     rospy.init_node('AnnounceGuest_test')
 
-
+    object_observation_srv = rospy.ServiceProxy('/som/observations/input', SOMAddObservation);
+    adding = SOMAddObservationRequest();
+    adding.adding.class_ = 'person';
+    adding.adding.observed_at = rospy.Time.now();
+    adding.adding.observation_batch_num = 1;
 
     # Create the state machine
     sm = create_state_machine()
