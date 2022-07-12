@@ -40,7 +40,7 @@ def prime_SOM_system():
     pose_1 = Pose();
     pose_1.position.x = 5.847205116292954;
     pose_1.position.y = -0.06664083269901128;
-    pose_1.position.z = 0.0;
+    pose_1.position.z = 1;
     pose_1.orientation.x = 0.0;
     pose_1.orientation.y = 0.0;
     pose_1.orientation.z = 0.9353678902554121;
@@ -62,7 +62,7 @@ def prime_SOM_system():
     pose_2 = Pose();
     pose_2.position.x = 2.5660398068352572;
     pose_2.position.y = 4.79595756974329;
-    pose_2.position.z = 0.0;
+    pose_2.position.z = 1;
     pose_2.orientation.x = 0.0;
     pose_2.orientation.y = 0.0;
     pose_2.orientation.z = -0.9245816979164214;
@@ -84,7 +84,7 @@ def prime_SOM_system():
     pose_3 = Pose(); 
     pose_3.position.x = 0.8692771064552061;
     pose_3.position.y = 3.5180767013223746;
-    pose_3.position.z = 0.0;
+    pose_3.position.z = 1;
     pose_3.orientation.x = 0.0;
     pose_3.orientation.y = 0.0;
     pose_3.orientation.z = 0.025698261608417518;

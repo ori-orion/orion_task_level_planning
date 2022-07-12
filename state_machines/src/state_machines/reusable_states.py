@@ -581,6 +581,8 @@ def create_search_for_human():
     sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
                             input_keys=['room_node_uid', 'failure_threshold'],
                             output_keys=['closest_human', 'human_object_uid']);
+                        
+    sub_sm.userdata.number_of_failures = 0;
 
     with sub_sm:
         smach.StateMachine.add(
@@ -596,9 +598,9 @@ def create_search_for_human():
             'SearchForHuman_1',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'SetSafePoseFromHuman',
+                'new_human_found':'GoToSafePoseFromHuman',
                 'human_not_found':'SpinOnSpot',
-                'existing_human_found':'SetSafePoseFromHuman'},
+                'existing_human_found':'GoToSafePoseFromHuman'},
             remapping={});
         
         smach.StateMachine.add(
@@ -614,7 +616,7 @@ def create_search_for_human():
             transitions={
                 'new_human_found':'GoToSafePoseFromHuman',
                 'human_not_found':'failure',
-                'existing_human_found':'SetSafePoseFromHuman'},
+                'existing_human_found':'GoToSafePoseFromHuman'},
             remapping={});
 
         # smach.StateMachine.add(
@@ -638,16 +640,16 @@ def create_search_for_human():
         smach.StateMachine.add(
             'LookAtHuman',
             LookAtHuman(),
-            transitions={'success':'NavToPose'});
+            transitions={'success':'success'});
 
-        smach.StateMachine.add(
-            'NavToPose',
-            SimpleNavigateState(),
-            transitions={
-                'success':'success',
-                'failure':'NavToPose',
-                'repeat_failure':'failure'},
-            remapping={'pose':'pose_out'});
+        # smach.StateMachine.add(
+        #     'NavToPose',
+        #     SimpleNavigateState(),
+        #     transitions={
+        #         'success':'success',
+        #         'failure':'NavToPose',
+        #         'repeat_failure':'failure'},
+        #     remapping={'pose':'pose_out'});
 
     return sub_sm;
 
@@ -1397,6 +1399,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
     def execute(self, userdata):
         target_pose:Pose = userdata.pose;
+        target_pose.position.z = 0;
 
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
@@ -1405,17 +1408,25 @@ class NavigateDistanceFromGoalSafely(smach.State):
         goal.target_pose.pose = target_pose;
         rospy.loginfo(goal.target_pose.pose)
         
-        self._mb_client.send_goal(goal)
+        self._mb_client.send_goal(goal);
+        print(self._mb_client.get_state());
+        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.PENDING:
+            rospy.sleep(0.1);
 
         while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
             rospy.sleep(0.1);
+            rospy.loginfo("Checking location");
             robot_pose = self.get_robot_pose();
+            robot_pose.position.z = 0;
             dist_between_poses = distance_between_poses(robot_pose, target_pose);
             if dist_between_poses < NavigateDistanceFromGoalSafely.DISTANCE_FROM_POSE:
-                rospy.loginfo("Preempting and rerunning topological nav goal.");
+                rospy.loginfo("Preempting move_base action because we are the distance we want to be from the goal.");
                 self._mb_client.cancel_all_goals();
                 break;
             pass;
+        
+        # Waiting for the result as a backup.
+        self._mb_client.wait_for_result();
 
         return 'success';
 
@@ -1750,7 +1761,10 @@ class GetHumanRelativeLoc(smach.State):
             relational_str      A string giving the relation in a readable form.
     """
     # Gives the objects we want to say we are nearby/next to/...
-    RELATIVE_OBJS = ["table", "couch", "chair", "potted plant", "bed", "mirror", "dining table", "tv", "door", "sink", "clock", "vase"];
+    RELATIVE_OBJS = [
+        "table", "couch", "chair", "potted plant", 
+        "bed", "mirror", "dining table", "tv", 
+        "door", "sink", "clock", "vase", "desk"];
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
@@ -1991,9 +2005,22 @@ class LookAtHuman(smach.State):
         human_loc = closest_human.obj_position.position;
         point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 1.4);
         
-        self.whole_body.gaze_point(
-            point=point_look_at,
-            ref_frame_id="map");
+        # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
+        try:
+            self.whole_body.gaze_point(
+                point=point_look_at,
+                ref_frame_id="map");
+        except:
+            point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 1.3);
+            try:
+                self.whole_body.gaze_point(
+                    point=point_look_at,
+                    ref_frame_id="map");
+            except:
+                self.whole_body.gaze_point(
+                    point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
+                    ref_frame_id="base_link");
+            rospy.logwarn("Error with gaze_point directly at the human.");
         return 'success';
 #endregion
 
