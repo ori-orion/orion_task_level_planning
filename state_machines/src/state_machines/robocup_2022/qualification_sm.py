@@ -67,7 +67,16 @@ def construct_qualification_sm():
                 'repeat_failure':'task_failure'},
             remapping={'pose','start_pose'});
 
-        
+    return sm;
+
+if __name__ == '__main__':
+    rospy.init_node('qualification_state_machine');
+
+    sm = construct_qualification_sm();
+
+    sm.execute();
+
+    rospy.spin();
     
 
 
