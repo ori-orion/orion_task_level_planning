@@ -1232,14 +1232,11 @@ class SimpleNavigateState(smach.State):
                                 output_keys=['number_of_failures'])
 
     def execute(self, userdata):
-
-        print(dir(userdata));
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        print(userdata.pose);
         goal.target_pose.pose = userdata.pose
         rospy.loginfo(goal.target_pose.pose)
 
@@ -1558,37 +1555,24 @@ class SaveGuestToSOM(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'failure'],
-                                input_keys=['guest_attributes',
+                                input_keys=['operator_name', 
+                                            'closest_human', 
+                                            'guest_attributes',
                                             'guest_som_human_ids',
                                             'guest_som_obj_ids'],
                                 output_keys=['guest_som_human_ids',
                                             'guest_som_obj_ids'])
 
     def execute(self, userdata):
-        # retreive the most recently observed human-class object in the SOM
-        guest_som_obj = get_most_recent_obj_from_som(class_="person")
-        if(guest_som_obj is None):
-            # couldn't find any "person"-class objects in the SOM
-            rospy.logwarn("Could not find any SOM object with class_ 'person' - state failed!")
-            return 'failure'
-
-        # This check has been removed - now, if we have previously saved details for this person then it will override it in the SOM
-        # if(guest_som_obj.UID in userdata.guest_som_obj_ids):
-        #     # we have already saved details for this person
-        #     # we haven't seen a new person since last time,
-        #     # so something has gone wrong. return failure
-        #     rospy.logwarn("We have already saved the most recent SOM object with class_ 'person' - state failed! ")
-        #     return 'failure'
-
-        rospy.loginfo("Found most recent SOM object with class_ 'person' with UID: {}".format(guest_som_obj.UID))
+        closest_human:Human = userdata.closest_human;
 
         # create the service message
         guest_obs = SOMAddHumanObsRequest()
 
         guest_obs.adding.observed_at = rospy.Time.now()
-        guest_obs.adding.object_uid  = guest_som_obj.UID
-        guest_obs.adding.task_role = 'guest'
-        guest_obs.adding.obj_position = guest_som_obj.obj_position    # same as before
+        guest_obs.adding.object_uid  = closest_human.object_uid
+        guest_obs.adding.task_role = 'guest';
+        guest_obs.adding.obj_position = closest_human.obj_position    # same as before
 
         # We don't want to speak to the same guest twice.
         guest_obs.adding.spoken_to_state = Human._SPOKEN_TO;
