@@ -58,6 +58,9 @@ from orion_spin.msg import SpinAction, SpinGoal;
 
 import actionlib_msgs.msg;
 
+import hsrb_interface;
+hsrb_interface.robot.enable_interactive();
+
 
 FAILURE_THRESHOLD = 3       # TODO - remove
 
@@ -613,8 +616,13 @@ def create_search_for_human():
             'SetSafePoseFromHuman',
             SetSafePoseFromObject(),
             transitions={
-                'success':'NavToPose'},
+                'success':'LookUp'},
             remapping={'pose':'human_pose'});
+
+        smach.StateMachine.add(
+            'LookUp',
+            LookUpState(),
+            transitions={'success':'NavToPose'});
 
         smach.StateMachine.add(
             'NavToPose',
@@ -1863,6 +1871,8 @@ class SetSafePoseFromObject(smach.State):
         vec_to_pose.y = pose.position.y - robot_location.position.y;
         vec_to_pose.z = pose.position.z - robot_location.position.z;
 
+        angle = math.atan2(vec_to_pose.y, vec_to_pose.x);
+
         vec_to_pose_len:float = get_point_magnitude(vec_to_pose);
 
         vec_to_pose.x *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
@@ -1873,12 +1883,26 @@ class SetSafePoseFromObject(smach.State):
         new_pose.position.x = pose.position.x - vec_to_pose.x;
         new_pose.position.y = pose.position.y - vec_to_pose.y;
         new_pose.position.z = pose.position.z - vec_to_pose.z;
-        new_pose.orientation.w = 1;
+        new_pose.orientation.w = math.cos(angle);
+        new_pose.orientation.z = math.sin(angle);
 
         userdata.pose_out = new_pose;
             
         return 'success';
 
+class LookUpState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success']);
+
+    def execute(self, userdata):
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+
+        self.whole_body.gaze_point(
+            point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
+            ref_frame_id="base_link");
+
+        return 'success';
 
 #region Facial stuff
 class RegisterFace(smach.State):
