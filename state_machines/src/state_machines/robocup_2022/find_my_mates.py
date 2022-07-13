@@ -97,13 +97,13 @@ def create_state_machine():
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();
-    operator_pose.position.x = 3.68511167921
-    operator_pose.position.y = -0.246170259619
-    operator_pose.position.z = 0.0
-    operator_pose.orientation.x = 0.0
-    operator_pose.orientation.y = 0.0
-    operator_pose.orientation.z = 0.138441671828
-    operator_pose.orientation.w = 0.990370588972
+    operator_pose.position.x = 3.7600877304982285;
+    operator_pose.position.y = 1.057383767080644;
+    operator_pose.position.z = 0.0;
+    operator_pose.orientation.x = 0.0;
+    operator_pose.orientation.y = 0.0;
+    operator_pose.orientation.z = -0.61682206674639;
+    operator_pose.orientation.w = 0.7871026222639028;
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
@@ -116,6 +116,17 @@ def create_state_machine():
 
     # farewell operator
     sm.userdata.farewell_operator_phrase = "My job here is done. Have a nice day!"
+
+
+    mid_room_pose = Pose();
+    mid_room_pose.position.x = 2.1717187101331037;
+    mid_room_pose.position.y = -0.2144994235965718;
+    mid_room_pose.position.z = 0.0;
+    mid_room_pose.orientation.x = 0.0;
+    mid_room_pose.orientation.y = 0.0;
+    mid_room_pose.orientation.z = -0.6771155204369553;
+    mid_room_pose.orientation.w = 0.7358767369494643;
+    sm.userdata.mid_room_pose = mid_room_pose;
 
     # set arena exit pose - TODO
     sm.userdata.exit_pose = Pose()
@@ -226,8 +237,11 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NAV_TO_OPERATOR',
-            NavigateDistanceFromGoalSafely(),
-            transitions={'success':'LOOK_AT_OPERATOR'},
+            SimpleNavigateState(),
+            transitions={
+                'success':'LOOK_AT_OPERATOR',
+                'failure':'NAV_TO_OPERATOR',
+                'repeat_failure':'LOOK_AT_OPERATOR'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
@@ -319,8 +333,17 @@ def create_state_machine():
         # announce search start
         smach.StateMachine.add('ANNOUNCE_SEARCH_START',
                                 SpeakState(),
-                                transitions={'success':'SEARCH_FOR_GUEST_SUB'},
+                                transitions={'success':'NAV_TO_ROOM_CENTRE'},
                                 remapping={'phrase':'announce_search_start_phrase'})
+
+        smach.StateMachine.add(
+            "NAV_TO_ROOM_CENTRE",
+            SimpleNavigateState(),
+            transitions={
+                'success':'SEARCH_FOR_GUEST_SUB',
+                'failure':'NAV_TO_ROOM_CENTRE',
+                'repeat_failure':'SEARCH_FOR_GUEST_SUB'},
+            remapping={'pose':'mid_room_pose'});
 
         # start the search for an un-spoken-to guest
         # create_search_for_guest_sub_state_machine()

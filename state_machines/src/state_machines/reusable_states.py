@@ -621,9 +621,9 @@ def create_search_for_human():
             'SearchForHuman_2',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'GoToSafePoseFromHuman',
+                'new_human_found':'LookAtHuman',
                 'human_not_found':'failure',
-                'existing_human_found':'GoToSafePoseFromHuman'},
+                'existing_human_found':'LookAtHuman'},
             remapping={});
 
         smach.StateMachine.add(
@@ -2029,7 +2029,7 @@ class SetSafePoseFromObject(smach.State):
             
         return 'success';
 
-# Look at states
+#region Look at states
 class LookUpState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['success']);
