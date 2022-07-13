@@ -2061,7 +2061,7 @@ class LookAtHuman(smach.State):
                     ref_frame_id="map");
             except:
                 self.whole_body.gaze_point(
-                    point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
+                    point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
         return 'success';
