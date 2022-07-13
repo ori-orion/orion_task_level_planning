@@ -409,7 +409,7 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
-                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'}, #'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'}, #'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
