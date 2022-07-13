@@ -436,22 +436,20 @@ def create_state_machine():
                                 remapping={'phrase':'announce_finish_phrase'})
         
         # TODO - Reset e
+    return sm; 
 
-    # Create the state machine
-    sm = create_state_machine()
+rospy.init_node('find_my_mates_state_machine');
 
-    # Create and start the introspection server
-    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-    sis.start()
+# Create the state machine
+sm = create_state_machine()
 
-    # Execute the state machine
-    sm.execute()
+# Create and start the introspection server
+# sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+# sis.start()
 
-    # Run until ctl+c command is received
-    rospy.spin()
-    sis.stop()
+# Execute the state machine
+sm.execute()
 
-if __name__ == '__main__':
-    rospy.init_node('find_my_mates_state_machine');
-    
-    create_state_machine();
+# Run until ctl+c command is received
+rospy.spin()
+# sis.stop()
