@@ -436,7 +436,6 @@ def create_state_machine():
                                 remapping={'phrase':'announce_finish_phrase'})
         
         # TODO - Reset e
-    rospy.init_node('find_my_mates_state_machine')
 
     # Create the state machine
     sm = create_state_machine()
@@ -453,4 +452,6 @@ def create_state_machine():
     sis.stop()
 
 if __name__ == '__main__':
+    rospy.init_node('find_my_mates_state_machine');
+    
     create_state_machine();
