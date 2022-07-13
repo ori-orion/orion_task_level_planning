@@ -457,3 +457,6 @@ def create_state_machine():
     # Run until ctl+c command is received
     rospy.spin()
     sis.stop()
+
+if __name__ == '__main__':
+    create_state_machine();
