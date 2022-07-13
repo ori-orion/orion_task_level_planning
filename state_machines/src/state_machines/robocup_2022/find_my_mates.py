@@ -399,7 +399,13 @@ def create_state_machine():
                                             'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+                                           'failure_threshold':'simple_navigation_failure_threshold'});
+
+        smach.StateMachine.add('GET_GUEST_RELATIONS',
+            GetHumanRelativeLoc(),
+            transitions={
+                'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
+                'no_relevant_matches_found':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'});
 
         smach.StateMachine.add('ANNOUNCE_GUEST_DETAILS_TO_OPERATOR', 
                                 AnnounceGuestDetailsToOperator(),

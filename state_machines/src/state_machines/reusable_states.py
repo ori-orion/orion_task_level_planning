@@ -1800,15 +1800,15 @@ class GetHumanRelativeLoc(smach.State):
 
     def get_most_relevant_relation(self, relation:Relation) -> str:
         if relation.left:
-            return " is to the left of the ";
+            return " was to the left of the ";
         elif relation.right:
-            return " is to the right of the ";
+            return " was to the right of the ";
         elif relation.frontof:
-            return " is infront of the ";
+            return " was infront of the ";
         elif relation.behind:
-            return " is behind the ";
+            return " was behind the ";
         elif relation.near:
-            return " is near to the ";
+            return " was near to the ";
         pass;
 
     def get_relative_loc_per_human(self, human_obj_uid:str, human_name:str) -> list:
@@ -2260,6 +2260,7 @@ class ClearFaceDB(smach.State):
 
         rospy.loginfo("ClearFaceDatabase action server cleared the database")
         return "success"
+#endregion
 
 # TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
@@ -2277,7 +2278,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success'],
-                                input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
+                                input_keys=['guest_som_human_ids', 'guest_som_obj_ids', 'relevant_matches'])
 
     def execute(self, userdata):
         rospy.wait_for_service('som/humans/basic_query')
@@ -2368,6 +2369,17 @@ class AnnounceGuestDetailsToOperator(smach.State):
             # wrap up
             talk_phrase = "That's everyone I met!"
             call_talk_request_action_server(phrase=talk_phrase)
+
+        relevant_matches = userdata.relevant_matches;
+        if relevant_matches != None:
+            person_talk_phrase = "";
+            for guest in relevant_matches:
+                guest:list;
+                guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
+                speak_relation:dict = guest_sorted[0];
+                person_talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
+                pass
+            call_talk_request_action_server(phrase=person_talk_phrase)            
 
         return 'success'
 
