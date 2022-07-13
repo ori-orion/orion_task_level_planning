@@ -2093,7 +2093,7 @@ class RegisterFace(smach.State):
             face_id = userdata["face_id"]
 
         # set action goal and call action server
-        capface_goal = ActionServer_CapFaceGoal(face_id=face_id)
+        capface_goal = ActionServer_CapFaceGoal(face_id="");
 
         capface_action_client = actionlib.SimpleActionClient('as_Capface', ActionServer_CapFaceAction)
         capface_action_client.wait_for_server()
