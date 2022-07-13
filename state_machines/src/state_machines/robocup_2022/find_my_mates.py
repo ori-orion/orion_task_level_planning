@@ -78,7 +78,7 @@ def create_state_machine():
     sm.userdata.speak_and_listen_params_empty = []
     sm.userdata.speak_and_listen_timeout = 5
     sm.userdata.speak_and_listen_failures = 0
-    sm.userdata.speak_and_listen_failure_threshold = 3
+    sm.userdata.speak_and_listen_failure_threshold = 2
 
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
@@ -280,7 +280,7 @@ def create_state_machine():
                                 AskPersonNameState(),
                                 transitions={'success': 'SearchForOperator',
                                             'failure':'ANNOUNCE_MISSED_NAME',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
+                                            'repeat_failure':'SearchForOperator'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
                                             'timeout':'speak_and_listen_timeout',

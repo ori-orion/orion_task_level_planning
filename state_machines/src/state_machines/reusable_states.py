@@ -314,7 +314,7 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.speak_and_listen_params_empty = []
     sub_sm.userdata.speak_and_listen_timeout = 5
     sub_sm.userdata.speak_and_listen_failures = 0
-    sub_sm.userdata.speak_and_listen_failure_threshold = 3
+    sub_sm.userdata.speak_and_listen_failure_threshold = 2
 
     # speaking to guests
     sub_sm.userdata.introduction_to_guest_phrase = "";
@@ -343,6 +343,8 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.guest_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
     sub_sm.userdata.guest_face_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
 
+    sub_sm.userdata.failure_threshold = 3;
+
     # Open the container
     with sub_sm:
         # introduction to guest
@@ -357,7 +359,7 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
                                             'failure':'ANNOUNCE_MISSED_GUEST_NAME',
-                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                            'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
                                 remapping={'question':'ask_name_phrase',
                                             'recognised_name': 'guest_name',
                                             'timeout':'speak_and_listen_timeout',
@@ -407,7 +409,7 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
-                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'}, #'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
@@ -605,9 +607,9 @@ def create_search_for_human():
             'SearchForHuman_1',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'GoToSafePoseFromHuman',
+                'new_human_found':'LookAtHuman',
                 'human_not_found':'SpinOnSpot',
-                'existing_human_found':'GoToSafePoseFromHuman'},
+                'existing_human_found':'LookAtHuman'},
             remapping={});
         
         smach.StateMachine.add(
@@ -1218,7 +1220,8 @@ class AskPersonNameState(smach.State):
             return 'success'
         else:
             # action server failed
-            userdata.number_of_failures+= 1
+            userdata.number_of_failures += 1
+            userdata.recognised_name = "";
             if userdata.number_of_failures >= userdata.failure_threshold:
                 # reset number of failures because we've already triggered the repeat failure
                 userdata.number_of_failures = 0
@@ -1853,7 +1856,7 @@ class GetHumanRelativeLoc(smach.State):
             relevant_matches = self.get_relative_loc_per_human(guest.object_uid, guest.name);
             returns.append(relevant_matches);
         
-        if len(relevant_matches) == 0:
+        if len(returns) == 0:
             userdata.relevant_matches = None;
             return "no_relevant_matches_found";
         else:
@@ -2375,9 +2378,10 @@ class AnnounceGuestDetailsToOperator(smach.State):
             person_talk_phrase = "";
             for guest in relevant_matches:
                 guest:list;
-                guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
-                speak_relation:dict = guest_sorted[0];
-                person_talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
+                if len(guest) != 0:
+                    guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
+                    speak_relation:dict = guest_sorted[0];
+                    person_talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
                 pass
             call_talk_request_action_server(phrase=person_talk_phrase)            
 
