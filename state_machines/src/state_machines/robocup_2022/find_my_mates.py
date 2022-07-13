@@ -61,7 +61,7 @@ def create_state_machine():
     # Create state machine userdata dictionary elements
     
     # Task params
-    sm.userdata.expected_num_guests = 3 # TODO - change to 3
+    sm.userdata.expected_num_guests = 4 # TODO - change to 3
     sm.userdata.max_search_duration = 200 # seconds
 
     sm.userdata.person_names = NAMES
