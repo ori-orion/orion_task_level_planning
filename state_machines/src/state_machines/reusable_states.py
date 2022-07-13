@@ -1793,6 +1793,11 @@ class GetHumanRelativeLoc(smach.State):
                                 input_keys=['human_obj_uid'],
                                 output_keys=['relevant_matches'])
 
+        rospy.wait_for_service('/som/objects/relational_query');
+        rospy.wait_for_service('/som/humans/basic_query');
+        self.relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
+        self.humans_query = rospy.ServiceProxy('/som/humans/basic_query', orion_actions.srv.SOMQueryHumans);
+
     def get_most_relevant_relation(self, relation:Relation) -> str:
         if relation.left:
             return " is to the left of the ";
@@ -1806,16 +1811,12 @@ class GetHumanRelativeLoc(smach.State):
             return " is near to the ";
         pass;
 
-    def execute(self, userdata):
-        # We want to do a region query here. Then sort by distance.
+    def get_relative_loc_per_human(self, human_obj_uid:str, human_name:str) -> list:
         query = orion_actions.srv.SOMRelObjQueryRequest();
-        query.obj1.UID = userdata.human_obj_uid;
+        query.obj1.UID = human_obj_uid;
         query.obj2.category = "unknown";        # So anything not in the file of pickupable objects will be given the category of "unknown." We can use this to our advantage.
 
-        rospy.wait_for_service('/som/objects/relational_query');
-        relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
-
-        response:orion_actions.srv.SOMRelObjQueryResponse = relational_query_srv(query);
+        response:orion_actions.srv.SOMRelObjQueryResponse = self.relational_query_srv(query);
 
         def get_relation_dist(rel:Match):
             return rel.distance;
@@ -1828,19 +1829,35 @@ class GetHumanRelativeLoc(smach.State):
         relevant_matches = [];
 
         for match in matches_sorted:
-            match:Match;
-
+            match:Match;            
             if match.obj2.class_ in GetHumanRelativeLoc.RELATIVE_OBJS:
 
                 relevant_matches.append({
-                    'human_obj_uid': userdata.human_obj_uid,
-                    'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_
+                    'human_obj_uid': human_obj_uid,
+                    'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_,
+                    'human_name':human_name,
+                    'distance_from_obj':match.distance
                 });
 
+        return relevant_matches;
+
+    def execute(self, userdata):
+        
+        human_query = orion_actions.srv.SOMQueryHumansRequest();
+        human_query.query.spoken_to_state = Human._SPOKEN_TO;
+        spoken_to_guests:orion_actions.srv.SOMQueryHumansResponse = self.humans_query(human_query);
+
+        returns = [];
+        for guest in spoken_to_guests.returns:
+            guest:Human;
+            relevant_matches = self.get_relative_loc_per_human(guest.object_uid, guest.name);
+            returns.append(relevant_matches);
+        
         if len(relevant_matches) == 0:
+            userdata.relevant_matches = None;
             return "no_relevant_matches_found";
         else:
-            userdata.relevant_matches = relevant_matches;
+            userdata.relevant_matches = returns;
             return "success"
 
 class GetOperatorLoc(smach.State):
