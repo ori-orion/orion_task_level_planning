@@ -589,6 +589,8 @@ def create_search_for_human():
                         
     sub_sm.userdata.number_of_failures = 0;
 
+    sub_sm.userdata.nearest_to = None;
+
     with sub_sm:
         smach.StateMachine.add(
             'NavToNearestNode',
@@ -1581,11 +1583,13 @@ class SaveOperatorToSOM(smach.State):
                              (assumed to be the most recently observed human-class object)
     """
 
-    def __init__(self):
+    def __init__(self, operator_pose=None):
         smach.State.__init__(self, outcomes=['success', 'failure'],
                                 input_keys=['operator_name', 'closest_human'],
                                 output_keys=['operator_som_human_id',
                                             'operator_som_obj_id'])
+
+        self.operator_pose_backup = operator_pose;
 
     def execute(self, userdata):
 
@@ -1602,10 +1606,14 @@ class SaveOperatorToSOM(smach.State):
         operator_obs = SOMAddHumanObsRequest()
 
         operator_obs.adding.observed_at = rospy.Time.now()
-        operator_obs.adding.object_uid  = closest_human.object_uid;
+        operator_obs.adding.object_uid  = closest_human.object_uid if closest_human != None else "";
         operator_obs.adding.name = userdata.operator_name
         operator_obs.adding.task_role = 'operator'
-        operator_obs.adding.obj_position = closest_human.obj_position    # same as before
+        if self.operator_pose_backup == None:
+            operator_obs.adding.obj_position = closest_human.obj_position    # same as before
+        else:
+            operator_obs.adding.obj_position = self.operator_pose_backup     # Use backup location.
+            print(self.operator_pose_backup);
         operator_obs.adding.spoken_to_state = Human._OPERATOR;
 
         # todo - check if used
@@ -1693,19 +1701,23 @@ class GetNearestHuman(smach.State):
     Finds the closest operator to the current robot's position.
     NOTE: currently might return a human with a single observation (which has the possibility of being unreliable).
     This also sets the current robot pose (for convenience).
+    Inputs:
+        nearest_to:Pose|None        If None, then closest to the robot, otherwise closest to the pose given.   
     Outputs:
         closest_human:(Human|None)
         robot_pose:Pose
         human_pose:Pose
     """
-    def __init__(self):
+    def __init__(self, ignore_operators=True):
         smach.State.__init__(self, outcomes=['new_human_found', 'human_not_found', 'existing_human_found'],
-                                input_keys=[],
+                                input_keys=['nearest_to'],
                                 output_keys=['closest_human', 'robot_location', 'human_pose', 'human_object_uid'])
+
+        self.ignore_operators = ignore_operators;
 
         self.human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
     
-    def perform_query(self, query:SOMQueryHumansRequest, robot_pose:Pose) -> Human:
+    def perform_query(self, query:SOMQueryHumansRequest, nearest_to:Pose) -> Human:
         human_query_results:SOMQueryHumansResponse = self.human_query_srv(query);
 
         min_distance = math.inf;
@@ -1713,7 +1725,7 @@ class GetNearestHuman(smach.State):
 
         for result in human_query_results.returns:
             result:Human;
-            distance = distance_between_poses(result.obj_position, robot_pose.pose);
+            distance = distance_between_poses(result.obj_position, nearest_to.pose);
             if distance < min_distance:
                 min_distance = distance;
                 closest_human = result;
@@ -1725,18 +1737,26 @@ class GetNearestHuman(smach.State):
         # What's the current position of the robot?
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
         userdata.robot_location = robot_pose.pose
+
+        nearest_to:Pose = userdata.nearest_to;
         
         query = SOMQueryHumansRequest();
         query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
 
-        closest_human:Human = self.perform_query(query, robot_pose);
+        if nearest_to == None:
+            closest_human:Human = self.perform_query(query, robot_pose);
+        else:
+            closest_human:Human = self.perform_query(query, nearest_to);
 
         if closest_human == None:
             query.query.spoken_to_state = Human._NULL;
 
             closest_human = self.perform_query(query, robot_pose);
 
-            if closest_human == None:
+            if closest_human == None or (self.ignore_operators and closest_human.spoken_to_state == Human._OPERATOR):
+                userdata.closest_human = None;
+                userdata.human_pose = nearest_to;
+                userdata.human_object_uid = "";
                 return 'human_not_found';
             else:
                 userdata.closest_human = closest_human;
