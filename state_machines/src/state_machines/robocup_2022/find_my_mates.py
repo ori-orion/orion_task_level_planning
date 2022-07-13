@@ -140,9 +140,11 @@ def create_state_machine():
     sm.userdata.nodes_not_searched = list(sm.userdata.node_list)  # used in the guest search sub state machine
 
     # Where is the operator starting out?
-    sm.userdata.operator_room_node_id = "Kitchen1";
+    sm.userdata.operator_room_node_id = "Living1";
     # Which room are the guests in?
-    sm.userdata.guest_room_node_id = "Living3";
+    sm.userdata.guest_room_node_id = "Living1";
+
+    sm.userdata.exit_room_node_id = "Exit";
 
     sm.userdata.number_of_failures = 0;
     
@@ -373,14 +375,13 @@ def create_state_machine():
 
         # leave the arena
         # TODO - consider changing to topological navigation state
-        smach.StateMachine.add('NAV_TO_EXIT',
-                                SimpleNavigateState(),
-                                transitions={'success':'SAVE_END_TIME',
-                                            'failure':'NAV_TO_EXIT',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'pose':'exit_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+        smach.StateMachine.add(
+            'NAV_TO_EXIT',
+            TopologicalNavigateState(),
+            transitions={'success':'SAVE_END_TIME',
+                        'failure':'NAV_TO_EXIT',
+                        'repeat_failure':'task_failure'},
+            remapping={'node_id':'exit_room_node_id'})
 
         # save the end time
         smach.StateMachine.add('SAVE_END_TIME',
