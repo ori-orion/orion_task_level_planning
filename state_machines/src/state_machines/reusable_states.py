@@ -2335,7 +2335,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
                 if human_record.face_attributes:
                     all_are_attributes = ['Bald', 'Wearing_Necklace', 'Wearing_Necktie']
-                    all_have_attributes = ['5_o_Clock_Shadow', 'Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'High_Cheekbones', 'Mustache', 'Beard', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
+                    all_have_attributes = ['Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Gray_Hair', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
 
                     are_attributes = []
                     have_attributes = []
