@@ -407,7 +407,7 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
-                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
+                                transitions={'success':'CAPTURE_GUEST_FACE'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
@@ -1725,7 +1725,7 @@ class GetNearestHuman(smach.State):
 
         for result in human_query_results.returns:
             result:Human;
-            distance = distance_between_poses(result.obj_position, nearest_to.pose);
+            distance = distance_between_poses(result.obj_position, nearest_to);
             if distance < min_distance:
                 min_distance = distance;
                 closest_human = result;
@@ -1739,19 +1739,20 @@ class GetNearestHuman(smach.State):
         userdata.robot_location = robot_pose.pose
 
         nearest_to:Pose = userdata.nearest_to;
+        print(nearest_to);
         
         query = SOMQueryHumansRequest();
         query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
 
         if nearest_to == None:
-            closest_human:Human = self.perform_query(query, robot_pose);
+            closest_human:Human = self.perform_query(query, robot_pose.pose);
         else:
             closest_human:Human = self.perform_query(query, nearest_to);
 
         if closest_human == None:
             query.query.spoken_to_state = Human._NULL;
 
-            closest_human = self.perform_query(query, robot_pose);
+            closest_human = self.perform_query(query, robot_pose.pose);
 
             if closest_human == None or (self.ignore_operators and closest_human.spoken_to_state == Human._OPERATOR):
                 userdata.closest_human = None;
@@ -2194,7 +2195,7 @@ class DetectFaceAttributes(smach.State):
             face_id = userdata["face_id"]
 
         # set action goal and call action server
-        find_face_attrs_goal = ActionServer_FindAttrsGoal(face_id=face_id)
+        find_face_attrs_goal = ActionServer_FindAttrsGoal()
 
         find_face_attrs_action_client = actionlib.SimpleActionClient('as_Findattrs', ActionServer_FindAttrsAction)
         find_face_attrs_action_client.wait_for_server()

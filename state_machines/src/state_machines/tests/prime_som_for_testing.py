@@ -23,8 +23,24 @@ def prime_SOM_system():
     typical_size.y = 0.1;
     typical_size.z = 2.5;
 
+    position_arr = [
+      Point(4.3, -0.02, 1),
+      Point(3.42, 1.92, 1),
+      Point(2.3, -1.7, 1),
+      Point(0.96, -1.97, 1),
+      Point(0.17, 1.62, 1)
+    ];
+
     som_observation_input_srv = rospy.ServiceProxy('/som/observations/input', SOMAddObservation);
 
+    pose = Pose();
+    pose.orientation.w = 1;
+
+    for position in position_arr:
+      pose.position = position;
+      som_observation_input_srv(create_human_observation(pose, typical_size));
+
+    return
     """
     pose: 
       position: 

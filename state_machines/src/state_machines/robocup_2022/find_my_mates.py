@@ -435,12 +435,7 @@ def create_state_machine():
                                 transitions={'success':'task_success'},
                                 remapping={'phrase':'announce_finish_phrase'})
         
-        # TODO - Reset FaceDB? Or do this manually between runs?
-
-    return sm
-
-
-if __name__ == '__main__':
+        # TODO - Reset e
     rospy.init_node('find_my_mates_state_machine')
 
     # Create the state machine
