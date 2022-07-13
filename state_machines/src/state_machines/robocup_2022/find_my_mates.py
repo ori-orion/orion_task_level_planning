@@ -86,14 +86,14 @@ def create_state_machine():
 
     sm.userdata.topological_navigation_failure_threshold = 3
 
-    sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates! Let's go!"
+    sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates!"
 
     sm.userdata.nav_repeat_failure_phrase = "Navigation failed too many times, terminating task."
     sm.userdata.speak_and_listen_repeat_failure_phrase = "Speech recognition failed too many times, terminating task."
 
     sm.userdata.introduction_to_operator_phrase = "Hi, nice to meet you! I am here to help look for your friends!"
     sm.userdata.ask_operator_name_phrase = "What is your name?"
-    sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
+    sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I didn't understand. Let's try that again."
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();

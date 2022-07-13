@@ -317,10 +317,10 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.speak_and_listen_failure_threshold = 3
 
     # speaking to guests
-    sub_sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you!"
+    sub_sm.userdata.introduction_to_guest_phrase = "";
     sub_sm.userdata.ask_name_phrase = "What is your name?"
     sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there. It's time for me to move on."
-    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I did understand. Let's try that again."
+    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I didn't understand. Let's try that again."
 
     sub_sm.userdata.ask_gender_phrase = "What is your gender?"
     sub_sm.userdata.ask_gender_candidates = GENDERS
@@ -332,10 +332,10 @@ def create_learn_guest_sub_state_machine():
     # sub_sm.userdata.ask_age_phrase = "How old are you?"                     # assume response is given in years
     # sub_sm.userdata.ask_age_candidates = [str(x) for x in range(1,101)]     # TODO - test recognition of numbers
 
-    sub_sm.userdata.start_face_registration_phrase = "I am registering your face so I can tell the host what you look like. Please stand still."
-    sub_sm.userdata.finish_face_registration_phrase = "I have finished registering your face."
+    sub_sm.userdata.start_face_registration_phrase = "Please sit still."
+    sub_sm.userdata.finish_face_registration_phrase = ""
     sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
-    sub_sm.userdata.farewell_guest = "I need to go now. It was nice to meet you!"
+    sub_sm.userdata.farewell_guest = "Thank you."
 
     sub_sm.userdata.guest_name = ""
     sub_sm.userdata.guest_gender = ""
@@ -2063,7 +2063,7 @@ class LookAtHuman(smach.State):
     def execute(self, userdata):
         closest_human:Human = userdata.closest_human;
         human_loc = closest_human.obj_position.position;
-        point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 1.4);
+        point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 0.8);
         
         # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
         try:
@@ -2071,7 +2071,7 @@ class LookAtHuman(smach.State):
                 point=point_look_at,
                 ref_frame_id="map");
         except:
-            point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 1.3);
+            point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 0.8);
             try:
                 self.whole_body.gaze_point(
                     point=point_look_at,
