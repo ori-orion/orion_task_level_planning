@@ -394,14 +394,15 @@ def create_state_machine():
         # navigate back to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_RETURN_TO_OPERATOR',
                                SimpleNavigateState(),
-                               transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
+                               transitions={'success':'GET_GUEST_RELATIONS',
                                             'failure':'NAV_RETURN_TO_OPERATOR',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+                                            'repeat_failure':'GET_GUEST_RELATIONS'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
                                            'failure_threshold':'simple_navigation_failure_threshold'});
 
-        smach.StateMachine.add('GET_GUEST_RELATIONS',
+        smach.StateMachine.add(
+            'GET_GUEST_RELATIONS',
             GetHumanRelativeLoc(),
             transitions={
                 'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
