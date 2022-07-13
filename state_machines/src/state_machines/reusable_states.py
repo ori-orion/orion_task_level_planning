@@ -609,7 +609,7 @@ def create_search_for_human():
             transitions={
                 'new_human_found':'LookAtHuman',
                 'human_not_found':'SpinOnSpot',
-                'existing_human_found':'LookAtHuman'},
+                'existing_human_found':'SpinOnSpot'},
             remapping={});
         
         smach.StateMachine.add(
@@ -625,7 +625,7 @@ def create_search_for_human():
             transitions={
                 'new_human_found':'LookAtHuman',
                 'human_not_found':'failure',
-                'existing_human_found':'LookAtHuman'},
+                'existing_human_found':'failure'},
             remapping={});
 
         smach.StateMachine.add(
@@ -1778,8 +1778,6 @@ class GetHumanRelativeLoc(smach.State):
     We want to be able to give the location of the human relative to other objects around the room.
     This will work this out.
     Inputs:
-        human_obj_uid:str   The uid of the human in the objects system that we want to work out the relative information for.
-                            This is given by `object_obj` within a Human.msg.
     Outputs:
         relevant_matches    The list of closest matches in the form of a list of dictionaries with the following parameters:#
             human_obj_uid       The uid within the object collection.
@@ -1793,7 +1791,7 @@ class GetHumanRelativeLoc(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
-                                input_keys=['human_obj_uid'],
+                                input_keys=['couch_left','couch_right', 'left_of_couch', 'right_of_couch'],
                                 output_keys=['relevant_matches'])
 
         rospy.wait_for_service('/som/objects/relational_query');
@@ -2086,6 +2084,45 @@ class LookAtHuman(smach.State):
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
         return 'success';
+
+class LookAtPoint(smach.State):
+    """
+    Look at the last human observed.
+    
+    Inputs:
+        pose:Pose   The point to look at in 3D space.
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=['success'],
+            input_keys=['pose']);
+
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+    
+    def execute(self, userdata):
+        pose:Pose = userdata.pose;
+        point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.3);
+        
+        # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
+        try:
+            self.whole_body.gaze_point(
+                point=point_look_at,
+                ref_frame_id="map");
+        except:
+            point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.2);
+            try:
+                self.whole_body.gaze_point(
+                    point=point_look_at,
+                    ref_frame_id="map");
+            except:
+                self.whole_body.gaze_point(
+                    point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
+                    ref_frame_id="base_link");
+            rospy.logwarn("Error with gaze_point directly at the human.");
+        return 'success';
+
 #endregion
 
 #region Facial stuff

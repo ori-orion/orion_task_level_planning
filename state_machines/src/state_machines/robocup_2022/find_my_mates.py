@@ -173,6 +173,24 @@ def create_state_machine():
 
     sm.userdata.nearest_to = None;
 
+
+    sm.userdata.couch_left = Point();
+    sm.userdata.couch_left.x = 2.8248822689056396;
+    sm.userdata.couch_left.y = -2.577892541885376;
+    
+    sm.userdata.couch_right = Point();
+    sm.userdata.couch_right.x = 1.879967212677002;
+    sm.userdata.couch_right.y = -2.7639691829681396;
+
+    sm.userdata.left_of_couch = Point();
+    sm.userdata.left_of_couch.x = 3.812685966491699;
+    sm.userdata.left_of_couch.y = -1.1837384700775146;
+
+    sm.userdata.right_of_couch = Point();
+    sm.userdata.right_of_couch.x: 0.9689993858337402
+    sm.userdata.right_of_couch.y: -1.6282684803009033
+
+
     with sm:
         # TODO - remove after testing
         # short-ciruit straight to SEARCH_FOR_GUEST_SUB to test logic 
@@ -412,7 +430,7 @@ def create_state_machine():
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
                                 SpeakState(),
-                                transitions={'success':'NAV_RETURN_TO_OPERATOR'},   # correct transition
+                                transitions={'success':'LookBackAtOperator'},   # correct transition
                                 # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
                                 remapping={'phrase':'finish_search_phrase'}) 
         
@@ -427,6 +445,11 @@ def create_state_machine():
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
                                            'failure_threshold':'simple_navigation_failure_threshold'});
+        smach.StateMachine.add(
+            "LookBackAtOperator",
+            LookAtPoint(),
+            transitions={'success':'GET_GUEST_RELATIONS'},
+            remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
             'GET_GUEST_RELATIONS',
