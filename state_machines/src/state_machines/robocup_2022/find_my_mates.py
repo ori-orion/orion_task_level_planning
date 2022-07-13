@@ -396,7 +396,7 @@ def create_state_machine():
                                SimpleNavigateState(),
                                transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
                                             'failure':'NAV_RETURN_TO_OPERATOR',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+                                            'repeat_failure':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
                                            'failure_threshold':'simple_navigation_failure_threshold'})
