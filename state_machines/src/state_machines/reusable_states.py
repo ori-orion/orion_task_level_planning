@@ -1812,7 +1812,7 @@ class GetHumanRelativeLoc(smach.State):
             return " was behind the ";
         elif relation.near:
             return " was near to the ";
-        pass;
+        return None;
 
     def get_relative_loc_per_human(self, human_obj_uid:str, human_name:str) -> list:
         query = orion_actions.srv.SOMRelObjQueryRequest();
@@ -1834,13 +1834,14 @@ class GetHumanRelativeLoc(smach.State):
         for match in matches_sorted:
             match:Match;            
             if match.obj2.class_ in GetHumanRelativeLoc.RELATIVE_OBJS:
-
-                relevant_matches.append({
-                    'human_obj_uid': human_obj_uid,
-                    'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_,
-                    'human_name':human_name,
-                    'distance_from_obj':match.distance
-                });
+                relevant_relation = self.get_most_relevant_relation(match.relation);
+                if relevant_relation != None:
+                    relevant_matches.append({
+                        'human_obj_uid': human_obj_uid,
+                        'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_,
+                        'human_name':human_name,
+                        'distance_from_obj':match.distance
+                    });
 
         return relevant_matches;
 
