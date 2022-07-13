@@ -97,8 +97,10 @@ def create_state_machine():
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();
-    operator_pose.position.x = 3.7600877304982285;
-    operator_pose.position.y = 1.057383767080644;
+    # operator_pose.position.x = 3.7600877304982285;
+    # operator_pose.position.y = 1.057383767080644;
+    operator_pose.position.x = -19.6;
+    operator_pose.position.y = -9.4;
     operator_pose.position.z = 0.0;
     operator_pose.orientation.x = 0.0;
     operator_pose.orientation.y = 0.0;
@@ -119,8 +121,10 @@ def create_state_machine():
 
 
     mid_room_pose = Pose();
-    mid_room_pose.position.x = 2.1717187101331037;
-    mid_room_pose.position.y = -0.2144994235965718;
+    # mid_room_pose.position.x = 2.1717187101331037;
+    # mid_room_pose.position.y = -0.2144994235965718;
+    mid_room_pose.position.x = -18;
+    mid_room_pose.position.y = -9;
     mid_room_pose.position.z = 0.0;
     mid_room_pose.orientation.x = 0.0;
     mid_room_pose.orientation.y = 0.0;
