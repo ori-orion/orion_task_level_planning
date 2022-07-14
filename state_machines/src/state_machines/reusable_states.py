@@ -2034,15 +2034,17 @@ class SetSafePoseFromObject(smach.State):
 
 #region Look at states
 class LookUpState(smach.State):
-    def __init__(self):
+    def __init__(self, height=1.2):
         smach.State.__init__(self, outcomes=['success']);
+
+        self.height = height;
 
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
 
     def execute(self, userdata):
         self.whole_body.gaze_point(
-            point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
+            point=hsrb_interface.geometry.Vector3(1, 0, self.height), 
             ref_frame_id="base_link");
 
         return 'success';
