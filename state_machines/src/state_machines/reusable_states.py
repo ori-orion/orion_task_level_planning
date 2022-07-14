@@ -409,7 +409,8 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
-                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'}, #'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                # transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
@@ -2321,6 +2322,39 @@ class AnnounceGuestDetailsToOperator(smach.State):
         smach.State.__init__(self, outcomes=['success'],
                                 input_keys=['guest_som_human_ids', 'guest_som_obj_ids', 'relevant_matches'])
 
+        self.couch_left = Point();
+        self.couch_left.x = 2.8248822689056396;
+        self.couch_left.y = -2.577892541885376;
+    
+        self.couch_right = Point();
+        self.couch_right.x = 1.879967212677002;
+        self.couch_right.y = -2.7639691829681396;
+
+        self.left_of_couch = Point();
+        self.left_of_couch.x = 3.812685966491699;
+        self.left_of_couch.y = -1.1837384700775146;
+
+        self.right_of_couch = Point();
+        self.right_of_couch.x = 0.9689993858337402;
+        self.right_of_couch.y = -1.6282684803009033;
+
+    def get_room_loc(self, person_loc:Point) -> str:
+        dist = distance_between_points(person_loc, self.couch_left);
+        output = " was seated on the left of the couch."
+        trial_dist = distance_between_points(person_loc, self.couch_right);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated on the right of the couch."
+        trial_dist = distance_between_points(person_loc, self.left_of_couch);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated to the left of the couch."
+        trial_dist = distance_between_points(person_loc, self.right_of_couch);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated to the right of the couch."
+        return output;
+
     def execute(self, userdata):
         rospy.wait_for_service('som/humans/basic_query')
         som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
@@ -2337,8 +2371,65 @@ class AnnounceGuestDetailsToOperator(smach.State):
             return 'success'
 
         if number_of_guests_found > 0:
-            talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
-            call_talk_request_action_server(phrase=talk_phrase)
+            guest_names = [];
+            for human_record in responses.returns:
+                human_record:Human;
+                if human_record.name:
+                    guest_names.append(human_record.name);
+
+            if len(guest_names) == 0:
+                talk_phrase = "I found {} of your mates but couldn't hear any of their names!".format(number_of_guests_found)
+            else:
+                talk_phrase = "I found {} of your mates and could hear {} of their names!".format(number_of_guests_found, len(guest_names));
+            call_talk_request_action_server(phrase=talk_phrase);
+
+            guest_prefixes = ["One of the guests", "Another of the guests"];
+            guest_num = 0;
+            for human_record in responses.returns:
+                human_record:Human;
+
+                talk_phrase = "";
+
+                if human_record.name:
+                    talk_phrase += human_record.name;
+                else:
+                    talk_phrase += guest_prefixes[0] if guest_num == 0 else guest_prefixes[1];
+
+                talk_phrase += self.get_room_loc();
+
+                if human_record.face_attributes:
+                    all_are_attributes = ['Bald', 'Wearing_Necklace', 'Wearing_Necktie']
+                    all_have_attributes = ['Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Gray_Hair', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
+
+                    are_attributes = []
+                    have_attributes = []
+
+                    for attribute in human_record.face_attributes:
+                        if(attribute in all_are_attributes):
+                            are_attributes.append(attribute)
+                        elif(attribute in all_have_attributes):
+                            have_attributes.append(attribute)
+
+                    if(len(are_attributes)>1):
+                        # Making sure it can pronounce things like Wearing_Necklace
+                        list1 = []
+                        for attribute in are_attributes[:-1]:
+                            list1.append(attribute_to_sentence(attribute))
+                        talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
+                    elif(len(are_attributes)==1):
+                        talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
+
+                    if(len(have_attributes)>1):
+                        list2 = []
+                        for attribute in have_attributes[:-1]:
+                            list2.append(attribute_to_sentence(attribute))
+                        talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
+                    elif(len(have_attributes)==1):
+                        talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
+
+                guest_num += 1;
+
+            """
             guest_num = 0;
             for human_record in responses.returns:
                 human_record:Human;
@@ -2385,7 +2476,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
                             have_attributes.append(attribute)
 
                     if(len(are_attributes)>1):
-                        """ Making sure it can pronounce things like Wearing_Necklace"""
+                        #" Making sure it can pronounce things like Wearing_Necklace""
                         list1 = []
                         for attribute in are_attributes[:-1]:
                             list1.append(attribute_to_sentence(attribute))
@@ -2406,6 +2497,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
                 call_talk_request_action_server(phrase=person_talk_phrase)
 
                 guest_num += 1;
+            """
 
             # wrap up
             talk_phrase = "That's everyone I met!"
@@ -2413,15 +2505,15 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
         relevant_matches = userdata.relevant_matches;
         if relevant_matches != None:
-            person_talk_phrase = "";
+            talk_phrase = "";
             for guest in relevant_matches:
                 guest:list;
                 if len(guest) != 0:
                     guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
                     speak_relation:dict = guest_sorted[0];
-                    person_talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
+                    talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
                 pass
-            call_talk_request_action_server(phrase=person_talk_phrase)            
+            call_talk_request_action_server(phrase=talk_phrase)            
 
         return 'success'
 
