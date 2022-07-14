@@ -16,6 +16,11 @@ def create_state_machine():
     sm.userdata.timeout = 5;
     sm.userdata.hotword_timeout = 5;
 
+    nav_out_pose:Pose = Pose();
+    nav_out_pose.position.x = -17.1;
+    nav_out_pose.position.y = -9.16;
+    sm.userdata.nav_out_pose = nav_out_pose;
+
     with sm:
         smach.StateMachine.add('WAIT_FOR_HOTWORD',
                                 WaitForHotwordState(),
@@ -37,8 +42,14 @@ def create_state_machine():
 
         smach.StateMachine.add('BROUGHT_POTTED_PLANT',
                                 SpeakState(),
-                                transitions={'success':'HAND_PLANT_TO_OPERATOR'},
+                                transitions={'success':'WAIT_FOR_HOTWORD_2'},
                                 remapping={'phrase':'speech_2'});
+
+        smach.StateMachine.add('WAIT_FOR_HOTWORD_2',
+                        WaitForHotwordState(),
+                        transitions={'success': 'HAND_PLANT_TO_OPERATOR',
+                                     'failure': 'WAIT_FOR_HOTWORD_2'},
+                        remapping={'timeout':'hotword_timeout'});
 
         smach.StateMachine.add('HAND_PLANT_TO_OPERATOR',
             HandoverObjectToOperatorState(),
@@ -47,8 +58,17 @@ def create_state_machine():
 
         smach.StateMachine.add('FINISH',
                         SpeakState(),
-                        transitions={'success':'task_success'},
+                        transitions={'success':'NAV_OUT'},
                         remapping={'phrase':'speech_3'});
+
+        smach.StateMachine.add(
+            "NAV_OUT",
+            SimpleNavigateState(),
+            transitions={
+                'success':'task_success',
+                'failure':'NAV_OUT',
+                'repeat_failure':'task_success'},
+            remapping={'pose':'nav_out_pose'});
     return sm;
 
 rospy.init_node('find_my_mates_state_machine');
