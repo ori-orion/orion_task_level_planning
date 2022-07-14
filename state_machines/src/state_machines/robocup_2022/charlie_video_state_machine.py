@@ -19,6 +19,7 @@ def create_state_machine():
     nav_out_pose:Pose = Pose();
     nav_out_pose.position.x = -17.1;
     nav_out_pose.position.y = -9.16;
+    nav_out_pose.orientation.w = 1;
     sm.userdata.nav_out_pose = nav_out_pose;
 
     with sm:
