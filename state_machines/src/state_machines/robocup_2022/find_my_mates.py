@@ -86,6 +86,8 @@ def create_state_machine():
 
     sm.userdata.topological_navigation_failure_threshold = 3
 
+    sm.userdata.failure_threshold = 3;
+
     sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates!"
 
     sm.userdata.nav_repeat_failure_phrase = "Navigation failed too many times, terminating task."
