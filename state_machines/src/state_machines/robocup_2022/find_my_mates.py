@@ -114,7 +114,7 @@ def create_state_machine():
     
     # search updates
     sm.userdata.continue_search_phrase = "I am continuing to search for guests"
-    sm.userdata.finish_search_phrase = "I am finished searching for guests and am returning to the host"
+    sm.userdata.finish_search_phrase = "I have finished searching for guests."
 
     # farewell operator
     sm.userdata.farewell_operator_phrase = "My job here is done. Have a nice day!"

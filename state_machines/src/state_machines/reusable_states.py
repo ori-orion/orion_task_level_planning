@@ -2320,7 +2320,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success'],
-                                input_keys=['guest_som_human_ids', 'guest_som_obj_ids', 'relevant_matches'])
+                                input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
 
         self.couch_left = Point();
         self.couch_left.x = 2.8248822689056396;
@@ -2378,7 +2378,8 @@ class AnnounceGuestDetailsToOperator(smach.State):
                     guest_names.append(human_record.name);
 
             if len(guest_names) == 0:
-                talk_phrase = "I found {} of your mates but couldn't hear any of their names!".format(number_of_guests_found)
+                name_pl_marker = "names" if len(number_of_guests_found) > 1 else "name";
+                talk_phrase = "I found {} of your mates but couldn't hear any of their {}!".format(number_of_guests_found, name_pl_marker)
             else:
                 talk_phrase = "I found {} of your mates and could hear {} of their names!".format(number_of_guests_found, len(guest_names));
             call_talk_request_action_server(phrase=talk_phrase);
@@ -2395,7 +2396,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
                 else:
                     talk_phrase += guest_prefixes[0] if guest_num == 0 else guest_prefixes[1];
 
-                talk_phrase += self.get_room_loc();
+                talk_phrase += self.get_room_loc(human_record.obj_position.position);
 
                 if human_record.face_attributes:
                     all_are_attributes = ['Bald', 'Wearing_Necklace', 'Wearing_Necktie']
@@ -2426,7 +2427,8 @@ class AnnounceGuestDetailsToOperator(smach.State):
                         talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
                     elif(len(have_attributes)==1):
                         talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
-
+                
+                call_talk_request_action_server(phrase=talk_phrase);
                 guest_num += 1;
 
             """
@@ -2503,17 +2505,17 @@ class AnnounceGuestDetailsToOperator(smach.State):
             talk_phrase = "That's everyone I met!"
             call_talk_request_action_server(phrase=talk_phrase)
 
-        relevant_matches = userdata.relevant_matches;
-        if relevant_matches != None:
-            talk_phrase = "";
-            for guest in relevant_matches:
-                guest:list;
-                if len(guest) != 0:
-                    guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
-                    speak_relation:dict = guest_sorted[0];
-                    talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
-                pass
-            call_talk_request_action_server(phrase=talk_phrase)            
+        # relevant_matches = userdata.relevant_matches;
+        # if relevant_matches != None:
+        #     talk_phrase = "";
+        #     for guest in relevant_matches:
+        #         guest:list;
+        #         if len(guest) != 0:
+        #             guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
+        #             speak_relation:dict = guest_sorted[0];
+        #             talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
+        #         pass
+        #     call_talk_request_action_server(phrase=talk_phrase)
 
         return 'success'
 
