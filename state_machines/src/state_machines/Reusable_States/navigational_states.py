@@ -15,6 +15,27 @@ from geometry_msgs.msg import Pose, PoseStamped
 
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 
+import math;
+
+class GetRobotLocationState(smach.State):
+    """ Smach state for getting the robot's current location.
+
+    This state will get the robot's current location and return it in the userdata dict.
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes = ['stored'],
+                                output_keys=['robot_location'])
+
+    def execute(self, userdata):
+        # Wait for one message on topic and then set as the location
+        pose = rospy.wait_for_message('/global_pose', PoseStamped)
+        userdata.robot_location = pose.pose
+        rospy.loginfo(pose)
+        return 'stored'
+
+
 #region navigation states
 class SimpleNavigateState(smach.State):
     """ State for navigating directly to a location on the map.
@@ -224,3 +245,150 @@ class NavigateDistanceFromGoalSafely(smach.State):
         return 'success';
 
 #endregion
+
+class GetNextNavLoc(smach.State):
+    """
+    This is set up specifically for the find my mates task.
+    So the overall goal here is to work out where to go to next.
+    Do we want to go to the next search node or do we want to go to the next
+    nearest human?
+    Note that this is designed to be executed after GetNearestOperator.
+    Inputs:
+        closest_human:Human
+            The closest human entry.
+        robot_location:Pose
+            The current location of the robot.
+    Outputs:
+        pose_to_nav_to:Pose|None
+            The pose we want the robot to navigate to if we're aiming for a pose.
+    """
+    # Gives the distance the robot will come to a stop from the human.
+    DISTANCE_FROM_HUMAN = 0.3;  #m
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', 'failure'],
+                                input_keys=['closest_human', 'robot_location'],
+                                output_keys=['pose_to_nav_to']);
+
+    def execute(self, userdata):
+
+        nav_to_human:bool = True;
+        human_loc:Pose = userdata.closest_human.obj_position;
+        robot_location:Pose = userdata.robot_location;
+
+        # Proxy for actual next node location. (Need to work out type of this!)
+        next_node_pos = Point();
+
+        # [Logic for choosing between node and humans]
+        # If the human is behind the robot, go to the human.
+        # If the human is infront of the next node, go to the human.
+        # If the human is behind the next node, go to the next node.
+
+        # Behind can be determined by whether the dot product between two vectors (the one
+        # going robot->node and robot->human) is negative.
+        # Nearness can be determined by the distance itself.
+
+        # Is the human behind the robot?
+        robot_to_node:Point = Point();
+        robot_to_node.x = next_node_pos.x - robot_location.position.x;
+        robot_to_node.y = next_node_pos.y - robot_location.position.y;
+        robot_to_node.z = next_node_pos.z - robot_location.position.z;
+
+        robot_to_human:Point = Point();
+        robot_to_human.x = human_loc.position.x - robot_location.position.x;
+        robot_to_human.y = human_loc.position.y - robot_location.position.y;
+        robot_to_human.z = human_loc.position.z - robot_location.position.z;
+
+        # RobotToNode dot RobotToHuman...
+        RTN_dot_RTH = robot_to_node.x*robot_to_human.x + robot_to_node.y*robot_to_human.y + robot_to_node.z*robot_to_human.z;
+        if RTN_dot_RTH < 0:
+            nav_to_human = True;
+        else:
+            robot_to_node_len = get_point_magnitude(robot_to_node);
+            robot_to_human_len = get_point_magnitude(robot_to_human);
+            if robot_to_node_len < robot_to_human_len:
+                nav_to_human = False;
+            else:
+                nav_to_human = True;
+
+        # NOTE: This puts the robot a certain distance away from the we are looking for.
+        # Potentially can be abstracted out into its own smach state.
+        if nav_to_human:
+            pose_to_nav_to:Pose = Pose();
+            vec_to_human = Point();
+            vec_to_human.x = human_loc.position.x - robot_location.position.x;
+            vec_to_human.y = human_loc.position.y - robot_location.position.y;
+            vec_to_human.z = human_loc.position.z - robot_location.position.z;
+
+            vec_to_human_len:float = get_point_magnitude(vec_to_human);
+
+            vec_to_human.x *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+            vec_to_human.y *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+            vec_to_human.z *= GetNextNavLoc.DISTANCE_FROM_HUMAN / vec_to_human_len;
+
+            pose_to_nav_to.position.x = human_loc.position.x - vec_to_human.x;
+            pose_to_nav_to.position.y = human_loc.position.y - vec_to_human.y;
+            pose_to_nav_to.position.z = human_loc.position.z - vec_to_human.z;
+
+            userdata.pose_to_nav_to = pose_to_nav_to;
+
+            return 'nav_to_pose';
+        else:
+            return 'nav_to_node';
+
+class SetSafePoseFromObject(smach.State):
+    """
+    Adjust a pose in to be a fixed distance from the point of interest.
+    Inputs:
+        pose:Pose
+    Outputs:
+        pose:Pose
+    """
+
+    # Gives the distance the robot will come to a stop from the human.
+    DISTANCE_FROM_POSE = 1;  #m
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'],
+                                input_keys=['pose', 'robot_location'],
+                                output_keys=['pose_out']);
+
+    def execute(self, userdata):
+        print(userdata.keys);
+
+        robot_location:Pose = userdata.robot_location;
+        pose:Pose = userdata.pose;
+
+        # [Logic for choosing between node and humans]
+        # If the human is behind the robot, go to the human.
+        # If the human is infront of the next node, go to the human.
+        # If the human is behind the next node, go to the next node.
+
+        # Behind can be determined by whether the dot product between two vectors (the one 
+        # going robot->node and robot->human) is negative.
+        # Nearness can be determined by the distance itself.
+
+        vec_to_pose = Point();
+        vec_to_pose.x = pose.position.x - robot_location.position.x;
+        vec_to_pose.y = pose.position.y - robot_location.position.y;
+        vec_to_pose.z = pose.position.z - robot_location.position.z;
+
+        angle = math.atan2(vec_to_pose.y, vec_to_pose.x);
+
+        vec_to_pose_len:float = get_point_magnitude(vec_to_pose);
+
+        vec_to_pose.x *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+        vec_to_pose.y *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+        vec_to_pose.z *= SetSafePoseFromObject.DISTANCE_FROM_POSE / vec_to_pose_len;
+
+        new_pose:Pose = Pose();
+        new_pose.position.x = pose.position.x - vec_to_pose.x;
+        new_pose.position.y = pose.position.y - vec_to_pose.y;
+        new_pose.position.z = pose.position.z - vec_to_pose.z;
+        new_pose.orientation.w = math.cos(angle);
+        new_pose.orientation.z = math.sin(angle);
+
+        userdata.pose_out = new_pose;
+            
+        return 'success';
+

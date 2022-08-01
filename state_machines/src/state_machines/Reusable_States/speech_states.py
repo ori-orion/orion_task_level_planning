@@ -47,6 +47,140 @@ class SpeakState(smach.State):
         return 'success'
 
 
+class SpeakAndListenState(smach.State):
+    """ Smach state for speaking and then listening for a response.
+
+    This state will calll the speak and listen action server,
+    to get the robot to say something, wait for a response,
+    parse the response, and return it as an output key.
+
+    input_keys:
+        question: the question to ask
+        candidates: candidate sentences
+        params: optional parameters for candidate sentences
+        timeout: the timeout for listening
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        operator_response: the recognised response text
+        number_of_failures: the updated failure counter upon state exit
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['success','failure','repeat_failure'],
+                                input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
+                                output_keys=['operator_response', 'number_of_failures'])
+
+    def execute(self, userdata):
+        speak_listen_goal = SpeakAndListenGoal()
+        speak_listen_goal.question = userdata.question
+        speak_listen_goal.candidates = userdata.candidates
+        speak_listen_goal.params = userdata.params
+        speak_listen_goal.timeout = userdata.timeout
+
+        speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+        speak_listen_action_client.wait_for_server()
+        # rospy.loginfo("Pre sending goal");
+        speak_listen_action_client.send_goal(speak_listen_goal)
+        # rospy.loginfo("Pre wait for result");
+        speak_listen_action_client.wait_for_result()
+        # rospy.loginfo("Post wait for result");
+
+        result = speak_listen_action_client.get_result()
+
+        if result is not None and result.succeeded:
+            userdata.operator_response = result.answer
+            userdata.number_of_failures = 0
+            return 'success'
+        else:
+            userdata.number_of_failures+= 1
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                # reset number of failures because we've already triggered the repeat failure
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
+
+class AskPersonNameState(smach.State):
+    """ Smach state for the robot to ask for the person's name, executed by the ask_person_name action server.
+
+    This state will call the ask_person_name action server,
+    wait for a response, parse the response, and return it as an output key.
+
+    input_keys:
+        question: the question to ask
+        timeout: the timeout for listening
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        recognised_name: the recognised name response
+        number_of_failures: the updated failure counter upon state exit
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['success','failure','repeat_failure'],
+                                input_keys=['question','timeout','number_of_failures','failure_threshold'],
+                                output_keys=['recognised_name', 'number_of_failures'])
+
+    def execute(self, userdata):
+        ask_name_goal = AskPersonNameGoal()
+        rospy.loginfo(f"Asking question {userdata.question} with timeout {userdata.timeout}")
+        ask_name_goal.question = userdata.question
+        ask_name_goal.timeout = userdata.timeout
+
+        ask_name_action_client = actionlib.SimpleActionClient('ask_person_name', AskPersonNameAction)
+        ask_name_action_client.wait_for_server()
+        # rospy.loginfo("Pre sending goal");
+        ask_name_action_client.send_goal(ask_name_goal)
+        # rospy.loginfo("Pre wait for result");
+        ask_name_action_client.wait_for_result()
+        # rospy.loginfo("Post wait for result");
+
+        result = ask_name_action_client.get_result()
+
+        if result is not None and result.answer:
+            userdata.recognised_name = result.answer
+            userdata.number_of_failures = 0
+            return 'success'
+        else:
+            # action server failed
+            userdata.number_of_failures += 1
+            userdata.recognised_name = "";
+            if userdata.number_of_failures >= userdata.failure_threshold:
+                # reset number of failures because we've already triggered the repeat failure
+                userdata.number_of_failures = 0
+                return 'repeat_failure'
+            return 'failure'
+
+class WaitForHotwordState(smach.State):
+    """ Smach state for waiting for the hotword detector to publish a detection message.
+
+    Terminates with 'success' outcome if hotword detection message is received within the timeout (if used),
+    otherwise 'failure'.
+
+    input_keys:
+        timeout: timeout time in seconds (set to None to wait indefinitely)
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes = ['success', 'failure'],
+                                input_keys=['timeout'])
+
+    def execute(self, userdata):
+        # call_talk_request_action_server(phrase="I'm ready and waiting for the hotword")
+        rospy.loginfo("Waiting for hotword...")
+        try:
+            # Wait for one message on topic
+            hotword_msg = rospy.wait_for_message('/hotword', Hotword, timeout=userdata.timeout)
+            rospy.loginfo("Hotword '{}' received at time: {}".format(hotword_msg.hotword, hotword_msg.stamp.to_sec()))
+            # call_talk_request_action_server(phrase="Hotword received")
+            return 'success'
+        except rospy.ROSException as e:
+            rospy.logwarn("Hotword not received within timeout")
+            return 'failure'
+
 #region Create Phrase stuff.
 # This seems to set `userdata.phrase` for subsequent speaking.
 # Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow

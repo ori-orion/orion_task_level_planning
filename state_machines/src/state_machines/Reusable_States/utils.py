@@ -62,3 +62,6 @@ def get_closest_node(dest_pose):
             best_node_pose = (node.name, node.pose)
 
     return best_node_pose
+
+def get_point_magnitude(point:Point):
+    return np.sqrt(point.x*point.x + point.y*point.y + point.z*point.z);

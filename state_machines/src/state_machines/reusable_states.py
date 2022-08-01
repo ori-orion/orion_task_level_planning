@@ -1076,7 +1076,6 @@ class HandoverObjectToOperatorState(smach.State):
         else:
             return 'failure'
 
-
 class ReceiveObjectFromOperatorState(smach.State):
     """ Smach state for receiving an object from an operator.
 
