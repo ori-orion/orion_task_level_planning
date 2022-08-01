@@ -8,6 +8,10 @@ import rospy;
 
 from strands_navigation_msgs.msg import TopologicalMap
 
+from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
+
+import actionlib
+
 def pose_to_xy_theta(pose:Pose):
     """ Function converts a pose to an (x,y,theta) triple.
 
@@ -65,3 +69,27 @@ def get_closest_node(dest_pose):
 
 def get_point_magnitude(point:Point):
     return np.sqrt(point.x*point.x + point.y*point.y + point.z*point.z);
+
+def call_talk_request_action_server(phrase : str):
+    ''' Function to call the Toyota talk request action server
+
+    '''
+    action_goal = TalkRequestGoal()
+    action_goal.data.language = Voice.kEnglish  # enum for value: 1
+    action_goal.data.sentence = phrase
+
+    rospy.loginfo("HSR speaking phrase: '{}'".format(phrase))
+    speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
+                                    TalkRequestAction)
+
+    speak_action_client.wait_for_server()
+    speak_action_client.send_goal(action_goal)
+    speak_action_client.wait_for_result()
+
+    return
+
+def attribute_to_sentence(attribute):
+    # function to convert attributes like Wearing_Hat into pronouncable wearing hat
+    atr = attribute.split('_')
+    atr = [a.lower() for a in atr]
+    return atr
