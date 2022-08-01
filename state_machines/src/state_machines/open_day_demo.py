@@ -11,7 +11,9 @@ import smach
 import smach_ros
 import actionlib
 
-from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
+from state_machines.Reusable_States.include_all import *;
+
+# from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_open_day_clients
 from geometry_msgs.msg import Pose
 
