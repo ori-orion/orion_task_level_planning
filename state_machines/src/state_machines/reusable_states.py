@@ -315,7 +315,7 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.speak_and_listen_params_empty = []
     sub_sm.userdata.speak_and_listen_timeout = 5
     sub_sm.userdata.speak_and_listen_failures = 0
-    sub_sm.userdata.speak_and_listen_failure_threshold = 3
+    sub_sm.userdata.speak_and_listen_failure_threshold = 2
 
     # speaking to guests
     sub_sm.userdata.introduction_to_guest_phrase = "";
@@ -344,6 +344,8 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.guest_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
     sub_sm.userdata.guest_face_attributes = {}  # need to initialise it here because it needs to be an input into the CreateGuestAttributesDict state
 
+    sub_sm.userdata.failure_threshold = 3;
+
     # Open the container
     with sub_sm:
         # introduction to guest
@@ -358,7 +360,7 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
                                             'failure':'ANNOUNCE_MISSED_GUEST_NAME',
-                                            'repeat_failure':'ANNOUNCE_NO_ONE_THERE'},
+                                            'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
                                 remapping={'question':'ask_name_phrase',
                                             'recognised_name': 'guest_name',
                                             'timeout':'speak_and_listen_timeout',
@@ -409,6 +411,7 @@ def create_learn_guest_sub_state_machine():
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(),
                                 transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                # transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={'phrase':'start_face_registration_phrase'})
 
         # capture guest's face
@@ -606,9 +609,9 @@ def create_search_for_human():
             'SearchForHuman_1',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'GoToSafePoseFromHuman',
+                'new_human_found':'LookAtHuman',
                 'human_not_found':'SpinOnSpot',
-                'existing_human_found':'GoToSafePoseFromHuman'},
+                'existing_human_found':'SpinOnSpot'},
             remapping={});
         
         smach.StateMachine.add(
@@ -622,9 +625,9 @@ def create_search_for_human():
             'SearchForHuman_2',
             GetNearestHuman(),
             transitions={
-                'new_human_found':'GoToSafePoseFromHuman',
+                'new_human_found':'LookAtHuman',
                 'human_not_found':'failure',
-                'existing_human_found':'GoToSafePoseFromHuman'},
+                'existing_human_found':'failure'},
             remapping={});
 
         smach.StateMachine.add(
@@ -1219,7 +1222,8 @@ class AskPersonNameState(smach.State):
             return 'success'
         else:
             # action server failed
-            userdata.number_of_failures+= 1
+            userdata.number_of_failures += 1
+            userdata.recognised_name = "";
             if userdata.number_of_failures >= userdata.failure_threshold:
                 # reset number of failures because we've already triggered the repeat failure
                 userdata.number_of_failures = 0
@@ -1776,8 +1780,6 @@ class GetHumanRelativeLoc(smach.State):
     We want to be able to give the location of the human relative to other objects around the room.
     This will work this out.
     Inputs:
-        human_obj_uid:str   The uid of the human in the objects system that we want to work out the relative information for.
-                            This is given by `object_obj` within a Human.msg.
     Outputs:
         relevant_matches    The list of closest matches in the form of a list of dictionaries with the following parameters:#
             human_obj_uid       The uid within the object collection.
@@ -1791,32 +1793,33 @@ class GetHumanRelativeLoc(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
-                                input_keys=['human_obj_uid'],
+                                input_keys=['couch_left','couch_right', 'left_of_couch', 'right_of_couch'],
                                 output_keys=['relevant_matches'])
+
+        rospy.wait_for_service('/som/objects/relational_query');
+        rospy.wait_for_service('/som/humans/basic_query');
+        self.relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
+        self.humans_query = rospy.ServiceProxy('/som/humans/basic_query', orion_actions.srv.SOMQueryHumans);
 
     def get_most_relevant_relation(self, relation:Relation) -> str:
         if relation.left:
-            return " is to the left of the ";
+            return " was to the left of the ";
         elif relation.right:
-            return " is to the right of the ";
+            return " was to the right of the ";
         elif relation.frontof:
-            return " is infront of the ";
+            return " was infront of the ";
         elif relation.behind:
-            return " is behind the ";
+            return " was behind the ";
         elif relation.near:
-            return " is near to the ";
-        pass;
+            return " was near to the ";
+        return None;
 
-    def execute(self, userdata):
-        # We want to do a region query here. Then sort by distance.
+    def get_relative_loc_per_human(self, human_obj_uid:str, human_name:str) -> list:
         query = orion_actions.srv.SOMRelObjQueryRequest();
-        query.obj1.UID = userdata.human_obj_uid;
+        query.obj1.UID = human_obj_uid;
         query.obj2.category = "unknown";        # So anything not in the file of pickupable objects will be given the category of "unknown." We can use this to our advantage.
 
-        rospy.wait_for_service('/som/objects/relational_query');
-        relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
-
-        response:orion_actions.srv.SOMRelObjQueryResponse = relational_query_srv(query);
+        response:orion_actions.srv.SOMRelObjQueryResponse = self.relational_query_srv(query);
 
         def get_relation_dist(rel:Match):
             return rel.distance;
@@ -1829,19 +1832,36 @@ class GetHumanRelativeLoc(smach.State):
         relevant_matches = [];
 
         for match in matches_sorted:
-            match:Match;
-
+            match:Match;            
             if match.obj2.class_ in GetHumanRelativeLoc.RELATIVE_OBJS:
+                relevant_relation = self.get_most_relevant_relation(match.relation);
+                if relevant_relation != None:
+                    relevant_matches.append({
+                        'human_obj_uid': human_obj_uid,
+                        'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_,
+                        'human_name':human_name,
+                        'distance_from_obj':match.distance
+                    });
 
-                relevant_matches.append({
-                    'human_obj_uid': userdata.human_obj_uid,
-                    'relational_str': self.get_most_relevant_relation(match.relation) + match.obj2.class_
-                });
+        return relevant_matches;
 
-        if len(relevant_matches) == 0:
+    def execute(self, userdata):
+        
+        human_query = orion_actions.srv.SOMQueryHumansRequest();
+        human_query.query.spoken_to_state = Human._SPOKEN_TO;
+        spoken_to_guests:orion_actions.srv.SOMQueryHumansResponse = self.humans_query(human_query);
+
+        returns = [];
+        for guest in spoken_to_guests.returns:
+            guest:Human;
+            relevant_matches = self.get_relative_loc_per_human(guest.object_uid, guest.name);
+            returns.append(relevant_matches);
+        
+        if len(returns) == 0:
+            userdata.relevant_matches = None;
             return "no_relevant_matches_found";
         else:
-            userdata.relevant_matches = relevant_matches;
+            userdata.relevant_matches = returns;
             return "success"
 
 class GetOperatorLoc(smach.State):
@@ -2013,17 +2033,19 @@ class SetSafePoseFromObject(smach.State):
             
         return 'success';
 
-# Look at states
+#region Look at states
 class LookUpState(smach.State):
-    def __init__(self):
+    def __init__(self, height=1.2):
         smach.State.__init__(self, outcomes=['success']);
+
+        self.height = height;
 
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
 
     def execute(self, userdata):
         self.whole_body.gaze_point(
-            point=hsrb_interface.geometry.Vector3(1, 0, 1.2), 
+            point=hsrb_interface.geometry.Vector3(1, 0, self.height), 
             ref_frame_id="base_link");
 
         return 'success';
@@ -2066,6 +2088,45 @@ class LookAtHuman(smach.State):
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
         return 'success';
+
+class LookAtPoint(smach.State):
+    """
+    Look at the last human observed.
+    
+    Inputs:
+        pose:Pose   The point to look at in 3D space.
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=['success'],
+            input_keys=['pose']);
+
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+    
+    def execute(self, userdata):
+        pose:Pose = userdata.pose;
+        point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.3);
+        
+        # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
+        try:
+            self.whole_body.gaze_point(
+                point=point_look_at,
+                ref_frame_id="map");
+        except:
+            point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.2);
+            try:
+                self.whole_body.gaze_point(
+                    point=point_look_at,
+                    ref_frame_id="map");
+            except:
+                self.whole_body.gaze_point(
+                    point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
+                    ref_frame_id="base_link");
+            rospy.logwarn("Error with gaze_point directly at the human.");
+        return 'success';
+
 #endregion
 
 #region Facial stuff
@@ -2244,6 +2305,7 @@ class ClearFaceDB(smach.State):
 
         rospy.loginfo("ClearFaceDatabase action server cleared the database")
         return "success"
+#endregion
 
 # TODO - complete this state & test it
 class AnnounceGuestDetailsToOperator(smach.State):
@@ -2263,6 +2325,39 @@ class AnnounceGuestDetailsToOperator(smach.State):
         smach.State.__init__(self, outcomes=['success'],
                                 input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
 
+        self.couch_left = Point();
+        self.couch_left.x = 2.8248822689056396;
+        self.couch_left.y = -2.577892541885376;
+    
+        self.couch_right = Point();
+        self.couch_right.x = 1.879967212677002;
+        self.couch_right.y = -2.7639691829681396;
+
+        self.left_of_couch = Point();
+        self.left_of_couch.x = 3.812685966491699;
+        self.left_of_couch.y = -1.1837384700775146;
+
+        self.right_of_couch = Point();
+        self.right_of_couch.x = 0.9689993858337402;
+        self.right_of_couch.y = -1.6282684803009033;
+
+    def get_room_loc(self, person_loc:Point) -> str:
+        dist = distance_between_points(person_loc, self.couch_left);
+        output = " was seated on the left of the couch."
+        trial_dist = distance_between_points(person_loc, self.couch_right);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated on the right of the couch."
+        trial_dist = distance_between_points(person_loc, self.left_of_couch);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated to the left of the couch."
+        trial_dist = distance_between_points(person_loc, self.right_of_couch);
+        if trial_dist < dist:
+            dist = trial_dist;
+            output = " was seated to the right of the couch."
+        return output;
+
     def execute(self, userdata):
         rospy.wait_for_service('som/humans/basic_query')
         som_humans_query_service_client = rospy.ServiceProxy('som/humans/basic_query', SOMQueryHumans);
@@ -2279,8 +2374,67 @@ class AnnounceGuestDetailsToOperator(smach.State):
             return 'success'
 
         if number_of_guests_found > 0:
-            talk_phrase = "I found {} of your mates! Let me tell you about them!".format(number_of_guests_found)
-            call_talk_request_action_server(phrase=talk_phrase)
+            guest_names = [];
+            for human_record in responses.returns:
+                human_record:Human;
+                if human_record.name:
+                    guest_names.append(human_record.name);
+
+            if len(guest_names) == 0:
+                name_pl_marker = "names" if len(number_of_guests_found) > 1 else "name";
+                talk_phrase = "I found {} of your mates but couldn't hear any of their {}!".format(number_of_guests_found, name_pl_marker)
+            else:
+                talk_phrase = "I found {} of your mates and could hear {} of their names!".format(number_of_guests_found, len(guest_names));
+            call_talk_request_action_server(phrase=talk_phrase);
+
+            guest_prefixes = ["One of the guests", "Another of the guests"];
+            guest_num = 0;
+            for human_record in responses.returns:
+                human_record:Human;
+
+                talk_phrase = "";
+
+                if human_record.name:
+                    talk_phrase += human_record.name;
+                else:
+                    talk_phrase += guest_prefixes[0] if guest_num == 0 else guest_prefixes[1];
+
+                talk_phrase += self.get_room_loc(human_record.obj_position.position);
+
+                if human_record.face_attributes:
+                    all_are_attributes = ['Bald', 'Wearing_Necklace', 'Wearing_Necktie']
+                    all_have_attributes = ['Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Eyeglasses', 'Gray_Hair', 'Sideburns', 'Straight_Hair', 'Wavy_Hair']
+
+                    are_attributes = []
+                    have_attributes = []
+
+                    for attribute in human_record.face_attributes:
+                        if(attribute in all_are_attributes):
+                            are_attributes.append(attribute)
+                        elif(attribute in all_have_attributes):
+                            have_attributes.append(attribute)
+
+                    if(len(are_attributes)>1):
+                        # Making sure it can pronounce things like Wearing_Necklace
+                        list1 = []
+                        for attribute in are_attributes[:-1]:
+                            list1.append(attribute_to_sentence(attribute))
+                        talk_phrase += " They are {} and {}.".format(list1, attribute_to_sentence(are_attributes[-1]))
+                    elif(len(are_attributes)==1):
+                        talk_phrase += " They are {}.".format(attribute_to_sentence(are_attributes))
+
+                    if(len(have_attributes)>1):
+                        list2 = []
+                        for attribute in have_attributes[:-1]:
+                            list2.append(attribute_to_sentence(attribute))
+                        talk_phrase += " They have {} and {}.".format(list2, attribute_to_sentence(have_attributes[-1]))
+                    elif(len(have_attributes)==1):
+                        talk_phrase += " They have {}.".format(attribute_to_sentence(have_attributes))
+                
+                call_talk_request_action_server(phrase=talk_phrase);
+                guest_num += 1;
+
+            """
             guest_num = 0;
             for human_record in responses.returns:
                 human_record:Human;
@@ -2327,7 +2481,9 @@ class AnnounceGuestDetailsToOperator(smach.State):
                             have_attributes.append(attribute)
 
                     if(len(are_attributes)>1):
-                        """ Making sure it can pronounce things like Wearing_Necklace"""
+                        #" Making sure it can pronounce things like Wearing_Necklace""
+                        list1 = []
+                        "" Making sure it can pronounce things like Wearing_Necklace""
                         string1 = ""
                         for attribute in are_attributes[:-1]:
                             list1 = attribute_to_sentence(attribute)
@@ -2352,10 +2508,23 @@ class AnnounceGuestDetailsToOperator(smach.State):
                 call_talk_request_action_server(phrase=person_talk_phrase)
 
                 guest_num += 1;
+            """
 
             # wrap up
             talk_phrase = "That's everyone I met!"
             call_talk_request_action_server(phrase=talk_phrase)
+
+        # relevant_matches = userdata.relevant_matches;
+        # if relevant_matches != None:
+        #     talk_phrase = "";
+        #     for guest in relevant_matches:
+        #         guest:list;
+        #         if len(guest) != 0:
+        #             guest_sorted = sorted(guest, key=lambda x:x["distance_from_obj"]);
+        #             speak_relation:dict = guest_sorted[0];
+        #             talk_phrase += speak_relation['human_name'] + speak_relation['relational_str'] + ".";
+        #         pass
+        #     call_talk_request_action_server(phrase=talk_phrase)
 
         return 'success'
 

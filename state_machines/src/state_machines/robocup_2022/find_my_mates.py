@@ -61,7 +61,7 @@ def create_state_machine():
     # Create state machine userdata dictionary elements
     
     # Task params
-    sm.userdata.expected_num_guests = 3 # TODO - change to 3
+    sm.userdata.expected_num_guests = 4 # TODO - change to 3
     sm.userdata.max_search_duration = 200 # seconds
 
     sm.userdata.person_names = NAMES
@@ -78,13 +78,15 @@ def create_state_machine():
     sm.userdata.speak_and_listen_params_empty = []
     sm.userdata.speak_and_listen_timeout = 5
     sm.userdata.speak_and_listen_failures = 0
-    sm.userdata.speak_and_listen_failure_threshold = 3
+    sm.userdata.speak_and_listen_failure_threshold = 2
 
     sm.userdata.simple_navigation_failures = 0
     sm.userdata.simple_navigation_failure_threshold = 3
     sm.userdata.simple_navigation_distance_to_humans = 0.5 # metres
 
     sm.userdata.topological_navigation_failure_threshold = 3
+
+    sm.userdata.failure_threshold = 3;
 
     sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates!"
 
@@ -97,13 +99,15 @@ def create_state_machine():
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();
-    operator_pose.position.x = 3.68511167921
-    operator_pose.position.y = -0.246170259619
-    operator_pose.position.z = 0.0
-    operator_pose.orientation.x = 0.0
-    operator_pose.orientation.y = 0.0
-    operator_pose.orientation.z = 0.138441671828
-    operator_pose.orientation.w = 0.990370588972
+    operator_pose.position.x = 3.7600877304982285;
+    operator_pose.position.y = 1.057383767080644;
+    # operator_pose.position.x = -19.6;
+    # operator_pose.position.y = -9.4;
+    operator_pose.position.z = 0.0;
+    operator_pose.orientation.x = 0.0;
+    operator_pose.orientation.y = 0.0;
+    operator_pose.orientation.z = -0.61682206674639;
+    operator_pose.orientation.w = 0.7871026222639028;
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
@@ -112,10 +116,23 @@ def create_state_machine():
     
     # search updates
     sm.userdata.continue_search_phrase = "I am continuing to search for guests"
-    sm.userdata.finish_search_phrase = "I am finished searching for guests and am returning to the host"
+    sm.userdata.finish_search_phrase = "I have finished searching for guests."
 
     # farewell operator
     sm.userdata.farewell_operator_phrase = "My job here is done. Have a nice day!"
+
+
+    mid_room_pose = Pose();
+    mid_room_pose.position.x = 2.1717187101331037;
+    mid_room_pose.position.y = -0.2144994235965718;
+    # mid_room_pose.position.x = -18;
+    # mid_room_pose.position.y = -9;
+    mid_room_pose.position.z = 0.0;
+    mid_room_pose.orientation.x = 0.0;
+    mid_room_pose.orientation.y = 0.0;
+    mid_room_pose.orientation.z = -0.6771155204369553;
+    mid_room_pose.orientation.w = 0.7358767369494643;
+    sm.userdata.mid_room_pose = mid_room_pose;
 
     # set arena exit pose - TODO
     sm.userdata.exit_pose = Pose()
@@ -157,6 +174,7 @@ def create_state_machine():
     sm.userdata.prev_node_nav_to = "Living1";
 
     sm.userdata.nearest_to = None;
+
 
     with sm:
         # TODO - remove after testing
@@ -226,8 +244,11 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NAV_TO_OPERATOR',
-            NavigateDistanceFromGoalSafely(),
-            transitions={'success':'LOOK_AT_OPERATOR'},
+            SimpleNavigateState(),
+            transitions={
+                'success':'LOOK_AT_OPERATOR',
+                'failure':'NAV_TO_OPERATOR',
+                'repeat_failure':'LOOK_AT_OPERATOR'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
@@ -266,7 +287,7 @@ def create_state_machine():
                                 AskPersonNameState(),
                                 transitions={'success': 'SearchForOperator',
                                             'failure':'ANNOUNCE_MISSED_NAME',
-                                            'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
+                                            'repeat_failure':'SearchForOperator'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
                                             'timeout':'speak_and_listen_timeout',
@@ -319,8 +340,17 @@ def create_state_machine():
         # announce search start
         smach.StateMachine.add('ANNOUNCE_SEARCH_START',
                                 SpeakState(),
-                                transitions={'success':'SEARCH_FOR_GUEST_SUB'},
+                                transitions={'success':'NAV_TO_ROOM_CENTRE'},
                                 remapping={'phrase':'announce_search_start_phrase'})
+
+        smach.StateMachine.add(
+            "NAV_TO_ROOM_CENTRE",
+            SimpleNavigateState(),
+            transitions={
+                'success':'SEARCH_FOR_GUEST_SUB',
+                'failure':'NAV_TO_ROOM_CENTRE',
+                'repeat_failure':'SEARCH_FOR_GUEST_SUB'},
+            remapping={'pose':'mid_room_pose'});
 
         # start the search for an un-spoken-to guest
         # create_search_for_guest_sub_state_machine()
@@ -385,7 +415,7 @@ def create_state_machine():
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
                                 SpeakState(),
-                                transitions={'success':'NAV_RETURN_TO_OPERATOR'},   # correct transition
+                                transitions={'success':'LookBackAtOperator'},   # correct transition
                                 # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
                                 remapping={'phrase':'finish_search_phrase'}) 
         
@@ -394,12 +424,24 @@ def create_state_machine():
         # navigate back to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_RETURN_TO_OPERATOR',
                                SimpleNavigateState(),
-                               transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
+                               transitions={'success':'GET_GUEST_RELATIONS',
                                             'failure':'NAV_RETURN_TO_OPERATOR',
-                                            'repeat_failure':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
+                                            'repeat_failure':'GET_GUEST_RELATIONS'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+                                           'failure_threshold':'simple_navigation_failure_threshold'});
+        smach.StateMachine.add(
+            "LookBackAtOperator",
+            LookAtPoint(),
+            transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
+            remapping={'pose':'operator_pose'});
+
+        smach.StateMachine.add(
+            'GET_GUEST_RELATIONS',
+            GetHumanRelativeLoc(),
+            transitions={
+                'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
+                'no_relevant_matches_found':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'});
 
         smach.StateMachine.add('ANNOUNCE_GUEST_DETAILS_TO_OPERATOR', 
                                 AnnounceGuestDetailsToOperator(),
@@ -436,7 +478,7 @@ def create_state_machine():
                                 remapping={'phrase':'announce_finish_phrase'})
         
         # TODO - Reset e
-    return sm; 
+    return sm;
 
 rospy.init_node('find_my_mates_state_machine');
 
