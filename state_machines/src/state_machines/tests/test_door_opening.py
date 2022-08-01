@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
+from state_machines.Reusable_States.include_all import *;
+
+# from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 
 if __name__ == '__main__':
     rospy.init_node('testing_door_opening');

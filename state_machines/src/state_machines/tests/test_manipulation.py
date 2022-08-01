@@ -11,7 +11,9 @@ import smach
 import smach_ros
 import actionlib
 
-from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
+from state_machines.Reusable_States.include_all import *;
+
+# from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 
 
 def create_state_machine(userdata=None):

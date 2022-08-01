@@ -3,7 +3,9 @@
 import smach;
 import rospy;
 
-from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
+from state_machines.Reusable_States.include_all import *;
+
+# from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 
 def create_state_machine():
     sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
