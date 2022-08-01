@@ -197,7 +197,6 @@ def get_pose_of_node(waypoint):
 
     return None
 
-# Doesn't seem to be in use. (Just with a quick search through this file and this file alone).
 def get_closest_node(dest_pose):
     """ Get the closest node to a destination pose. Returns name and pose. """
 
@@ -215,7 +214,6 @@ def get_closest_node(dest_pose):
             best_node_pose = (node.name, node.pose)
 
     return best_node_pose
-#endregion
 
 
 def filter_face_attributes_by_exclusion(attributes):

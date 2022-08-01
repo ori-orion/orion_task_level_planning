@@ -4,6 +4,10 @@ import numpy as np;
 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+import rospy;
+
+from strands_navigation_msgs.msg import TopologicalMap
+
 def pose_to_xy_theta(pose:Pose):
     """ Function converts a pose to an (x,y,theta) triple.
 
@@ -32,7 +36,7 @@ def distance_between_points(pos_1:Point, pos_2:Point):
     delta_z_sq = np.power(pos_2.z - pos_1.z, 2)
 
     return np.sqrt(delta_x_sq + delta_y_sq + delta_z_sq);
-    
+
 def distance_between_poses(pose_1:Pose, pose_2:Pose):
     """Given two poses, this finds the Euclidean distance between them. """
 
@@ -40,3 +44,21 @@ def distance_between_poses(pose_1:Pose, pose_2:Pose):
     pos_2 = pose_2.position
 
     return distance_between_points(pos_1, pos_2);
+
+def get_closest_node(dest_pose):
+    """ Get the closest node to a destination pose. Returns name and pose. """
+
+    top_map = rospy.wait_for_message('/topological_map', TopologicalMap)
+
+    nodes = top_map.nodes
+
+    best_dist = float('inf')
+    best_node_pose = (None, None)
+
+    for node in nodes:
+        new_dist = distance_between_poses(node.pose, dest_pose)
+        if new_dist < best_dist:
+            best_dist = new_dist
+            best_node_pose = (node.name, node.pose)
+
+    return best_node_pose
