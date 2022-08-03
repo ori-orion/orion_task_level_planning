@@ -392,3 +392,80 @@ class SetSafePoseFromObject(smach.State):
             
         return 'success';
 
+class SearchForGuestNavToNextNode(smach.State):
+    """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
+
+    Returns 'searched' if arrived at next node, 'exhausted_search' if no more nodes are available to visit, `failure` if navigation fails.
+
+    input_keys:
+        nodes_not_searched: list of topological node ids to visit during search, in search order
+        failure_threshold: number of allowed failed attempts for each topological navigation action
+    output_keys:
+        nodes_not_searched: list of topological node ids that were not visited during search (does not include the final node because there may be another person there)
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['searched', 'exhausted_search', 'failure', 'preempted'],
+                                input_keys=['nodes_not_searched',
+                                            'failure_threshold'],
+                                output_keys=['nodes_not_searched'])
+
+    def execute(self, userdata):
+        # If topological nodes aren't working, then uncomment the lines below to skip attempts to use it:
+        # Don't actually try to travel along the topological nodes because it's not working at the moment
+        # while True:
+        #     rospy.sleep(1.0)
+        #     if self.preempt_requested():
+        #         self.service_preempt()
+        #         return 'preempted'
+        # TODO - remove after testing
+
+        # check if any nodes left to visit
+        if not userdata.nodes_not_searched:
+            rospy.loginfo('All nodes explored. Nothing to search next.')
+            return 'exhausted_search'
+
+        # create action server
+        topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
+        topological_navigate_action_client.wait_for_server()
+
+        # take the first node on the nodes not searched list
+        node_id = userdata.nodes_not_searched[0]
+
+        for attempt_num in range(userdata.failure_threshold):
+            # Check for preempt
+            if self.preempt_requested():
+                self.service_preempt()
+                return 'preempted'
+
+            # create action goal and call action server
+            goal = TraverseToNodeGoal(node_id=node_id)
+            rospy.loginfo('Navigating with top nav to node "{}"'.format(node_id))
+
+            topological_navigate_action_client.wait_for_server()
+            topological_navigate_action_client.send_goal(goal)
+            topological_navigate_action_client.wait_for_result()
+            result = topological_navigate_action_client.get_result()
+
+            rospy.loginfo('result = ' + str(result.success))
+
+            # Process action result
+            #   Note: result.success returns True if node_id was reached
+            if result.success:
+                break   # break out of attempts for-loop
+            else:
+                # attempt_num starts at 0, and we have just finished taking an attempt
+                if (attempt_num + 1) >= userdata.failure_threshold:
+                    rospy.logwarn('Navigating with top nav to node "{}" failed. Abandoning.'.format(node_id))
+                    # now remove the node from the nodes_not_searched list, because the nav action failed
+                    del userdata.nodes_not_searched[0]
+                    return 'failure'
+            # rospy.sleep(2)  # TODO - remove after testing
+        # One final check for preempt. We only want to remove the node from the list if nothing was found.
+        if self.preempt_requested():
+            self.service_preempt()
+            return 'preempted'
+        # now remove the node from the nodes_not_searched list, because we have now searched it
+        del userdata.nodes_not_searched[0]
+        return 'searched'

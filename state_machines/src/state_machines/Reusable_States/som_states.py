@@ -320,3 +320,63 @@ class GetOperatorLoc(smach.State):
 
         return 'success';
     pass;
+
+class CheckForNewGuestSeen(smach.State):
+    """ Smach state to check if we have seen a new guest (i.e., a guest we have not spoken to yet)
+
+    Returns 'success' if a new guest is found, otherwise runs indefinitely. Needs to be preempted in a concurrency state.
+
+    input_keys:
+
+    output_keys:
+        found_guest_uid: the uid of the found guest, if any
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+                                outcomes=['success', 'preempted'],
+                                input_keys=[],
+                                output_keys=['found_guest_uid'])
+
+    def execute(self, userdata):
+        userdata.found_guest_uid = "not_set"   # initialise to empty to prepare for case where state gets preempted before new guest is found
+                                        # (SMACH will complain if output key does not exist)
+
+        # we sit in this loop forever, and only terminate with outcome 'success' if a new guest is found, or 'preempted' if preempted in concurrent state machine
+        while True:
+            # Check for preempt
+            if self.preempt_requested():
+                self.service_preempt()
+                return 'preempted'
+
+            # Check for new guest found. If there are multiple, then go to the closest one
+            human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+
+            query = SOMQueryHumansRequest();
+            query.query.spoken_to_state = Human._NOT_SPOKEN_TO;
+
+            human_query_results:SOMQueryHumansResponse = human_query_srv(query);
+
+            # What's the current position of the robot?
+            robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+
+            min_distance = math.inf;
+            closest_human:Human = None;
+
+            for result in human_query_results.returns:
+                result:Human;
+                distance = distance_between_poses(result.obj_position, robot_pose.pose);
+                # Don't consider any human results with task role of operator
+                if result.task_role == 'operator':
+                    continue
+                if distance < min_distance:
+                    min_distance = distance;
+                    closest_human = result;
+
+            if closest_human is not None:
+                userdata.found_guest_uid = closest_human.object_uid
+                rospy.loginfo("Found guest not yet spoken to, object_uid: {}".format(closest_human.object_uid))
+                return 'success'
+            else:
+                rospy.loginfo("No new guest not found yet")
+                rospy.sleep(2)
