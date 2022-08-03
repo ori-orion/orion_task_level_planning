@@ -11,7 +11,7 @@ import smach
 import smach_ros
 import actionlib
 
-from reusable_states import * # pylint: disable=unused-wildcard-import
+from orion_task_level_planning.state_machines.src.state_machines.reusable_states_deprecated import * # pylint: disable=unused-wildcard-import
 
 
 def create_state_machine(userdata=None):

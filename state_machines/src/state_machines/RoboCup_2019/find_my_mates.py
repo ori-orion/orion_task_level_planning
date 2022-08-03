@@ -13,7 +13,7 @@ import rospy
 import smach
 import actionlib
 
-from reusable_states import * # pylint: disable=unused-wildcard-import
+from orion_task_level_planning.state_machines.src.state_machines.reusable_states_deprecated import * # pylint: disable=unused-wildcard-import
 from set_up_clients import create_stage_1_clients
 from orion_actions.msg import SOMObservation, Relation, SearchPersonNotMetGoal
 
