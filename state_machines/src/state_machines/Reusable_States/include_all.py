@@ -1,11 +1,11 @@
 
 
-from manipulation_states import *;
-from misc_states import *;
-from navigational_states import *;
-from perception_states import *;
-from som_states import *;
-from speech_states import *;
+from state_machines.Reusable_States.manipulation_states import *;
+from state_machines.Reusable_States.misc_states import *;
+from state_machines.Reusable_States.navigational_states import *;
+from state_machines.Reusable_States.perception_states import *;
+from state_machines.Reusable_States.som_states import *;
+from state_machines.Reusable_States.speech_states import *;
 
 NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
           'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'John',
