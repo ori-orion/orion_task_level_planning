@@ -35,7 +35,6 @@ from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
 
 from orion_actions.msg import DetectionArray, FaceDetectionArray, PoseDetectionArray
 from orion_actions.msg import SOMObservation, Relation
-from orion_actions.srv import SOMObserve
 # new som system
 from orion_actions.msg import SOMObject, Human, Match
 from orion_actions.srv import SOMAddHumanObs, SOMAddHumanObsRequest, SOMQueryObjects, SOMQueryObjectsRequest, \
