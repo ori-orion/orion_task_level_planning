@@ -45,9 +45,6 @@ from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
-from strands_navigation_msgs.srv import GetTaggedNodesResponse
-from strands_navigation_msgs.msg import TopologicalMap
-from strands_executive_msgs.msg import ExecutePolicyGoal, MdpDomainSpec
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
     ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
