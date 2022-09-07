@@ -22,7 +22,7 @@ import math
 
 from orion_actions.msg import GiveObjectToOperatorGoal, \
     OpenDoorGoal, GiveObjectToOperatorGoal, GiveObjectToOperatorAction, \
-        ReceiveObjectFromOperatorGoal, ReceiveObjectFromOperatorAction, PutObjectOnFloorGoal, \
+        ReceiveObjectFromOperatorGoal, ReceiveObjectFromOperatorAction, \
             PutObjectOnSurfaceGoal, CheckForBarDrinksGoal, SpeakAndListenGoal, \
                 HotwordListenGoal, PickUpObjectGoal, PickUpObjectAction, \
                     FollowGoal, OpenDrawerGoal, \
@@ -2959,28 +2959,6 @@ class OpenFurnitureDoorState(ActionServiceState):
         self.action_dict['OpenFurnitureDoor'].wait_for_result()
 
         if self.action_dict['OpenFurnitureDoor'].get_result().result:
-            return self._outcomes[0]
-        else:
-            return self._outcomes[1]
-
-class PutObjectOnFloorState(ActionServiceState):
-    """ Smach state for putting object on floor.
-
-    This state puts an object held by the robot on the floor.
-    """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['SUCCESS', 'FAILURE']
-        super(PutObjectOnFloorState, self).__init__(action_dict=action_dict,
-                                                    global_store=global_store,
-                                                    outcomes=outcomes)
-
-    def execute(self, userdata):
-        put_on_floor_goal = PutObjectOnFloorGoal()
-        self.action_dict['PutObjectOnFloor'].send_goal(put_on_floor_goal)
-        self.action_dict['PutObjectOnFloor'].wait_for_result()
-
-        success = self.action_dict['PutObjectOnFloor'].get_result().result
-        if success:
             return self._outcomes[0]
         else:
             return self._outcomes[1]

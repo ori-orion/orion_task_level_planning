@@ -283,10 +283,11 @@ def create_stage_1_clients(task_number):
                                                                DoorCheckAction)
         action_dict['IsDoorOpen'].wait_for_server()
         rospy.loginfo('put on floor')
-        action_dict['PutObjectOnFloor'] = \
-            actionlib.SimpleActionClient('put_object_on_floor', 
-                                         PutObjectOnFloorAction)
-        action_dict['PutObjectOnFloor'].wait_for_server()
+        # This action server has been replaced with put_object_on_surface
+        # action_dict['PutObjectOnFloor'] = \
+        #     actionlib.SimpleActionClient('put_object_on_floor',
+        #                                  PutObjectOnFloorAction)
+        # action_dict['PutObjectOnFloor'].wait_for_server()
         rospy.loginfo('pick up bin bag')
         action_dict['PickUpBinBag'] = \
             actionlib.SimpleActionClient('pick_up_bin_bag', 
