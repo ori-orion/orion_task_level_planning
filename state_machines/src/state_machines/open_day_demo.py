@@ -55,8 +55,8 @@ def create_state_machine(userdata=None):
     sm.userdata.operator_pose.position.z = 0.0
     sm.userdata.operator_pose.orientation.x = 0.0
     sm.userdata.operator_pose.orientation.y = 0.0
-    sm.userdata.operator_pose.orientation.z = -0.7141349154217675
-    sm.userdata.operator_pose.orientation.w = 0.7000080875072408
+    sm.userdata.operator_pose.orientation.z = -0.714135
+    sm.userdata.operator_pose.orientation.w = 0.7
 
     # Use for Gazebo sim
     # sm.userdata.operator_pose = Pose()
@@ -88,8 +88,8 @@ def create_state_machine(userdata=None):
     sm.userdata.pickup_pose.position.z = 0.0
     sm.userdata.pickup_pose.orientation.x = 0.0
     sm.userdata.pickup_pose.orientation.y = 0.0
-    sm.userdata.pickup_pose.orientation.z = -0.7141349154217675
-    sm.userdata.pickup_pose.orientation.w = 0.7000080875072408
+    sm.userdata.pickup_pose.orientation.z = -0.714135
+    sm.userdata.pickup_pose.orientation.w = 0.7
 
     # Use for Gazebo sim - to pickup water bottle
     # sm.userdata.pickup_pose = Pose()
@@ -128,17 +128,18 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('INTRO',
                                 SpeakState(),
-                                transitions={'success':'NAV_TO_OPERATOR'},
-                                remapping={'phrase':'intro_phrase'})
+                                #transitions={'success':'NAV_TO_OPERATOR'},
+                                transitions={'success':'ASK_OPERATOR_NAME'},
+				remapping={'phrase':'intro_phrase'})
 
-        smach.StateMachine.add('NAV_TO_OPERATOR',
-                               SimpleNavigateState(),
-                               transitions={'success':'ASK_OPERATOR_NAME',
-                                            'failure':'NAV_TO_OPERATOR',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'pose':'operator_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+        #smach.StateMachine.add('NAV_TO_OPERATOR',
+        #                       SimpleNavigateState(),
+        #                       transitions={'success':'ASK_OPERATOR_NAME',
+        #                                    'failure':'NAV_TO_OPERATOR',
+        #                                    'repeat_failure':'task_failure'},
+        #                        remapping={'pose':'operator_pose',
+        #                                   'number_of_failures': 'simple_navigation_failures',
+        #                                   'failure_threshold':'simple_navigation_failure_threshold'})
     
         smach.StateMachine.add('ASK_OPERATOR_NAME',
                                SpeakAndListenState(),
@@ -155,7 +156,8 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('ASK_PICK_UP_OBJ',
                                SpeakAndListenState(),
-                                transitions={'success': 'NAV_TO_PICKUP',
+                                transitions={'success':'PICKUP_OBJECT',
+						#'success': 'NAV_TO_PICKUP',
                                             'failure':'ASK_PICK_UP_OBJ',
                                             'repeat_failure':'task_failure'},
                                 remapping={'question':'object_pickup_question',
@@ -166,18 +168,19 @@ def create_state_machine(userdata=None):
                                             'number_of_failures': 'speak_listen_failures',
                                             'failure_threshold': 'speak_listen_failure_threshold'})
 
-        smach.StateMachine.add('NAV_TO_PICKUP',
-                               SimpleNavigateState(),
-                               transitions={'success':'PICKUP_OBJECT',
-                                            'failure':'NAV_TO_PICKUP',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'pose':'pickup_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold': 'simple_navigation_failure_threshold'})
+        #smach.StateMachine.add('NAV_TO_PICKUP',
+        #                       SimpleNavigateState(),
+        #                       transitions={'success':'PICKUP_OBJECT',
+        #                                    'failure':'NAV_TO_PICKUP',
+        #                                    'repeat_failure':'task_failure'},
+        #                        remapping={'pose':'pickup_pose',
+        #                                   'number_of_failures': 'simple_navigation_failures',
+        #                                   'failure_threshold': 'simple_navigation_failure_threshold'})
                 
         smach.StateMachine.add('PICKUP_OBJECT',
                                PickUpObjectState(),
-                               transitions={'success':'NAV_BACK_TO_OPERATOR',
+                               transitions={'success':'CREATE_OPERATOR_RETURN_PHRASE',
+						#'success':'NAV_BACK_TO_OPERATOR',
                                             'failure':'PICKUP_OBJECT',
                                             'repeat_failure':'CREATE_ASK_FOR_HELP_PHRASE'},
                                 remapping={ 'object_name':'pickup_object_name', 
@@ -206,17 +209,18 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('RECEIVE_ITEM_FROM_OPERATOR',
                                ReceiveObjectFromOperatorState(),
-                               transitions={'success':'NAV_BACK_TO_OPERATOR',
+                               transitions={'success':'CREATE_OPERATOR_RETURN_PHRASE',
+						#'success':'NAV_BACK_TO_OPERATOR',
                                             'failure':'task_failure'})
 
-        smach.StateMachine.add('NAV_BACK_TO_OPERATOR',
-                                SimpleNavigateState(),
-                                transitions={'success':'CREATE_OPERATOR_RETURN_PHRASE',
-                                            'failure':'NAV_BACK_TO_OPERATOR',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'pose':'operator_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+        #smach.StateMachine.add('NAV_BACK_TO_OPERATOR',
+        #                        SimpleNavigateState(),
+        #                        transitions={'success':'CREATE_OPERATOR_RETURN_PHRASE',
+        #                                    'failure':'NAV_BACK_TO_OPERATOR',
+        #                                    'repeat_failure':'task_failure'},
+       #                         remapping={'pose':'operator_pose',
+       #                                    'number_of_failures': 'simple_navigation_failures',
+        #                                   'failure_threshold':'simple_navigation_failure_threshold'})
 
 
         smach.StateMachine.add('CREATE_OPERATOR_RETURN_PHRASE',
@@ -268,17 +272,18 @@ def create_state_machine(userdata=None):
     
         smach.StateMachine.add('THANK_OPERATOR',
                                 SpeakState(),
-                                transitions={'success':'NAV_TO_START'},
-                                remapping={'phrase':'operator_farewell_phrase'})
+                                #transitions={'success':'NAV_TO_START'},
+                                transitions={'success':'FINAL_ANNOUNCEMENT'},
+				remapping={'phrase':'operator_farewell_phrase'})
 
-        smach.StateMachine.add('NAV_TO_START',
-                                SimpleNavigateState(),
-                                transitions={'success':'FINAL_ANNOUNCEMENT',
-                                            'failure':'NAV_TO_START',
-                                            'repeat_failure':'task_failure'},
-                                remapping={'pose':'start_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'})
+        #smach.StateMachine.add('NAV_TO_START',
+        #                        SimpleNavigateState(),
+        #                        transitions={'success':'FINAL_ANNOUNCEMENT',
+        #                                    'failure':'NAV_TO_START',
+        #                                    'repeat_failure':'task_failure'},
+        #                        remapping={'pose':'start_pose',
+        #                                   'number_of_failures': 'simple_navigation_failures',
+        #                                   'failure_threshold':'simple_navigation_failure_threshold'})
         
         smach.StateMachine.add('FINAL_ANNOUNCEMENT',
                                 SpeakState(),
