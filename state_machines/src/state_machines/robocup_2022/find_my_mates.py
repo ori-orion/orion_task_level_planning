@@ -22,37 +22,8 @@ from state_machines.Reusable_States.create_sub_state_machines import *;
 from orion_actions.msg import SOMObservation, Relation, SearchPersonNotMetGoal
 from geometry_msgs.msg import Pose
 
-import time  # TODO - replace calls to rospy.time library
+# import time  # TODO - replace calls to rospy.time library
 
-
-# class LookForPeopleState(ActionServiceState):
-#     """ State for searching for friends of the operator. """
-
-#     def __init__(self, action_dict, global_store):
-#         outcomes = ['PERSON_FOUND', 'NOBODY_FOUND']
-#         super(LookForPeopleState, self).__init__(action_dict=action_dict,
-#                                                  global_store=global_store,
-#                                                  outcomes=outcomes)
-        
-#     def execute(self, userdata):
-#         goal = SearchPersonNotMetGoal()
-#         goal.met_before = list(map(lambda x: str(x), 
-#                                self.global_store['people_found']))
-                               
-#         pose = rospy.wait_for_message('/global_pose', PoseStamped)
-#         pose = pose.pose
-
-#         goal.room_name = self.action_dict['SOMGetRoom'](pose).room_name
-
-#         self.action_dict['SearchPersonNotMet'].send_goal(goal)
-#         self.action_dict['SearchPersonNotMet'].wait_for_result()
-
-#         result = self.action_dict['SearchPersonNotMet'].get_result()
-
-#         if result.success:
-#             self.global_store['last_person'] = result.obj_id
-#         else:
-#             return self._outcomes[1]
 
 
 def create_state_machine():
@@ -489,8 +460,8 @@ rospy.init_node('find_my_mates_state_machine');
 sm = create_state_machine()
 
 # Create and start the introspection server
-# sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-# sis.start()
+sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+sis.start()
 
 # Execute the state machine
 sm.execute()
