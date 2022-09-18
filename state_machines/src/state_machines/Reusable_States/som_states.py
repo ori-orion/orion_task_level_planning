@@ -65,7 +65,7 @@ class SaveOperatorToSOM(smach.State):
         rospy.wait_for_service('som/human_observations/input')
         som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
 
-        result = som_human_obs_input_service_client(operator_obs)
+        result:SOMAddHumanObsResponse = som_human_obs_input_service_client(operator_obs)
 
         rospy.loginfo('Operator "{}" successfully stored in SOM with human collection UID: {}'.format(operator_obs.adding.name, result.UID))
         userdata.operator_som_human_id = result.UID
@@ -130,7 +130,7 @@ class SaveGuestToSOM(smach.State):
         rospy.wait_for_service('som/human_observations/input');
         som_human_obs_input_service_client = rospy.ServiceProxy('som/human_observations/input', SOMAddHumanObs)
 
-        result = som_human_obs_input_service_client(guest_obs)
+        result:SOMAddHumanObsResponse = som_human_obs_input_service_client(guest_obs)
 
         rospy.loginfo('Guest "{}" successfully stored in SOM with human collection UID: {}'.format(guest_obs.adding.name, result.UID))
         userdata.guest_som_human_ids.append(result.UID)
@@ -251,11 +251,11 @@ class GetHumanRelativeLoc(smach.State):
         return None;
 
     def get_relative_loc_per_human(self, human_obj_uid:str, human_name:str) -> list:
-        query = orion_actions.srv.SOMRelObjQueryRequest();
-        query.obj1.UID = human_obj_uid;
+        query = SOMRelObjQueryRequest();
+        query.obj1.HEADER.UID = human_obj_uid;
         query.obj2.category = "unknown";        # So anything not in the file of pickupable objects will be given the category of "unknown." We can use this to our advantage.
 
-        response:orion_actions.srv.SOMRelObjQueryResponse = self.relational_query_srv(query);
+        response:SOMRelObjQueryResponse = self.relational_query_srv(query);
 
         def get_relation_dist(rel:Match):
             return rel.distance;
@@ -283,9 +283,9 @@ class GetHumanRelativeLoc(smach.State):
 
     def execute(self, userdata):
         
-        human_query = orion_actions.srv.SOMQueryHumansRequest();
+        human_query = SOMQueryHumansRequest();
         human_query.query.spoken_to_state = Human._SPOKEN_TO;
-        spoken_to_guests:orion_actions.srv.SOMQueryHumansResponse = self.humans_query(human_query);
+        spoken_to_guests:SOMQueryHumansResponse = self.humans_query(human_query);
 
         returns = [];
         for guest in spoken_to_guests.returns:
