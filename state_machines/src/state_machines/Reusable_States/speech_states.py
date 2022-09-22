@@ -22,18 +22,27 @@ class SpeakState(smach.State):
 
     input_keys:
         phrase: What we want the robot to say
+    
+    Note that if self.phrase==None, then we take the input directly from input_keys['phrase'].
     """
-    def __init__(self):
+    def __init__(self, phrase=None):
         smach.State.__init__(self,
                                 outcomes=['success'],
                                 input_keys=['phrase'])
 
+        self.phrase = phrase;
+
     def execute(self, userdata):
+        if (self.phrase == None):
+            phrase_speaking = userdata.phrase;
+        else:
+            phrase_speaking = self.phrase;
+
         action_goal = TalkRequestGoal()
         action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = userdata.phrase
+        action_goal.data.sentence = phrase_speaking
 
-        rospy.loginfo("HSR speaking phrase: '{}'".format(userdata.phrase))
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
         speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
                                         TalkRequestAction)
 
