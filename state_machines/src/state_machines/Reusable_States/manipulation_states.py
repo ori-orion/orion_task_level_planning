@@ -7,9 +7,7 @@ from orion_actions.srv import *;
 
 import rospy;
 
-import math;
-
-from geometry_msgs.msg import Pose, PoseStamped;
+# from geometry_msgs.msg import Pose, PoseStamped;
 
 import actionlib
 
