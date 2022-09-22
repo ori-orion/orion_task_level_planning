@@ -20,10 +20,10 @@ def create_learn_guest_sub_state_machine():
     sub_sm.userdata.speak_and_listen_failure_threshold = 2
 
     # speaking to guests
-    sub_sm.userdata.introduction_to_guest_phrase = "";
+    # sub_sm.userdata.introduction_to_guest_phrase = "";
     sub_sm.userdata.ask_name_phrase = "What is your name?"
-    sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there. It's time for me to move on."
-    sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I didn't understand. Let's try that again."
+    # sub_sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there. It's time for me to move on."
+    # sub_sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I didn't understand. Let's try that again."
 
     sub_sm.userdata.ask_gender_phrase = "What is your gender?"
     sub_sm.userdata.ask_gender_candidates = GENDERS
@@ -35,10 +35,10 @@ def create_learn_guest_sub_state_machine():
     # sub_sm.userdata.ask_age_phrase = "How old are you?"                     # assume response is given in years
     # sub_sm.userdata.ask_age_candidates = [str(x) for x in range(1,101)]     # TODO - test recognition of numbers
 
-    sub_sm.userdata.start_face_registration_phrase = "Please sit still."
+    # sub_sm.userdata.start_face_registration_phrase = "Please sit still."
     sub_sm.userdata.finish_face_registration_phrase = ""
-    sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
-    sub_sm.userdata.farewell_guest = "Thank you."
+    # sub_sm.userdata.save_to_som_phrase = "I am saving your details to memory."
+    # sub_sm.userdata.farewell_guest = "Thank you."
 
     sub_sm.userdata.guest_name = ""
     sub_sm.userdata.guest_gender = ""
@@ -52,9 +52,9 @@ def create_learn_guest_sub_state_machine():
     with sub_sm:
         # introduction to guest
         smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
-                                SpeakState(),
+                                SpeakState(phrase=""),
                                 transitions={'success':'ASK_GUEST_NAME'},
-                                remapping={'phrase':'introduction_to_guest_phrase'})
+                                remapping={})
 
         # ask for guest's name - New ask guest name action server
         smach.StateMachine.add('ASK_GUEST_NAME',
@@ -71,15 +71,15 @@ def create_learn_guest_sub_state_machine():
 
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
-                                SpeakState(),
+                                SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
                                 transitions={'success':'ASK_GUEST_NAME'},
-                                remapping={'phrase':'speech_recognition_failure_phrase'})
+                                remapping={})
 
         # announce that we think there is no-one there & end sub state machine
         smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
-                                SpeakState(),
+                                SpeakState(phrase="Hmmm. I don't think anyone is there. It's time for me to move on."),
                                 transitions={'success':'failure'},
-                                remapping={'phrase':'no_one_there_phrase'})
+                                remapping={})
 
         # ask for guest's gender
         # smach.StateMachine.add('ASK_GUEST_GENDER',
@@ -111,10 +111,10 @@ def create_learn_guest_sub_state_machine():
 
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
-                                SpeakState(),
+                                SpeakState(phrase="Please sit still."),
                                 transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 # transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
-                                remapping={'phrase':'start_face_registration_phrase'})
+                                remapping={})
 
         # capture guest's face
         # smach.StateMachine.add('CAPTURE_GUEST_FACE',
@@ -133,15 +133,9 @@ def create_learn_guest_sub_state_machine():
 
         # tell guest face registration is finished
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
-                                SpeakState(),
+                                SpeakState(phrase=""),
                                 transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
-                                remapping={'phrase':'finish_face_registration_phrase'})
-
-        # tell guest we are saving their details
-        # smach.StateMachine.add('ANNOUNCE_SAVE_GUEST_TO_SOM',
-        #                         SpeakState(),
-        #                         transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
-        #                         remapping={'phrase':'save_to_som_phrase'})
+                                remapping={})
 
         # create the guest_attributes dictionary
         smach.StateMachine.add('CREATE_GUEST_ATTRIBUTES_DICT',
@@ -159,9 +153,9 @@ def create_learn_guest_sub_state_machine():
 
         # farewell guest
         smach.StateMachine.add('ANNOUNCE_GUEST_FAREWELL',
-                                SpeakState(),
+                                SpeakState(phrase="Thank you."),
                                 transitions={'success':'success'},
-                                remapping={'phrase':'farewell_guest'})
+                                remapping={})
 
     return sub_sm
 
