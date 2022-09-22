@@ -38,12 +38,12 @@ def create_state_machine(userdata=None):
     sm.userdata.speak_listen_failure_threshold = 3
     sm.userdata.operator_names = NAMES
     # Load up huge database of additional names (if necessary)
-    # import rospkg
-    # rospack = rospkg.RosPack()
-    # name_file = \
-    #     os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
-    # with open(name_file, 'r') as in_file:
-    #     sm.userdata.operator_names += in_file.read().splitlines()
+    import rospkg
+    rospack = rospkg.RosPack()
+    name_file = \
+        os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
+    with open(name_file, 'r') as in_file:
+        sm.userdata.operator_names += in_file.read().splitlines()
 
     sm.userdata.speak_and_listen_params_empty = []
     sm.userdata.speak_and_listen_timeout = 5
@@ -53,13 +53,13 @@ def create_state_machine(userdata=None):
 
     # Use for real world (ground floor meeting room, etc)
     sm.userdata.operator_pose = Pose()
-    sm.userdata.operator_pose.position.x = -1.65
-    sm.userdata.operator_pose.position.y = 0.77
+    sm.userdata.operator_pose.position.x = 1.123
+    sm.userdata.operator_pose.position.y = -0.112
     sm.userdata.operator_pose.position.z = 0.0
     sm.userdata.operator_pose.orientation.x = 0.0
     sm.userdata.operator_pose.orientation.y = 0.0
-    sm.userdata.operator_pose.orientation.z = 0.7444649492585489
-    sm.userdata.operator_pose.orientation.w = 0.6676615454895288
+    sm.userdata.operator_pose.orientation.z = -0.7141349154217675
+    sm.userdata.operator_pose.orientation.w = 0.7000080875072408
 
     # Use for Gazebo sim
     # sm.userdata.operator_pose = Pose()
@@ -71,20 +71,30 @@ def create_state_machine(userdata=None):
     # sm.userdata.operator_pose.orientation.z = -0.362624641735
     # sm.userdata.operator_pose.orientation.w = 0.931935281662
 
+    # Use for Gazebo sim - go directly to bottle position
+    # sm.userdata.operator_pose = Pose()
+    # sm.userdata.operator_pose.position.x = 0.23832461091673765
+    # sm.userdata.operator_pose.position.y = 0.0
+    # sm.userdata.operator_pose.position.z = 0.0
+    # sm.userdata.operator_pose.orientation.x = 0.0
+    # sm.userdata.operator_pose.orientation.y = 0.0
+    # sm.userdata.operator_pose.orientation.z = -0.7027350031010926
+    # sm.userdata.operator_pose.orientation.w =  0.711451695771756
+
     sm.userdata.pickup_object_names = OBJECTS
     sm.userdata.object_pickup_question = "Great! What would you like me to pick up?"
 
     # Use for real world (ground floor meeting room, etc)
     sm.userdata.pickup_pose = Pose()
-    sm.userdata.pickup_pose.position.x = -1.59
-    sm.userdata.pickup_pose.position.y = 1.67
+    sm.userdata.pickup_pose.position.x = 1.123
+    sm.userdata.pickup_pose.position.y = -0.112
     sm.userdata.pickup_pose.position.z = 0.0
     sm.userdata.pickup_pose.orientation.x = 0.0
     sm.userdata.pickup_pose.orientation.y = 0.0
-    sm.userdata.pickup_pose.orientation.z = 0.0947440317564815
-    sm.userdata.pickup_pose.orientation.w = 0.995501666722124
+    sm.userdata.pickup_pose.orientation.z = -0.7141349154217675
+    sm.userdata.pickup_pose.orientation.w = 0.7000080875072408
 
-    # Use for Gazebo sim
+    # Use for Gazebo sim - to pickup water bottle
     # sm.userdata.pickup_pose = Pose()
     # sm.userdata.pickup_pose.position.x = 0.23832461091673765
     # sm.userdata.pickup_pose.position.y = 0.0
