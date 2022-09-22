@@ -62,14 +62,7 @@ def create_state_machine():
 
     sm.userdata.failure_threshold = 3;
 
-    sm.userdata.task_intentions_phrase = "Hi, I'm Bam Bam and I'm here to find some mates!"
-
-    sm.userdata.nav_repeat_failure_phrase = "Navigation failed too many times, terminating task."
-    sm.userdata.speak_and_listen_repeat_failure_phrase = "Speech recognition failed too many times, terminating task."
-
-    sm.userdata.introduction_to_operator_phrase = "Hi, nice to meet you! I am here to help look for your friends!"
     sm.userdata.ask_operator_name_phrase = "What is your name?"
-    sm.userdata.speech_recognition_failure_phrase = "I'm sorry but I didn't understand. Let's try that again."
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();
@@ -87,13 +80,6 @@ def create_state_machine():
     # speaking to guests
     sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
     sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
-    
-    # search updates
-    sm.userdata.continue_search_phrase = "I am continuing to search for guests"
-    sm.userdata.finish_search_phrase = "I have finished searching for guests."
-
-    # farewell operator
-    sm.userdata.farewell_operator_phrase = "My job here is done. Have a nice day!"
 
 
     mid_room_pose = Pose();
@@ -194,9 +180,9 @@ def create_state_machine():
         
         # announce task intentions
         smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
-                                SpeakState(),
+                                SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
                                 transitions={'success':'SAVE_START_TIME'},
-                                remapping={'phrase':'task_intentions_phrase'})
+                                remapping={})
         
         """
         navigate to operator
@@ -232,15 +218,15 @@ def create_state_machine():
 
         # announce nav repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',
-                                SpeakState(),
+                                SpeakState(phrase="Navigation failed too many times, terminating task."),
                                 transitions={'success':'task_failure'},
-                                remapping={'phrase':'nav_repeat_failure_phrase'})
+                                remapping={})
 
         # introduce to operator
         smach.StateMachine.add('INTRODUCTION_TO_OPERATOR',
-                                SpeakState(),
+                                SpeakState(phrase="Hi, nice to meet you! I am here to help look for your friends!"),
                                 transitions={'success':'ASK_OPERATOR_NAME'},
-                                remapping={'phrase':'introduction_to_operator_phrase'})
+                                remapping={})
 
         # ask for operator's name - Replaced by AskPersonNameState state below - remove after testing
         # smach.StateMachine.add('ASK_OPERATOR_NAME',
@@ -270,15 +256,15 @@ def create_state_machine():
 
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_NAME',
-                                SpeakState(),
+                                SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
                                 transitions={'success':'ASK_OPERATOR_NAME'},
-                                remapping={'phrase':'speech_recognition_failure_phrase'})
+                                remapping={})
 
         # announce speech recognition repeat failure
         smach.StateMachine.add('ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE',
-                                SpeakState(),
+                                SpeakState(phrase="Speech recognition failed too many times, terminating task."),
                                 transitions={'success':'task_failure'},
-                                remapping={'phrase':'speak_and_listen_repeat_failure_phrase'})
+                                remapping={})
 
         smach.StateMachine.add(
             'SearchForOperator',
@@ -305,6 +291,7 @@ def create_state_machine():
                                     'operator_som_id':'operator_som_id'})
 
         # create the search start phrase
+        # Note that the output here is the input into 'ANNOUNCE_SEARCH_START'.
         smach.StateMachine.add('CREATE_PHRASE_START_SEARCH',
                                 CreatePhraseStartSearchForPeopleState(),
                                 transitions={'success':'ANNOUNCE_SEARCH_START'},
@@ -383,15 +370,15 @@ def create_state_machine():
         
         
         smach.StateMachine.add('ANNOUNCE_CONTINUE_SEARCH',
-                                SpeakState(),
+                                SpeakState(phrase="I am continuing to search for guests"),
                                 transitions={'success':'SEARCH_FOR_GUEST_SUB'},
-                                remapping={'phrase':'continue_search_phrase'}) 
+                                remapping={}) 
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
-                                SpeakState(),
+                                SpeakState(phrase="I have finished searching for guests."),
                                 transitions={'success':'LookBackAtOperator'},   # correct transition
                                 # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
-                                remapping={'phrase':'finish_search_phrase'}) 
+                                remapping={}) 
         
         # smach.StateMachine.add("GetOperatorPose")
 
@@ -425,10 +412,10 @@ def create_state_machine():
 
         # Farewell operator
         smach.StateMachine.add('FAREWELL_OPERATOR',
-                                SpeakState(),
+                                SpeakState(phrase="My job here is done. Have a nice day!"),
                                 # transitions={'success':'NAV_TO_EXIT'},  # TODO - put back in
                                 transitions={'success':'SAVE_END_TIME'},
-                                remapping={'phrase':'farewell_operator_phrase'}) 
+                                remapping={}) 
 
         # leave the arena
         # TODO - consider changing to topological navigation state
@@ -447,9 +434,9 @@ def create_state_machine():
                                 remapping={'current_time':'task_end_time'})
 
         smach.StateMachine.add('ANNOUNCE_FINISH',
-                                SpeakState(),
+                                SpeakState(phrase="I have exited the arena. I am now stopping."),
                                 transitions={'success':'task_success'},
-                                remapping={'phrase':'announce_finish_phrase'})
+                                remapping={})
         
         # TODO - Reset e
     return sm;
