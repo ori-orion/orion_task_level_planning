@@ -161,3 +161,27 @@ class ReceiveObjectFromOperatorState(smach.State):
             return 'success'
         else:
             return 'failure'
+
+class PutObjectOnSurfaceState(smach.State):
+    """ Smach state for putting object on a surface in front of the robot.
+
+    This state put an object held by the robot on a surface.
+    """
+    def __init__(self, action_dict, global_store):
+        outcomes = ['success', 'failure']
+        super(PutObjectOnSurfaceState, self).__init__(action_dict=action_dict,
+                                                      global_store=global_store,
+                                                      outcomes=outcomes)
+
+    def execute(self, userdata):
+        put_on_surface_goal = PutObjectOnSurfaceGoal()
+
+        put_on_surface_action = actionlib.SimpleActionClient('put_object_on_surface', PutObjectOnSurfaceAction);
+        put_on_surface_action.send_goal(put_on_surface_goal)
+        put_on_surface_action.wait_for_result()
+
+        success = put_on_surface_action.get_result().result
+        if success:
+            return 'success'
+        else:
+            return 'failure'
