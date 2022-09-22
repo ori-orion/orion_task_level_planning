@@ -75,15 +75,22 @@ class SpeakAndListenState(smach.State):
         number_of_failures: the updated failure counter upon state exit
     """
 
-    def __init__(self):
+    def __init__(self, question=None):
         smach.State.__init__(self,
                                 outcomes=['success','failure','repeat_failure'],
                                 input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['operator_response', 'number_of_failures'])
 
+        self.question = question;
+
     def execute(self, userdata):
+        if self.question==None:
+            question_speaking = userdata.question;
+        else:
+            question_speaking = self.question;
+
         speak_listen_goal = SpeakAndListenGoal()
-        speak_listen_goal.question = userdata.question
+        speak_listen_goal.question = question_speaking
         speak_listen_goal.candidates = userdata.candidates
         speak_listen_goal.params = userdata.params
         speak_listen_goal.timeout = userdata.timeout
@@ -92,7 +99,9 @@ class SpeakAndListenState(smach.State):
         speak_listen_action_client.wait_for_server()
         # rospy.loginfo("Pre sending goal");
         speak_listen_action_client.send_goal(speak_listen_goal)
-        # rospy.loginfo("Pre wait for result");
+
+        rospy.loginfo("HSR asking phrase: '{}'".format(question_speaking));
+
         speak_listen_action_client.wait_for_result()
         # rospy.loginfo("Post wait for result");
 

@@ -76,8 +76,8 @@ def create_state_machine():
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
-    sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
-    sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
+    # sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
+    # sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
 
 
     mid_room_pose = Pose();
@@ -101,8 +101,6 @@ def create_state_machine():
     sm.userdata.exit_pose.orientation.y = 0.0
     sm.userdata.exit_pose.orientation.z = 0.0
     sm.userdata.exit_pose.orientation.w = 1.0
-
-    sm.userdata.announce_finish_phrase = "I have exited the arena. I am now stopping."
 
     sm.userdata.operator_name = "Isaac Asimov"   # a default name for testing, this will be overridden by ASK_OPERATOR_NAME state
     sm.userdata.operator_som_id = "1234"       # SAVE_OPERATOR_INFO_TO_SOM state will set this
