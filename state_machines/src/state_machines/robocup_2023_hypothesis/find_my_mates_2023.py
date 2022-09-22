@@ -66,15 +66,13 @@ def create_state_machine():
 
     # set the robot's pose to speak to the operator - TODO
     operator_pose = Pose();
-    operator_pose.position.x = 3.7600877304982285;
-    operator_pose.position.y = 1.057383767080644;
-    # operator_pose.position.x = -19.6;
-    # operator_pose.position.y = -9.4;
+    operator_pose.position.x = 5.8;
+    operator_pose.position.y = 0.2;
     operator_pose.position.z = 0.0;
     operator_pose.orientation.x = 0.0;
     operator_pose.orientation.y = 0.0;
-    operator_pose.orientation.z = -0.61682206674639;
-    operator_pose.orientation.w = 0.7871026222639028;
+    operator_pose.orientation.z = 0.68;
+    operator_pose.orientation.w = 0.73;
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
