@@ -162,6 +162,7 @@ class ReceiveObjectFromOperatorState(smach.State):
         else:
             return 'failure'
 
+
 class PutObjectOnSurfaceState(smach.State):
     """ Smach state for putting object on a surface in front of the robot.
 
