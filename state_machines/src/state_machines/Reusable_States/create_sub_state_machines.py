@@ -157,6 +157,8 @@ def create_learn_guest_sub_state_machine():
                                 transitions={'success':'success'},
                                 remapping={})
 
+        sub_sm = setupErrorStates(sub_sm, FAILURE);
+
     return sub_sm
 
 def create_search_for_guest_sub_state_machine():

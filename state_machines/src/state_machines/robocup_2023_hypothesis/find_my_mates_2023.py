@@ -213,12 +213,6 @@ def create_state_machine():
             LookUpState(),
             transitions={'success':'INTRODUCTION_TO_OPERATOR'});
 
-        # announce nav repeat failure
-        smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',
-                                SpeakState(phrase="Navigation failed too many times, terminating task."),
-                                transitions={'success':'task_failure'},
-                                remapping={})
-
         # introduce to operator
         smach.StateMachine.add('INTRODUCTION_TO_OPERATOR',
                                 SpeakState(phrase="Hi, nice to meet you! I am here to help look for your friends!"),
@@ -255,12 +249,6 @@ def create_state_machine():
         smach.StateMachine.add('ANNOUNCE_MISSED_NAME',
                                 SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
                                 transitions={'success':'ASK_OPERATOR_NAME'},
-                                remapping={})
-
-        # announce speech recognition repeat failure
-        smach.StateMachine.add('ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE',
-                                SpeakState(phrase="Speech recognition failed too many times, terminating task."),
-                                transitions={'success':'task_failure'},
                                 remapping={})
 
         smach.StateMachine.add(
@@ -434,6 +422,8 @@ def create_state_machine():
                                 SpeakState(phrase="I have exited the arena. I am now stopping."),
                                 transitions={'success':'task_success'},
                                 remapping={})
+
+        sm = setupErrorStates(sm);
         
         # TODO - Reset e
     return sm;

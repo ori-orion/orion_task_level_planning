@@ -36,3 +36,32 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 OBJECTS = ['potted plant', 'bottle', 'cup', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 OBJECTS += FRUITS + DRINKS
+
+
+TASK_SUCCESS = 'task_success';
+TASK_FAILURE = 'task_failure';
+SUCCESS = 'success';
+FAILURE = 'failure';
+
+
+
+def setupErrorStates(state_machine, failure_mapping=TASK_FAILURE):
+    with state_machine:
+        #region Failure states.
+
+        # announce nav repeat failure
+        smach.StateMachine.add('ANNOUNCE_REPEAT_NAV_FAILURE',
+                                SpeakState(phrase="Navigation failed too many times, terminating task."),
+                                transitions={
+                                    SUCCESS:failure_mapping},
+                                remapping={})
+
+        # announce speech recognition repeat failure
+        smach.StateMachine.add('ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE',
+                                SpeakState(phrase="Speech recognition failed too many times, terminating task."),
+                                transitions={
+                                    SUCCESS:failure_mapping},
+                                remapping={});
+
+        #endregion
+    return state_machine;
