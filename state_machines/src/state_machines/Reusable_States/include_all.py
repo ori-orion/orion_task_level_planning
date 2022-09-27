@@ -8,6 +8,8 @@ from state_machines.Reusable_States.som_states import *;
 from state_machines.Reusable_States.speech_states import *;
 import state_machines.Reusable_States.utils as utils
 
+from state_machines.Reusable_States.outcomes_enum import *;
+
 
 # People
 NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
@@ -37,11 +39,6 @@ DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 OBJECTS = ['potted plant', 'bottle', 'cup', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 OBJECTS += FRUITS + DRINKS
 
-
-TASK_SUCCESS = 'task_success';
-TASK_FAILURE = 'task_failure';
-SUCCESS = 'success';
-FAILURE = 'failure';
 
 
 
