@@ -93,3 +93,36 @@ def attribute_to_sentence(attribute):
     atr = attribute.split('_')
     atr = [a.lower() for a in atr]
     return atr
+
+
+# From semantic_mapping/.../utils.py
+# For taking parameters from the ros parameter bit.
+def dict_to_obj(dictionary:dict, objFillingOut):
+    """
+    The main idea here is that we may well want to convert an arbitrary dictionary to one of the ROS types
+    we've created. This will do it.
+
+    Inputs:
+        dictionary:dict     The dictionary that we want to fill out the ROS message with. 
+        objFillingOut       An empty ROS message to fill out.
+    """
+
+    attributes = objFillingOut.__dir__();
+    for key in dictionary.keys():
+        if (key in attributes):
+            if isinstance(dictionary[key], dict):                
+                dict_to_obj(dictionary[key], getattr(objFillingOut, key));
+                continue;
+            elif isinstance(dictionary[key], list):
+                carry = [];
+                for element in dictionary[key]:
+                    if element is dict:
+                        raise(Exception("The sub-class of a list is a dictionary. The type is not currently known."));
+                    else:
+                        carry.append(element);
+                setattr(objFillingOut, key, carry);
+                continue;
+            else:
+                setattr(objFillingOut, key, dictionary[key]);
+    
+    return objFillingOut;

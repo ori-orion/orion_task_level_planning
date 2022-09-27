@@ -9,7 +9,9 @@ Owner: Ricardo Cannizzaro
 
 """
 
+from ast import operator
 import os
+from time import sleep
 import rospy
 import smach_ros
 import actionlib
@@ -30,7 +32,11 @@ def create_state_machine():
     """ This function creates and returns the state machine for the task. """
 
     # Create the state machine
-    sm = smach.StateMachine(outcomes=['task_success', 'task_failure'])
+    sm = smach.StateMachine(outcomes=['task_success', 'task_failure']);
+
+    # Wait for the prameters to be loaded.
+    while (not rospy.has_param('params_loaded')):
+        rospy.sleep(0.5);
 
     # Create state machine userdata dictionary elements
     
@@ -65,14 +71,9 @@ def create_state_machine():
     sm.userdata.ask_operator_name_phrase = "What is your name?"
 
     # set the robot's pose to speak to the operator - TODO
+    # Defaults to...
     operator_pose = Pose();
-    operator_pose.position.x = 5.8;
-    operator_pose.position.y = 0.2;
-    operator_pose.position.z = 0.0;
-    operator_pose.orientation.x = 0.0;
-    operator_pose.orientation.y = 0.0;
-    operator_pose.orientation.z = 0.68;
-    operator_pose.orientation.w = 0.73;
+    operator_pose = utils.dict_to_obj(rospy.get_param('/operator_pose'), operator_pose);
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
