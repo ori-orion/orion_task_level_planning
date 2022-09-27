@@ -5,7 +5,7 @@ from smach import Concurrence
 def create_learn_guest_sub_state_machine():
 
     # create the sub state machine
-    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE],
                                 input_keys=['guest_som_human_ids',
                                             'closest_human',
                                             'guest_som_obj_ids',
@@ -53,15 +53,15 @@ def create_learn_guest_sub_state_machine():
         # introduction to guest
         smach.StateMachine.add('ANNOUNCE_GUEST_INTRO',
                                 SpeakState(phrase=""),
-                                transitions={'success':'ASK_GUEST_NAME'},
+                                transitions={SUCCESS:'ASK_GUEST_NAME'},
                                 remapping={})
 
         # ask for guest's name - New ask guest name action server
         smach.StateMachine.add('ASK_GUEST_NAME',
                                AskPersonNameState(),
-                                transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
-                                # transitions={'success': 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
-                                            'failure':'ANNOUNCE_MISSED_GUEST_NAME',
+                                transitions={SUCCESS: 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+                                # transitions={SUCCESS: 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
+                                            FAILURE:'ANNOUNCE_MISSED_GUEST_NAME',
                                             'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
                                 remapping={'question':'ask_name_phrase',
                                             'recognised_name': 'guest_name',
@@ -72,20 +72,20 @@ def create_learn_guest_sub_state_machine():
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
                                 SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
-                                transitions={'success':'ASK_GUEST_NAME'},
+                                transitions={SUCCESS:'ASK_GUEST_NAME'},
                                 remapping={})
 
         # announce that we think there is no-one there & end sub state machine
         smach.StateMachine.add('ANNOUNCE_NO_ONE_THERE',
                                 SpeakState(phrase="Hmmm. I don't think anyone is there. It's time for me to move on."),
-                                transitions={'success':'failure'},
+                                transitions={SUCCESS:FAILURE},
                                 remapping={})
 
         # ask for guest's gender
         # smach.StateMachine.add('ASK_GUEST_GENDER',
         #                        SpeakAndListenState(),
-        #                         transitions={'success': 'ASK_GUEST_PRONOUNS',
-        #                                     'failure':'ASK_GUEST_GENDER',
+        #                         transitions={SUCCESS: 'ASK_GUEST_PRONOUNS',
+        #                                     FAILURE:'ASK_GUEST_GENDER',
         #                                     'repeat_failure':'ASK_GUEST_PRONOUNS'},
         #                         remapping={'question':'ask_gender_phrase',
         #                                     'operator_response': 'guest_gender',
@@ -98,8 +98,8 @@ def create_learn_guest_sub_state_machine():
         # ask for guest's pronouns
         # smach.StateMachine.add('ASK_GUEST_PRONOUNS',
         #                        SpeakAndListenState(),
-        #                         transitions={'success': 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
-        #                                     'failure':'ASK_GUEST_PRONOUNS',
+        #                         transitions={SUCCESS: 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
+        #                                     FAILURE:'ASK_GUEST_PRONOUNS',
         #                                     'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
         #                         remapping={'question':'ask_pronouns_phrase',
         #                                     'operator_response': 'guest_pronouns',
@@ -112,21 +112,21 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(phrase="Please sit still."),
-                                transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
-                                # transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
+                                transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                # transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={})
 
         # capture guest's face
         # smach.StateMachine.add('CAPTURE_GUEST_FACE',
         #                         RegisterFace(),
-        #                         transitions={'success':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
-        #                                     'failure':'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+        #                         transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
+        #                                     FAILURE:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
         #                         remapping={'face_id':'guest_name'})
 
         # detect guest face attributes
         smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
                                 DetectFaceAttributes(),
-                                transitions={'success':'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
+                                transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={'face_id':'guest_name',
                                             'face_attributes':'guest_face_attributes',
                                             'num_attributes':'guest_num_attributes'  })
@@ -134,27 +134,27 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is finished
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
                                 SpeakState(phrase=""),
-                                transitions={'success':'CREATE_GUEST_ATTRIBUTES_DICT'},
+                                transitions={SUCCESS:'CREATE_GUEST_ATTRIBUTES_DICT'},
                                 remapping={})
 
         # create the guest_attributes dictionary
         smach.StateMachine.add('CREATE_GUEST_ATTRIBUTES_DICT',
                                 CreateGuestAttributesDict(),
-                                transitions={'success':'SAVE_GUEST_TO_SOM'},
+                                transitions={SUCCESS:'SAVE_GUEST_TO_SOM'},
                                 remapping={'name':'guest_name','gender':'guest_gender','pronouns':'guest_pronouns','face_id':'guest_name','face_attributes':'guest_face_attributes',
                                         'guest_attributes':'guest_attributes'})
 
         # save the guest info to the SOM (requires at least one entry in SOM object DB with class_=='person')
         smach.StateMachine.add('SAVE_GUEST_TO_SOM',
                                 SaveGuestToSOM(),
-                                transitions={'success':'ANNOUNCE_GUEST_FAREWELL',
-                                            'failure':'failure'},
+                                transitions={SUCCESS:'ANNOUNCE_GUEST_FAREWELL',
+                                            FAILURE:FAILURE},
                                 remapping={'guest_attributes':'guest_attributes'})
 
         # farewell guest
         smach.StateMachine.add('ANNOUNCE_GUEST_FAREWELL',
                                 SpeakState(phrase="Thank you."),
-                                transitions={'success':'success'},
+                                transitions={SUCCESS:SUCCESS},
                                 remapping={})
 
         sub_sm = setupErrorStates(sub_sm, FAILURE);
@@ -164,7 +164,7 @@ def create_learn_guest_sub_state_machine():
 def create_search_for_guest_sub_state_machine():
     """ Smach sub state machine to search for guests (non-operator people) not yet spoken to
 
-    Returns 'success' if a non-operator person is found, `failure` otherwise.
+    Returns SUCCESS if a non-operator person is found, `failure` otherwise.
 
     input_keys:
         nodes_not_searched: list of topological node ids to visit during search, in search order
@@ -177,15 +177,15 @@ def create_search_for_guest_sub_state_machine():
 
     # gets called when ANY child state terminates
     def child_term_cb(outcome_map):
-        # terminate all running states if CHECK_FOR_NEW_GUEST_SEEN finished with outcome 'success'
+        # terminate all running states if CHECK_FOR_NEW_GUEST_SEEN finished with outcome SUCCESS
         if outcome_map['CHECK_FOR_NEW_GUEST_SEEN']:
-            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success':
-                rospy.loginfo("Concurrence child_term_cb: outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success'. Terminating")
+            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == SUCCESS:
+                rospy.loginfo("Concurrence child_term_cb: outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == SUCCESS. Terminating")
                 return True
 
-        # terminate all running states if NAV_SUB finished with outcome 'failure'
-        if outcome_map['NAV_SUB'] == 'failure':
-            rospy.loginfo("Concurrence child_term_cb: outcome_map['NAV_SUB'] == 'failure'. Terminating")
+        # terminate all running states if NAV_SUB finished with outcome FAILURE
+        if outcome_map['NAV_SUB'] == FAILURE:
+            rospy.loginfo("Concurrence child_term_cb: outcome_map['NAV_SUB'] == FAILURE. Terminating")
             return True
 
         # in all other case, just keep running, don't terminate anything
@@ -194,14 +194,14 @@ def create_search_for_guest_sub_state_machine():
     # gets called when ALL child states are terminated
     def out_cb(outcome_map):
         if outcome_map['CHECK_FOR_NEW_GUEST_SEEN']:
-            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == 'success':
-                return 'success'
+            if outcome_map['CHECK_FOR_NEW_GUEST_SEEN'] == SUCCESS:
+                return SUCCESS
 
-        return 'failure'
+        return FAILURE
 
     # creating the concurrence state machine
-    sm_con = Concurrence(outcomes=['success', 'failure'],
-                    default_outcome='success',
+    sm_con = Concurrence(outcomes=[SUCCESS, FAILURE],
+                    default_outcome=SUCCESS,
                     input_keys=['nodes_not_searched',
                                  'operator_uid',
                                  'failure_threshold'],
@@ -212,7 +212,7 @@ def create_search_for_guest_sub_state_machine():
 
     # Open the concurrence container
     with sm_con:
-        sub_sm_nav = smach.StateMachine(outcomes=['failure', 'preempted'],
+        sub_sm_nav = smach.StateMachine(outcomes=[FAILURE, 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'operator_uid',
                                             'failure_threshold'],
@@ -223,8 +223,8 @@ def create_search_for_guest_sub_state_machine():
             smach.StateMachine.add('NAV_TO_NEXT_TOP_NODE',
                                     SearchForGuestNavToNextNode(),
                                     transitions={'searched':'NAV_TO_NEXT_TOP_NODE',
-                                                'exhausted_search':'failure',
-                                                'failure':'NAV_TO_NEXT_TOP_NODE',
+                                                'exhausted_search':FAILURE,
+                                                FAILURE:'NAV_TO_NEXT_TOP_NODE',
                                                 'preempted':'preempted'},
                                     remapping={'nodes_not_searched':'nodes_not_searched',
                                                 'failure_threshold':'failure_threshold'})
@@ -236,7 +236,7 @@ def create_search_for_guest_sub_state_machine():
     return sm_con
 
 def create_topo_nav_state_machine():
-    sub_sm = smach.StateMachine(outcomes=['success', 'failure'],
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE],
                             input_keys=['goal_pose'],
                             output_keys=[]);
 
@@ -245,14 +245,14 @@ def create_topo_nav_state_machine():
     with sub_sm:
         smach.StateMachine.add('GetClosestNode',
                                 GetClosestNodeState(),
-                                transitions={'success':'NavToNearestNode'});
+                                transitions={SUCCESS:'NavToNearestNode'});
         
         smach.StateMachine.add(
             'NavToNearestNode',
             TopologicalNavigateState(),
             transitions={
-                'success':'NavToFinalGoal',
-                'failure':'NavToNearestNode',
+                SUCCESS:'NavToFinalGoal',
+                FAILURE:'NavToNearestNode',
                 'repeat_failure':'NavToFinalGoal'},
             remapping={'node_id':'closest_node'});
 
@@ -260,9 +260,9 @@ def create_topo_nav_state_machine():
             'NavToFinalGoal',
             SimpleNavigateState(),
             transitions={
-                'success':'success',
-                'failure':'NavToFinalGoal',
-                'repeat_failure':'failure'},
+                SUCCESS:SUCCESS,
+                FAILURE:'NavToFinalGoal',
+                'repeat_failure':FAILURE},
             remapping={'pose':'goal_pose'});
 
     return sub_sm;
@@ -283,7 +283,7 @@ def create_search_for_human():
     """
 
     sub_sm = smach.StateMachine(
-        outcomes=['success', 'failure'],
+        outcomes=[SUCCESS, FAILURE],
         input_keys=[
             'room_node_uid', 'failure_threshold', 'prev_node_nav_to'],
         output_keys=[
@@ -298,9 +298,9 @@ def create_search_for_human():
             'NavToNearestNode',
             TopologicalNavigateState(stop_repeat_navigation=True),
             transitions={
-                'success':'SearchForHuman_1',
-                'failure':'NavToNearestNode',
-                'repeat_failure':'failure'},
+                SUCCESS:'SearchForHuman_1',
+                FAILURE:'NavToNearestNode',
+                'repeat_failure':FAILURE},
             remapping={'node_id':'room_node_uid'});
 
         smach.StateMachine.add(
@@ -316,7 +316,7 @@ def create_search_for_human():
             'SpinOnSpot',
             SpinState(),
             transitions={
-                'success':'SearchForHuman_2'},
+                SUCCESS:'SearchForHuman_2'},
             remapping={});
 
         smach.StateMachine.add(
@@ -324,19 +324,26 @@ def create_search_for_human():
             GetNearestHuman(),
             transitions={
                 'new_human_found':'LookAtHuman',
-                'human_not_found':'failure',
-                'existing_human_found':'failure'},
+                'human_not_found':FAILURE,
+                'existing_human_found':FAILURE},
             remapping={});
 
         smach.StateMachine.add(
             'GoToSafePoseFromHuman',
             NavigateDistanceFromGoalSafely(),
-            transitions={'success':'LookAtHuman'},
+            transitions={SUCCESS:'LookAtHuman'},
             remapping={'pose':'human_pose'});
 
         smach.StateMachine.add(
             'LookAtHuman',
             LookAtHuman(),
-            transitions={'success':'success'});
+            transitions={SUCCESS:SUCCESS});
 
     return sub_sm;
+
+
+def create_repeated_trials(state:type, outcomes, input_keys, output_keys):
+
+    
+        
+    pass;

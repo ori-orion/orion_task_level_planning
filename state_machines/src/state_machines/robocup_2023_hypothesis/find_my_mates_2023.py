@@ -32,7 +32,7 @@ def create_state_machine():
     """ This function creates and returns the state machine for the task. """
 
     # Create the state machine
-    sm = smach.StateMachine(outcomes=['task_success', 'task_failure']);
+    sm = smach.StateMachine(outcomes=[TASK_SUCCESS, TASK_FAILURE]);
 
     # Wait for the prameters to be loaded.
     while (not rospy.has_param('params_loaded')):
@@ -138,8 +138,8 @@ def create_state_machine():
         # short-ciruit straight to SEARCH_FOR_GUEST_SUB to test logic 
         # smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
         #                         create_search_for_guest_sub_state_machine(),
-        #                         transitions={'success':'CREATE_POSE_TO_APPROACH_GUEST',
-        #                                     'failure':'ANNOUNCE_FINISH_SEARCH'},
+        #                         transitions={SUCCESS:'CREATE_POSE_TO_APPROACH_GUEST',
+        #                                     FAILURE:'ANNOUNCE_FINISH_SEARCH'},
         #                         remapping={'nodes_not_searched':'nodes_not_searched',
         #                                     'operator_uid':'operator_som_id',
         #                                     'failure_threshold':'topological_navigation_failure_threshold'})
@@ -154,31 +154,31 @@ def create_state_machine():
         # save the start time
         smach.StateMachine.add('SAVE_START_TIME',
                                 GetTime(),
-                                transitions={'success':'NavThroughDoor'}, # correct transition
-                                # transitions={'success':'SEARCH_FOR_GUEST_SUB'}, # TODO - switch for testing
-                                # transitions={'success':'LEARN_GUEST_SUB'}, # TODO - switch for testing
+                                transitions={SUCCESS:'NavThroughDoor'}, # correct transition
+                                # transitions={SUCCESS:'SEARCH_FOR_GUEST_SUB'}, # TODO - switch for testing
+                                # transitions={SUCCESS:'LEARN_GUEST_SUB'}, # TODO - switch for testing
                                 remapping={'current_time':'task_start_time'})
 
         smach.StateMachine.add(
             'NavThroughDoor',
             TopologicalNavigateState(stop_repeat_navigation=True),
             transitions={
-                'success':'NAV_TO_OPERATOR',
-                'failure':'NAV_TO_OPERATOR',
+                SUCCESS:'NAV_TO_OPERATOR',
+                FAILURE:'NAV_TO_OPERATOR',
                 'repeat_failure':'NAV_TO_OPERATOR'},
             remapping={'node_id':'operator_room_node_id'});
 
         # wait for hotword to start the task
         # smach.StateMachine.add('WAIT_FOR_HOTWORD',
         #                         WaitForHotwordState(),
-        #                         transitions={'success': 'ANNOUNCE_TASK_INTENTIONS',
-        #                                      'failure': 'WAIT_FOR_HOTWORD'},
+        #                         transitions={SUCCESS: 'ANNOUNCE_TASK_INTENTIONS',
+        #                                      FAILURE: 'WAIT_FOR_HOTWORD'},
         #                         remapping={'timeout':'hotword_timeout'})
         
         # announce task intentions
         smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
                                 SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
-                                transitions={'success':'SAVE_START_TIME'},
+                                transitions={SUCCESS:'SAVE_START_TIME'},
                                 remapping={})
         
         """
@@ -192,8 +192,8 @@ def create_state_machine():
         #     'NAV_TO_OPERATOR',
         #     create_search_for_human(),
         #     transitions={
-        #         'success':'INTRODUCTION_TO_OPERATOR',
-        #         'failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+        #         SUCCESS:'INTRODUCTION_TO_OPERATOR',
+        #         FAILURE:'ANNOUNCE_REPEAT_NAV_FAILURE'},
         #     remapping={
         #         'room_node_uid':'operator_room_node_id',
         #         'failure_threshold':'simple_navigation_failure_threshold',
@@ -203,27 +203,27 @@ def create_state_machine():
             'NAV_TO_OPERATOR',
             SimpleNavigateState(),
             transitions={
-                'success':'LOOK_AT_OPERATOR',
-                'failure':'NAV_TO_OPERATOR',
+                SUCCESS:'LOOK_AT_OPERATOR',
+                FAILURE:'NAV_TO_OPERATOR',
                 'repeat_failure':'LOOK_AT_OPERATOR'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
             'LOOK_AT_OPERATOR',
             LookUpState(),
-            transitions={'success':'INTRODUCTION_TO_OPERATOR'});
+            transitions={SUCCESS:'INTRODUCTION_TO_OPERATOR'});
 
         # introduce to operator
         smach.StateMachine.add('INTRODUCTION_TO_OPERATOR',
                                 SpeakState(phrase="Hi, nice to meet you! I am here to help look for your friends!"),
-                                transitions={'success':'ASK_OPERATOR_NAME'},
+                                transitions={SUCCESS:'ASK_OPERATOR_NAME'},
                                 remapping={})
 
         # ask for operator's name - Replaced by AskPersonNameState state below - remove after testing
         # smach.StateMachine.add('ASK_OPERATOR_NAME',
         #                        SpeakAndListenState(),
-        #                         transitions={'success': 'SAVE_OPERATOR_INFO_TO_SOM',
-        #                                     'failure':'ANNOUNCE_MISSED_NAME',
+        #                         transitions={SUCCESS: 'SAVE_OPERATOR_INFO_TO_SOM',
+        #                                     FAILURE:'ANNOUNCE_MISSED_NAME',
         #                                     'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
         #                         remapping={'question':'ask_operator_name_phrase',
         #                                     'operator_response': 'operator_name',
@@ -236,8 +236,8 @@ def create_state_machine():
         # ask for operator's name - New ask guest name action server - TODO - test        
         smach.StateMachine.add('ASK_OPERATOR_NAME',
                                 AskPersonNameState(),
-                                transitions={'success': 'SearchForOperator',
-                                            'failure':'ANNOUNCE_MISSED_NAME',
+                                transitions={SUCCESS: 'SearchForOperator',
+                                            FAILURE:'ANNOUNCE_MISSED_NAME',
                                             'repeat_failure':'SearchForOperator'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
@@ -248,7 +248,7 @@ def create_state_machine():
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_NAME',
                                 SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
-                                transitions={'success':'ASK_OPERATOR_NAME'},
+                                transitions={SUCCESS:'ASK_OPERATOR_NAME'},
                                 remapping={})
 
         smach.StateMachine.add(
@@ -263,15 +263,15 @@ def create_state_machine():
         # save the operator info to the SOM
         smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM',
                                SaveOperatorToSOM(),
-                               transitions={'success':'CREATE_PHRASE_START_SEARCH',
-                                            'failure':'task_failure'},
+                               transitions={SUCCESS:'CREATE_PHRASE_START_SEARCH',
+                                            FAILURE:TASK_FAILURE},
                                 remapping={'operator_name':'operator_name', 
                                             'operator_som_id':'operator_som_id'})
 
         smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM_HARDCODED_BACKUP',
                        SaveOperatorToSOM(operator_pose=operator_pose),
-                       transitions={'success':'CREATE_PHRASE_START_SEARCH',
-                                    'failure':'task_failure'},
+                       transitions={SUCCESS:'CREATE_PHRASE_START_SEARCH',
+                                    FAILURE:TASK_FAILURE},
                         remapping={'operator_name':'operator_name', 
                                     'operator_som_id':'operator_som_id'})
 
@@ -279,22 +279,22 @@ def create_state_machine():
         # Note that the output here is the input into 'ANNOUNCE_SEARCH_START'.
         smach.StateMachine.add('CREATE_PHRASE_START_SEARCH',
                                 CreatePhraseStartSearchForPeopleState(),
-                                transitions={'success':'ANNOUNCE_SEARCH_START'},
+                                transitions={SUCCESS:'ANNOUNCE_SEARCH_START'},
                                 remapping={'operator_name':'operator_name',
                                             'phrase':'announce_search_start_phrase'})
         
         # announce search start
         smach.StateMachine.add('ANNOUNCE_SEARCH_START',
                                 SpeakState(),
-                                transitions={'success':'NAV_TO_ROOM_CENTRE'},
+                                transitions={SUCCESS:'NAV_TO_ROOM_CENTRE'},
                                 remapping={'phrase':'announce_search_start_phrase'})
 
         smach.StateMachine.add(
             "NAV_TO_ROOM_CENTRE",
             SimpleNavigateState(),
             transitions={
-                'success':'SEARCH_FOR_GUEST_SUB',
-                'failure':'NAV_TO_ROOM_CENTRE',
+                SUCCESS:'SEARCH_FOR_GUEST_SUB',
+                FAILURE:'NAV_TO_ROOM_CENTRE',
                 'repeat_failure':'SEARCH_FOR_GUEST_SUB'},
             remapping={'pose':'mid_room_pose'});
 
@@ -302,16 +302,16 @@ def create_state_machine():
         # create_search_for_guest_sub_state_machine()
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
                                 create_search_for_human(),
-                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
-                                            'failure':'ANNOUNCE_FINISH_SEARCH'},
+                                transitions={SUCCESS:'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
+                                            FAILURE:'ANNOUNCE_FINISH_SEARCH'},
                                 remapping={'room_node_uid':'guest_room_node_id',
                                             'failure_threshold':'topological_navigation_failure_threshold'})
 
         # # Create pose to approach the guest
         # smach.StateMachine.add('CREATE_POSE_TO_APPROACH_GUEST',
         #                         CreatePoseToApproachHuman(),
-        #                         transitions={'success':'NAV_TO_GUEST',
-        #                                      'failure':'SEARCH_FOR_GUEST_SUB'},
+        #                         transitions={SUCCESS:'NAV_TO_GUEST',
+        #                                      FAILURE:'SEARCH_FOR_GUEST_SUB'},
         #                         remapping={'human_id':'guest_uid',
         #                                     'distance_to_human': 'simple_navigation_distance_to_humans',
         #                                     'approach_pose':'approach_guest_pose'}) 
@@ -319,8 +319,8 @@ def create_state_machine():
         # # navigate to guest
         # smach.StateMachine.add('NAV_TO_GUEST',
         #                        SimpleNavigateState(),
-        #                        transitions={'success':'LEARN_GUEST_SUB',
-        #                                     'failure':'NAV_TO_GUEST',
+        #                        transitions={SUCCESS:'LEARN_GUEST_SUB',
+        #                                     FAILURE:'NAV_TO_GUEST',
         #                                     'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
         #                         remapping={'pose':'approach_guest_pose',
         #                                    'number_of_failures': 'simple_navigation_failures',
@@ -338,8 +338,8 @@ def create_state_machine():
         # run the LEARN_GUEST_SUB sub-state machine  
         smach.StateMachine.add('LEARN_GUEST_SUB', 
                                 create_learn_guest_sub_state_machine(),
-                                transitions={'success':'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST',
-                                            'failure':'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST'},
+                                transitions={SUCCESS:'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST',
+                                            FAILURE:'SHOULD_I_CONTINUE_GUEST_SEARCH_POST_GUEST'},
                                 remapping={'guest_som_human_ids':'guest_som_human_ids',
                                             'guest_som_obj_ids':'guest_som_obj_ids',
                                             'person_names':'person_names'})
@@ -356,13 +356,13 @@ def create_state_machine():
         
         smach.StateMachine.add('ANNOUNCE_CONTINUE_SEARCH',
                                 SpeakState(phrase="I am continuing to search for guests"),
-                                transitions={'success':'SEARCH_FOR_GUEST_SUB'},
+                                transitions={SUCCESS:'SEARCH_FOR_GUEST_SUB'},
                                 remapping={}) 
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
                                 SpeakState(phrase="I have finished searching for guests."),
-                                transitions={'success':'LookBackAtOperator'},   # correct transition
-                                # transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
+                                transitions={SUCCESS:'LookBackAtOperator'},   # correct transition
+                                # transitions={SUCCESS:'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
                                 remapping={}) 
         
         # smach.StateMachine.add("GetOperatorPose")
@@ -370,8 +370,8 @@ def create_state_machine():
         # navigate back to operator - TODO - consider changing to top nav
         smach.StateMachine.add('NAV_RETURN_TO_OPERATOR',
                                SimpleNavigateState(),
-                               transitions={'success':'GET_GUEST_RELATIONS',
-                                            'failure':'NAV_RETURN_TO_OPERATOR',
+                               transitions={SUCCESS:'GET_GUEST_RELATIONS',
+                                            FAILURE:'NAV_RETURN_TO_OPERATOR',
                                             'repeat_failure':'GET_GUEST_RELATIONS'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
@@ -379,27 +379,27 @@ def create_state_machine():
         smach.StateMachine.add(
             "LookBackAtOperator",
             LookAtPoint(),
-            transitions={'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
+            transitions={SUCCESS:'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
             'GET_GUEST_RELATIONS',
             GetHumanRelativeLoc(),
             transitions={
-                'success':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
+                SUCCESS:'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR',
                 'no_relevant_matches_found':'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'});
 
         smach.StateMachine.add('ANNOUNCE_GUEST_DETAILS_TO_OPERATOR', 
                                 AnnounceGuestDetailsToOperator(),
-                                transitions={'success':'FAREWELL_OPERATOR'},
+                                transitions={SUCCESS:'FAREWELL_OPERATOR'},
                                 remapping={'guest_som_human_ids':'guest_som_human_ids',
                                             'guest_som_obj_ids':'guest_som_obj_ids'})   
 
         # Farewell operator
         smach.StateMachine.add('FAREWELL_OPERATOR',
                                 SpeakState(phrase="My job here is done. Have a nice day!"),
-                                # transitions={'success':'NAV_TO_EXIT'},  # TODO - put back in
-                                transitions={'success':'SAVE_END_TIME'},
+                                # transitions={SUCCESS:'NAV_TO_EXIT'},  # TODO - put back in
+                                transitions={SUCCESS:'SAVE_END_TIME'},
                                 remapping={}) 
 
         # leave the arena
@@ -407,20 +407,20 @@ def create_state_machine():
         smach.StateMachine.add(
             'NAV_TO_EXIT',
             TopologicalNavigateState(),
-            transitions={'success':'SAVE_END_TIME',
-                        'failure':'NAV_TO_EXIT',
-                        'repeat_failure':'task_failure'},
+            transitions={SUCCESS:'SAVE_END_TIME',
+                        FAILURE:'NAV_TO_EXIT',
+                        'repeat_failure':TASK_FAILURE},
             remapping={'node_id':'exit_room_node_id'})
 
         # save the end time
         smach.StateMachine.add('SAVE_END_TIME',
                                 GetTime(),
-                                transitions={'success':'ANNOUNCE_FINISH'},
+                                transitions={SUCCESS:'ANNOUNCE_FINISH'},
                                 remapping={'current_time':'task_end_time'})
 
         smach.StateMachine.add('ANNOUNCE_FINISH',
                                 SpeakState(phrase="I have exited the arena. I am now stopping."),
-                                transitions={'success':'task_success'},
+                                transitions={SUCCESS:TASK_SUCCESS},
                                 remapping={})
 
         sm = setupErrorStates(sm);
