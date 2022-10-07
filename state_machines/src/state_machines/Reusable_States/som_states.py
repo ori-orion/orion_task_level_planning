@@ -21,11 +21,9 @@ Overall interface into SOM:
 
 class CreateSOMQuery(smach.State):
 
-    QUERY_TYPE = {
-        "human": 1,
-        "object": 2
-    }
-
+    HUMAN_QUERY = 1;
+    OBJECT_QUERY = 2;
+    
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
@@ -37,9 +35,9 @@ class CreateSOMQuery(smach.State):
 
 
     def execute(self, userdata):        
-        if self.query_type == self.QUERY_TYPE["human"]:
+        if self.query_type == self.HUMAN_QUERY:
             output = SOMQueryHumansRequest();
-        elif self.query_type == self.QUERY_TYPE["object"]:
+        elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
 
         if self.save_time:
@@ -47,7 +45,31 @@ class CreateSOMQuery(smach.State):
 
         userdata.query = output;
         return SUCCESS;
-    pass;
+
+class PerformSOMQuery(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['query'],
+            output_keys=['results']);
+
+    def execute(self, userdata):
+
+        query = userdata.query;
+        if type(query) == SOMQueryHumansRequest:
+            rospy.wait_for_service('/som/humans/basic_query');
+            human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
+            userdata.results = human_query_srv(query);
+        elif type(query) == SOMQueryObjectsRequest:
+            rospy.wait_for_service('/som/objects/basic_query');
+            object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
+            userdata.results = object_query_srv(query);
+        else:
+            return FAILURE;
+
+        return SUCCESS;
+
+
 
 
 

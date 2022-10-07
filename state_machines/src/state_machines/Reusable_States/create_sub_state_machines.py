@@ -2,6 +2,10 @@ from state_machines.Reusable_States.include_all import *;
 
 from smach import Concurrence
 
+
+"""
+Speaking to a guest to learn about who they are.
+"""
 def create_learn_guest_sub_state_machine():
 
     # create the sub state machine
@@ -161,6 +165,9 @@ def create_learn_guest_sub_state_machine():
 
     return sub_sm
 
+"""
+Goes through a list of topological nodes, navigating to each node and checking to see if there's a human there.
+"""
 def create_search_for_guest_sub_state_machine():
     """ Smach sub state machine to search for guests (non-operator people) not yet spoken to
 
@@ -235,6 +242,9 @@ def create_search_for_guest_sub_state_machine():
 
     return sm_con
 
+"""
+Navigation state machine where you first navigate to the closest topological node, and then to the final location.
+"""
 def create_topo_nav_state_machine():
     sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE],
                             input_keys=['goal_pose'],
@@ -267,6 +277,9 @@ def create_topo_nav_state_machine():
 
     return sub_sm;
 
+"""
+Spin on the spot and then query for the humans you saw since you started spinning.
+"""
 def create_search_for_human():
     """
     For searching for humans in a given room.
@@ -304,13 +317,20 @@ def create_search_for_human():
             remapping={'node_id':'room_node_uid'});
 
         smach.StateMachine.add(
-            'SearchForHuman_1',
-            GetNearestHuman(),
+            'CreateHumanQuery',
+            CreateSOMQuery(CreateSOMQuery.HUMAN_QUERY, save_time=True),
             transitions={
-                'new_human_found':'LookAtHuman',
-                'human_not_found':'SpinOnSpot',
-                'existing_human_found':'SpinOnSpot'},
+                SUCCESS: 'SpinOnSpot'},
             remapping={});
+
+        # smach.StateMachine.add(
+        #     'SearchForHuman_1',
+        #     GetNearestHuman(),
+        #     transitions={
+        #         'new_human_found':'LookAtHuman',
+        #         'human_not_found':'SpinOnSpot',
+        #         'existing_human_found':'SpinOnSpot'},
+        #     remapping={});
         
         smach.StateMachine.add(
             'SpinOnSpot',
@@ -319,6 +339,14 @@ def create_search_for_human():
                 SUCCESS:'SearchForHuman_2'},
             remapping={});
 
+        smach.StateMachine.add(
+            'QueryForHumans',
+            PerformSOMQuery(),
+            transitions={
+                SUCCESS:'aweoiub',
+                FAILURE:FAILURE},
+            remapping={});
+        
         smach.StateMachine.add(
             'SearchForHuman_2',
             GetNearestHuman(),
