@@ -11,6 +11,45 @@ import math;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
+"""
+Overall interface into SOM:
+    - First you make a query.
+    - Then you input the query into the system. 
+    - Note that you can get it to set up the query as well, but that will be an input argument.
+"""
+
+
+class CreateSOMQuery(smach.State):
+
+    QUERY_TYPE = {
+        "human": 1,
+        "object": 2
+    }
+
+    def __init__(self, query_type:int, save_time:bool=False):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=[],
+            output_keys=['query'])
+
+        self.query_type = query_type;
+        self.save_time = save_time;
+
+
+    def execute(self, userdata):        
+        if self.query_type == self.QUERY_TYPE["human"]:
+            output = SOMQueryHumansRequest();
+        elif self.query_type == self.QUERY_TYPE["object"]:
+            output = SOMQueryObjectsRequest();
+
+        if self.save_time:
+            output.query.last_observed_at = rospy.time.now();
+
+        userdata.query = output;
+        return SUCCESS;
+    pass;
+
+
 
 class SaveOperatorToSOM(smach.State):
     """ State for robot to log the operator information as an observation in the SOM
@@ -380,3 +419,6 @@ class CheckForNewGuestSeen(smach.State):
             else:
                 rospy.loginfo("No new guest not found yet")
                 rospy.sleep(2)
+
+
+
