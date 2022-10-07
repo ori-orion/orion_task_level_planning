@@ -165,7 +165,7 @@ def create_state_machine():
             transitions={
                 SUCCESS:'NAV_TO_OPERATOR',
                 FAILURE:'NAV_TO_OPERATOR',
-                'repeat_failure':'NAV_TO_OPERATOR'},
+                REPEAT_FAILURE:'NAV_TO_OPERATOR'},
             remapping={'node_id':'operator_room_node_id'});
 
         # wait for hotword to start the task
@@ -205,7 +205,7 @@ def create_state_machine():
             transitions={
                 SUCCESS:'LOOK_AT_OPERATOR',
                 FAILURE:'NAV_TO_OPERATOR',
-                'repeat_failure':'LOOK_AT_OPERATOR'},
+                REPEAT_FAILURE:'LOOK_AT_OPERATOR'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(
@@ -224,7 +224,7 @@ def create_state_machine():
         #                        SpeakAndListenState(),
         #                         transitions={SUCCESS: 'SAVE_OPERATOR_INFO_TO_SOM',
         #                                     FAILURE:'ANNOUNCE_MISSED_NAME',
-        #                                     'repeat_failure':'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
+        #                                     REPEAT_FAILURE:'ANNOUNCE_REPEAT_SPEECH_RECOGNITION_FAILURE'},
         #                         remapping={'question':'ask_operator_name_phrase',
         #                                     'operator_response': 'operator_name',
         #                                     'candidates':'person_names',
@@ -238,7 +238,7 @@ def create_state_machine():
                                 AskPersonNameState(),
                                 transitions={SUCCESS: 'SearchForOperator',
                                             FAILURE:'ANNOUNCE_MISSED_NAME',
-                                            'repeat_failure':'SearchForOperator'},
+                                            REPEAT_FAILURE:'SearchForOperator'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
                                             'timeout':'speak_and_listen_timeout',
@@ -295,7 +295,7 @@ def create_state_machine():
             transitions={
                 SUCCESS:'SEARCH_FOR_GUEST_SUB',
                 FAILURE:'NAV_TO_ROOM_CENTRE',
-                'repeat_failure':'SEARCH_FOR_GUEST_SUB'},
+                REPEAT_FAILURE:'SEARCH_FOR_GUEST_SUB'},
             remapping={'pose':'mid_room_pose'});
 
         # start the search for an un-spoken-to guest
@@ -321,7 +321,7 @@ def create_state_machine():
         #                        SimpleNavigateState(),
         #                        transitions={SUCCESS:'LEARN_GUEST_SUB',
         #                                     FAILURE:'NAV_TO_GUEST',
-        #                                     'repeat_failure':'ANNOUNCE_REPEAT_NAV_FAILURE'},
+        #                                     REPEAT_FAILURE:'ANNOUNCE_REPEAT_NAV_FAILURE'},
         #                         remapping={'pose':'approach_guest_pose',
         #                                    'number_of_failures': 'simple_navigation_failures',
         #                                    'failure_threshold':'simple_navigation_failure_threshold'})
@@ -372,7 +372,7 @@ def create_state_machine():
                                SimpleNavigateState(),
                                transitions={SUCCESS:'GET_GUEST_RELATIONS',
                                             FAILURE:'NAV_RETURN_TO_OPERATOR',
-                                            'repeat_failure':'GET_GUEST_RELATIONS'},
+                                            REPEAT_FAILURE:'GET_GUEST_RELATIONS'},
                                 remapping={'pose':'operator_pose',
                                            'number_of_failures': 'simple_navigation_failures',
                                            'failure_threshold':'simple_navigation_failure_threshold'});
@@ -409,7 +409,7 @@ def create_state_machine():
             TopologicalNavigateState(),
             transitions={SUCCESS:'SAVE_END_TIME',
                         FAILURE:'NAV_TO_EXIT',
-                        'repeat_failure':TASK_FAILURE},
+                        REPEAT_FAILURE:TASK_FAILURE},
             remapping={'node_id':'exit_room_node_id'})
 
         # save the end time

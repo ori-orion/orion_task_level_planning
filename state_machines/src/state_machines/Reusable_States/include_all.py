@@ -7,6 +7,7 @@ from state_machines.Reusable_States.perception_states import *;
 from state_machines.Reusable_States.som_states import *;
 from state_machines.Reusable_States.speech_states import *;
 import state_machines.Reusable_States.utils as utils
+from state_machines.Reusable_States.utils import TASK_SUCCESS, TASK_FAILURE, SUCCESS, FAILURE, REPEAT_FAILURE;
 
 from state_machines.Reusable_States.outcomes_enum import *;
 
@@ -38,7 +39,6 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 OBJECTS = ['potted plant', 'bottle', 'cup', 'cereal', 'bowl', 'cloth'] # TODO: YCB benchmark
 OBJECTS += FRUITS + DRINKS
-
 
 
 

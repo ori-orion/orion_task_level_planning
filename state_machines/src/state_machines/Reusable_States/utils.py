@@ -12,6 +12,14 @@ from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 
 import actionlib
 
+
+TASK_SUCCESS = 'task_success';
+TASK_FAILURE = 'task_failure';
+SUCCESS = 'success';
+FAILURE = 'failure';
+REPEAT_FAILURE = 'repeat_failure';
+
+
 def pose_to_xy_theta(pose:Pose):
     """ Function converts a pose to an (x,y,theta) triple.
 
