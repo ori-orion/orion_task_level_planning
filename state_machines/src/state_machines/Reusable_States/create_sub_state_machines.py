@@ -342,7 +342,7 @@ def create_search_for_human():
     return sub_sm;
 
 
-def create_repeated_trials(state:type, outcomes, input_keys, output_keys):
+def create_repeated_trials(state:type, outcomes, input_keys, output_keys, attempts_to_failure=3):
 
     
         
