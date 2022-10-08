@@ -277,6 +277,8 @@ def create_topo_nav_state_machine():
 
     return sub_sm;
 
+
+
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
 """
@@ -370,6 +372,8 @@ def create_search_for_human():
             transitions={SUCCESS:SUCCESS});
 
     return sub_sm;
+
+
 
 
 def create_repeated_trials(state:type, outcomes, input_keys, output_keys, attempts_to_failure=3):
