@@ -318,19 +318,12 @@ def create_search_for_human():
 
         smach.StateMachine.add(
             'CreateHumanQuery',
-            CreateSOMQuery(CreateSOMQuery.HUMAN_QUERY, save_time=True),
+            CreateSOMQuery(
+                CreateSOMQuery.HUMAN_QUERY, 
+                save_time=True),
             transitions={
                 SUCCESS: 'SpinOnSpot'},
             remapping={});
-
-        # smach.StateMachine.add(
-        #     'SearchForHuman_1',
-        #     GetNearestHuman(),
-        #     transitions={
-        #         'new_human_found':'LookAtHuman',
-        #         'human_not_found':'SpinOnSpot',
-        #         'existing_human_found':'SpinOnSpot'},
-        #     remapping={});
         
         smach.StateMachine.add(
             'SpinOnSpot',
@@ -343,8 +336,17 @@ def create_search_for_human():
             'QueryForHumans',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'aweoiub',
+                SUCCESS:'FindMyMatesOperatorDetection',
                 FAILURE:FAILURE},
+            remapping={});
+
+        smach.StateMachine.add(
+            'FindMyMatesOperatorDetection',
+            FindMyMates_IdentifyOperatorGuests(),
+            transitions={
+                SUCCESS:'aefunawef',
+                FAILURE:FAILURE,
+                'one_person_found':FAILURE},
             remapping={});
         
         smach.StateMachine.add(

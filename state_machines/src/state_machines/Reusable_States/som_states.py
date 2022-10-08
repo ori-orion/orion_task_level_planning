@@ -28,7 +28,7 @@ class CreateSOMQuery(smach.State):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=[],
-            output_keys=['query'])
+            output_keys=['som_query'])
 
         self.query_type = query_type;
         self.save_time = save_time;
@@ -43,15 +43,15 @@ class CreateSOMQuery(smach.State):
         if self.save_time:
             output.query.last_observed_at = rospy.time.now();
 
-        userdata.query = output;
+        userdata.som_query = output;
         return SUCCESS;
 
 class PerformSOMQuery(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE],
-            input_keys=['query'],
-            output_keys=['results']);
+            input_keys=['som_query'],
+            output_keys=['som_query_results']);
 
     def execute(self, userdata):
 
@@ -59,15 +59,65 @@ class PerformSOMQuery(smach.State):
         if type(query) == SOMQueryHumansRequest:
             rospy.wait_for_service('/som/humans/basic_query');
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
-            userdata.results = human_query_srv(query);
+            result:SOMQueryHumansResponse = human_query_srv(query);
         elif type(query) == SOMQueryObjectsRequest:
             rospy.wait_for_service('/som/objects/basic_query');
             object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
-            userdata.results = object_query_srv(query);
+            result:SOMQueryObjectsResponse = object_query_srv(query);
         else:
             return FAILURE;
 
+        userdata.som_query_results = result.returns;
         return SUCCESS;
+
+class FindMyMates_IdentifyOperatorGuests(smach.State):
+    """
+    Inputs:
+        som_query_results:Human[]       - What guests were found in the last query.
+        approximate_operator_pose:Pose  - Where is the operator roughly?
+                                        - Note that if the operator is on one side of the room, then a point over on this side of the room should be sufficient.
+    Outputs:
+        operator_pose:Pose  - What is the position of the operator?
+        guests:Human[]      - Returns a list of the guests.
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS, FAILURE, 'one_person_found'],
+            input_keys=['som_query_results', 'approximate_operator_pose'],
+            output_keys=['operator_pose', 'guests']);
+
+    def execute(self, userdata):
+        results:list = userdata.som_query_results;
+        if len(results) == 0:
+            return FAILURE;
+        elif len(results) == 1:
+            return 'one_person_found';
+        else:
+            approximate_op_pose:Pose = userdata.approximate_operator_pose;
+            closest_distance = math.inf;
+            closest_pose = Pose();
+            closest_human = None;
+            guest_list = [];
+            for element in results:
+                element:Human;
+                dist = distance_between_poses(approximate_op_pose, element.obj_position);
+                if dist < closest_distance:
+                    if (closest_human != None):
+                        guest_list.append(closest_human);
+                    closest_human = element;
+                    closest_pose = element.obj_position;
+                    closest_distance = dist;
+                else:
+                    guest_list.append(element);
+                
+            userdata.guests = guest_list;
+            userdata.operator_pose = closest_pose;
+            
+            return SUCCESS;
+
+            
+    pass;
+
 
 
 
