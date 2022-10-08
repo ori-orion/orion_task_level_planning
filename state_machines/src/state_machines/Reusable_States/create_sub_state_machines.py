@@ -331,7 +331,7 @@ def create_search_for_human():
             'SpinOnSpot',
             SpinState(),
             transitions={
-                SUCCESS:'SearchForHuman_2'},
+                SUCCESS:'QueryForHumans'},
             remapping={});
 
         smach.StateMachine.add(
@@ -346,30 +346,10 @@ def create_search_for_human():
             'FindMyMatesOperatorDetection',
             FindMyMates_IdentifyOperatorGuests(),
             transitions={
-                SUCCESS:'aefunawef',
+                SUCCESS:SUCCESS,
                 FAILURE:FAILURE,
                 'one_person_found':FAILURE},
             remapping={});
-        
-        smach.StateMachine.add(
-            'SearchForHuman_2',
-            GetNearestHuman(),
-            transitions={
-                'new_human_found':'LookAtHuman',
-                'human_not_found':FAILURE,
-                'existing_human_found':FAILURE},
-            remapping={});
-
-        smach.StateMachine.add(
-            'GoToSafePoseFromHuman',
-            NavigateDistanceFromGoalSafely(),
-            transitions={SUCCESS:'LookAtHuman'},
-            remapping={'pose':'human_pose'});
-
-        smach.StateMachine.add(
-            'LookAtHuman',
-            LookAtHuman(),
-            transitions={SUCCESS:SUCCESS});
 
     return sub_sm;
 

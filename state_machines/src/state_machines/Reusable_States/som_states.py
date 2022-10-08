@@ -84,10 +84,14 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE, 'one_person_found'],
             input_keys=['som_query_results', 'approximate_operator_pose'],
-            output_keys=['operator_pose', 'guests']);
+            output_keys=['operator_pose', 'guest_list']);
 
     def execute(self, userdata):
         results:list = userdata.som_query_results;
+
+        userdata.guest_list = [];
+        userdata.operator_pose = userdata.approximate_operator_pose;
+
         if len(results) == 0:
             return FAILURE;
         elif len(results) == 1:
@@ -110,7 +114,7 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
                 else:
                     guest_list.append(element);
                 
-            userdata.guests = guest_list;
+            userdata.guest_list = guest_list;
             userdata.operator_pose = closest_pose;
             
             return SUCCESS;
