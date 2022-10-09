@@ -3,8 +3,8 @@ params_loaded: True
 
 operator_pose: {
   position: {
-    x: 4.819714846716991,
-    y: -0.0434180133683909,
+    x: 2.8958758795522246,
+    y: 0.11781111332003316,
     z: 0.0
   },
   orientation: {

@@ -233,10 +233,19 @@ def create_state_machine():
         # create_search_for_guest_sub_state_machine()
         smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
                                 create_search_for_human(),
-                                transitions={SUCCESS:'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
-                                            FAILURE:'ANNOUNCE_FINISH_SEARCH'},
+                                transitions={SUCCESS:'PointAtAllGuests',
+                                            FAILURE:'ANNOUNCE_FINISH_SEARCH',
+                                            'one_person_found':'ANNOUNCE_FINISH_SEARCH'},
                                 remapping={'room_node_uid':'guest_room_node_id',
                                             'failure_threshold':'topological_navigation_failure_threshold'})
+
+        smach.StateMachine.add(
+            'PointAtAllGuests',
+            create_point_to_all_guests(),
+            transitions={
+                SUCCESS:'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
+                FAILURE:TASK_FAILURE},
+            remapping={'guests':'guests'});
 
         smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE', 
                                 ShouldIContinueGuestSearchState(),
