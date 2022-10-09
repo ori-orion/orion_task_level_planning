@@ -291,10 +291,10 @@ def create_search_for_human():
     Inputs:
         room_node_uid:str       - The room node id for the room we want to search in.
         failure_threshold       - the number of cumulative failures required to return the repeat_failure outcome
+        prev_node_nav_to        - This is something used by any of the topological nodes. Unimportant for the purposes of this specifically.
     Outputs:
-        closest_human:Human     - The human that was found.
-        human_object_uid:str    - What is the object uid of the human in question. (Makes it slightly more general for later logic)
-        human_pose:Pose         - Returns the pose at which the human was found.        
+        operator_pose:Pose      - The position of the operator.
+        guests:Human[]          - An array with all the guests on it.        
     """
 
     sub_sm = smach.StateMachine(
@@ -302,7 +302,7 @@ def create_search_for_human():
         input_keys=[
             'room_node_uid', 'failure_threshold', 'prev_node_nav_to'],
         output_keys=[
-            'closest_human', 'human_object_uid', 'human_pose', 'prev_node_nav_to']);
+            'operator_pose', 'guests']);
                         
     sub_sm.userdata.number_of_failures = 0;
 
@@ -355,6 +355,67 @@ def create_search_for_human():
 
 
 
+
+
+"""
+Introduction to operator/asking operator name
+"""
+def create_intro_to_operator(operator_pose:Pose):
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[],
+        output_keys=['operator_name']);
+                        
+    sub_sm.userdata.ask_operator_name_phrase = "What is your name?"                
+    
+    sub_sm.userdata.number_of_failures = 0;
+
+    sub_sm.userdata.nearest_to = None;
+
+    with sub_sm:
+        # ask for operator's name - New ask guest name action server - TODO - test        
+        smach.StateMachine.add('ASK_OPERATOR_NAME',
+                                AskPersonNameState(),
+                                transitions={SUCCESS: 'SearchForOperator',
+                                            FAILURE:'ANNOUNCE_MISSED_NAME',
+                                            REPEAT_FAILURE:'SearchForOperator'},
+                                remapping={'question':'ask_operator_name_phrase',
+                                            'recognised_name': 'operator_name',
+                                            'timeout':'speak_and_listen_timeout',
+                                            'number_of_failures': 'speak_and_listen_failures',
+                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+
+        # announce that we missed the name, and that we will try again
+        smach.StateMachine.add(
+            'ANNOUNCE_MISSED_NAME',
+            SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
+            transitions={
+                SUCCESS:'ASK_OPERATOR_NAME'},
+            remapping={})
+
+        smach.StateMachine.add(
+            'SearchForOperator',
+            GetNearestHuman(),
+            transitions={
+                'new_human_found':'SAVE_OPERATOR_INFO_TO_SOM',
+                'human_not_found':'SAVE_OPERATOR_INFO_TO_SOM_HARDCODED_BACKUP',
+                'existing_human_found':'SAVE_OPERATOR_INFO_TO_SOM'},
+            remapping={'nearest_to':'operator_pose'});
+
+        # save the operator info to the SOM
+        smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM',
+                               SaveOperatorToSOM(),
+                               transitions={SUCCESS:'CREATE_PHRASE_START_SEARCH',
+                                            FAILURE:TASK_FAILURE},
+                                remapping={'operator_name':'operator_name', 
+                                            'operator_som_id':'operator_som_id'})
+
+        smach.StateMachine.add('SAVE_OPERATOR_INFO_TO_SOM_HARDCODED_BACKUP',
+                       SaveOperatorToSOM(operator_pose=operator_pose),
+                       transitions={SUCCESS:'CREATE_PHRASE_START_SEARCH',
+                                    FAILURE:TASK_FAILURE},
+                        remapping={'operator_name':'operator_name', 
+                                    'operator_som_id':'operator_som_id'})
 
 def create_repeated_trials(state:type, outcomes, input_keys, output_keys, attempts_to_failure=3):
 
