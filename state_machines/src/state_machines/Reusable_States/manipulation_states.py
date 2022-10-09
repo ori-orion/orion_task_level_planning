@@ -12,6 +12,9 @@ import rospy;
 import actionlib
 
 import tf
+import tf2_ros;
+
+GLOBAL_FRAME = "map";
 
 class PickUpObjectState(smach.State):
     """ State for picking up an object
@@ -29,9 +32,9 @@ class PickUpObjectState(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success', 'failure', 'repeat_failure'],
+                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
                                 input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
-                                output_keys=['number_of_failures'])
+                                output_keys=['number_of_failures']);
 
     def execute(self, userdata):
         pick_up_goal = PickUpObjectGoal()
@@ -73,9 +76,9 @@ class PickUpObjectState(smach.State):
                     userdata.number_of_failures += 1
                     if userdata.number_of_failures >= userdata.failure_threshold:
                         userdata.number_of_failures = 0
-                        return 'repeat_failure'
+                        return REPEAT_FAILURE
                     else:
-                        return 'failure'
+                        return FAILURE
                 else:
                     rospy.loginfo("PickUpObjectState found matching AR tf '{}' in tf-tree for task object {}".format(ar_tf_string, userdata.object_name))
             else:
@@ -85,9 +88,9 @@ class PickUpObjectState(smach.State):
                 userdata.number_of_failures += 1
                 if userdata.number_of_failures >= userdata.failure_threshold:
                     userdata.number_of_failures = 0
-                    return 'repeat_failure'
+                    return REPEAT_FAILURE
                 else:
-                    return 'failure'
+                    return FAILURE
         else:
             rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
 
@@ -103,14 +106,14 @@ class PickUpObjectState(smach.State):
 
         if result:
             userdata.number_of_failures = 0
-            return 'success'
+            return SUCCESS
         else:
             userdata.number_of_failures += 1
             if userdata.number_of_failures >= userdata.failure_threshold:
                 userdata.number_of_failures = 0
-                return 'repeat_failure'
+                return REPEAT_FAILURE
             else:
-                return 'failure'
+                return FAILURE
 
 
 class HandoverObjectToOperatorState(smach.State):
@@ -119,7 +122,11 @@ class HandoverObjectToOperatorState(smach.State):
     This state hands over an object to the operator.
     """
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success','failure'])
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=[],
+            output_keys=[]);
 
     def execute(self, userdata):
         handover_goal = GiveObjectToOperatorGoal()
@@ -132,9 +139,9 @@ class HandoverObjectToOperatorState(smach.State):
 
         success = give_object_to_operator_action_client.get_result().result
         if success:
-            return 'success'
+            return SUCCESS
         else:
-            return 'failure'
+            return FAILURE
 
 
 class ReceiveObjectFromOperatorState(smach.State):
@@ -144,7 +151,11 @@ class ReceiveObjectFromOperatorState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success','failure'])
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=[],
+            output_keys=[]);
 
     def execute(self, userdata):
         receive_goal = ReceiveObjectFromOperatorGoal()
@@ -158,9 +169,9 @@ class ReceiveObjectFromOperatorState(smach.State):
         result = receive_object_from_operator_action_client.get_result()
         success = result.result
         if success:
-            return 'success'
+            return SUCCESS
         else:
-            return 'failure'
+            return FAILURE
 
 
 class PutObjectOnSurfaceState(smach.State):
@@ -168,11 +179,12 @@ class PutObjectOnSurfaceState(smach.State):
 
     This state put an object held by the robot on a surface.
     """
-    def __init__(self, action_dict, global_store):
-        outcomes = ['success', 'failure']
-        super(PutObjectOnSurfaceState, self).__init__(action_dict=action_dict,
-                                                      global_store=global_store,
-                                                      outcomes=outcomes)
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=[],
+            output_keys=[]);
 
     def execute(self, userdata):
         put_on_surface_goal = PutObjectOnSurfaceGoal()
@@ -183,6 +195,67 @@ class PutObjectOnSurfaceState(smach.State):
 
         success = put_on_surface_action.get_result().result
         if success:
-            return 'success'
+            return SUCCESS
         else:
-            return 'failure'
+            return FAILURE
+
+
+point_at_uid_ref = 0;
+class PointAtEntity(smach.State):
+
+    def __init__(self, statement_having_pointed=None, statement_before_pointing=None):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['point_at_loc'],
+            output_keys=[]);
+
+        self.statement_having_pointed = statement_having_pointed;
+        self.statement_before_pointing = statement_before_pointing;
+        self.point_at_obj_server = actionlib.SimpleActionClient('point_to_object',PointToObjectAction);
+        
+        self.tfbroadcaster = tf2_ros.TransformBroadcaster();
+        self.tfBuffer = tf2_ros.Buffer();
+        self.listener = tf2_ros.TransformListener(self.tfBuffer);
+
+    def createPointAtTf_UID(self) -> str:
+        point_at_uid_ref += 1;
+        return "POINT_AT_TF_UID_" + str(point_at_uid_ref);
+
+    def execute(self, userdata):
+        tf_uid = self.createPointAtTf_UID();
+
+        point_at_loc:Pose = userdata.point_at_loc;
+
+        self.point_at_obj_server.wait_for_server();
+
+        transform = geometry_msgs.msg.TransformStamped()
+        transform.transform.translation.x = point_at_loc.position.x;
+        transform.transform.translation.y = point_at_loc.position.y;
+        transform.transform.translation.z = point_at_loc.position.z;
+        transform.transform.rotation.w = 1;
+        transform.header.stamp = rospy.Time.now();
+        transform.header.frame_id = GLOBAL_FRAME;
+        transform.child_frame_id = tf_uid;
+        self.tfbroadcaster.sendTransform([transform]);
+        
+        trans = None;
+        while (trans is None):
+            trans = self.tfBuffer.lookup_transform(
+                tf_uid, 
+                GLOBAL_FRAME, 
+                rospy.Time(), timeout=rospy.Duration(2));
+        
+        goal = PointToObjectGoal();
+        goal.goal_tf = tf_uid;
+        goal.statement_before_pointing = self.statement_before_pointing;
+        goal.statement_having_pointed = self.statement_having_pointed;
+
+        self.point_at_obj_server.send_goal(goal);
+        self.point_at_obj_server.wait_for_result();
+        result:PointToObjectResult = self.point_at_obj_server.get_result();
+        if result.result == True:
+            return SUCCESS;
+        else:
+            return FAILURE;
+    

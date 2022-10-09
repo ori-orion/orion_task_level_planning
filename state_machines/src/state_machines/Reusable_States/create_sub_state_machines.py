@@ -356,7 +356,8 @@ def create_search_for_human():
 
 
 """
-Point at all the guests in sequence.
+Looks at all the guests in sequence.
+TODO: We need to upgrade this to a point command.
 """
 def create_point_to_all_guests():
     """
