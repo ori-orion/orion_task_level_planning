@@ -9,8 +9,6 @@ from state_machines.Reusable_States.speech_states import *;
 import state_machines.Reusable_States.utils as utils
 from state_machines.Reusable_States.utils import TASK_SUCCESS, TASK_FAILURE, SUCCESS, FAILURE, REPEAT_FAILURE;
 
-from state_machines.Reusable_States.outcomes_enum import *;
-
 
 # People
 NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',

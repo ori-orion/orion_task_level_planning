@@ -27,7 +27,7 @@ class SpeakState(smach.State):
     """
     def __init__(self, phrase=None):
         smach.State.__init__(self,
-                                outcomes=['success'],
+                                outcomes=[SUCCESS],
                                 input_keys=['phrase'])
 
         self.phrase = phrase;
@@ -53,7 +53,7 @@ class SpeakState(smach.State):
         # rospy.loginfo("Speaking complete")
 
         # Can only succeed
-        return 'success'
+        return SUCCESS
 
 
 class SpeakAndListenState(smach.State):
@@ -77,7 +77,7 @@ class SpeakAndListenState(smach.State):
 
     def __init__(self, question=None):
         smach.State.__init__(self,
-                                outcomes=['success','failure','repeat_failure'],
+                                outcomes=[SUCCESS,FAILURE,REPEAT_FAILURE],
                                 input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['operator_response', 'number_of_failures'])
 
@@ -110,14 +110,14 @@ class SpeakAndListenState(smach.State):
         if result is not None and result.succeeded:
             userdata.operator_response = result.answer
             userdata.number_of_failures = 0
-            return 'success'
+            return SUCCESS
         else:
             userdata.number_of_failures+= 1
             if userdata.number_of_failures >= userdata.failure_threshold:
                 # reset number of failures because we've already triggered the repeat failure
                 userdata.number_of_failures = 0
-                return 'repeat_failure'
-            return 'failure'
+                return REPEAT_FAILURE
+            return FAILURE
 
 class AskPersonNameState(smach.State):
     """ Smach state for the robot to ask for the person's name, executed by the ask_person_name action server.
@@ -137,7 +137,7 @@ class AskPersonNameState(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success','failure','repeat_failure'],
+                                outcomes=[SUCCESS,FAILURE,REPEAT_FAILURE],
                                 input_keys=['question','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['recognised_name', 'number_of_failures'])
 
@@ -160,7 +160,7 @@ class AskPersonNameState(smach.State):
         if result is not None and result.answer:
             userdata.recognised_name = result.answer
             userdata.number_of_failures = 0
-            return 'success'
+            return SUCCESS
         else:
             # action server failed
             userdata.number_of_failures += 1
@@ -168,14 +168,14 @@ class AskPersonNameState(smach.State):
             if userdata.number_of_failures >= userdata.failure_threshold:
                 # reset number of failures because we've already triggered the repeat failure
                 userdata.number_of_failures = 0
-                return 'repeat_failure'
-            return 'failure'
+                return REPEAT_FAILURE
+            return FAILURE
 
 class WaitForHotwordState(smach.State):
     """ Smach state for waiting for the hotword detector to publish a detection message.
 
-    Terminates with 'success' outcome if hotword detection message is received within the timeout (if used),
-    otherwise 'failure'.
+    Terminates with SUCCESS outcome if hotword detection message is received within the timeout (if used),
+    otherwise FAILURE.
 
     input_keys:
         timeout: timeout time in seconds (set to None to wait indefinitely)
@@ -183,7 +183,7 @@ class WaitForHotwordState(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes = ['success', 'failure'],
+                                outcomes = [SUCCESS, FAILURE],
                                 input_keys=['timeout'])
 
     def execute(self, userdata):
@@ -194,10 +194,10 @@ class WaitForHotwordState(smach.State):
             hotword_msg = rospy.wait_for_message('/hotword', Hotword, timeout=userdata.timeout)
             rospy.loginfo("Hotword '{}' received at time: {}".format(hotword_msg.hotword, hotword_msg.stamp.to_sec()))
             # call_talk_request_action_server(phrase="Hotword received")
-            return 'success'
+            return SUCCESS
         except rospy.ROSException as e:
             rospy.logwarn("Hotword not received within timeout")
-            return 'failure'
+            return FAILURE
 
 #region Create Phrase stuff.
 # This seems to set `userdata.phrase` for subsequent speaking.
@@ -216,7 +216,7 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
     """
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success'],
+                                outcomes=[SUCCESS],
                                 input_keys=['operator_name', 'object_name'],
                                 output_keys=['phrase'])
 
@@ -224,7 +224,7 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
         userdata.phrase = "Hi, " + userdata.operator_name + ", I've brought you the " + userdata.object_name
 
         # Can only succeed
-        return 'success'
+        return SUCCESS
 
 class CreatePhraseAskForHelpPickupObjectState(smach.State):
     """ Smach state to create the phrase to ask for help to pick up an object
@@ -238,7 +238,7 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
     """
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success'],
+                                outcomes=[SUCCESS],
                                 input_keys=['object_name'],
                                 output_keys=['phrase'])
 
@@ -247,7 +247,7 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
                                 " and say ready when they are ready?")
 
         # Can only succeed
-        return 'success'
+        return SUCCESS
 
 class CreatePhraseStartSearchForPeopleState(smach.State):
     """ Smach state to create the phrase to announce the start of the search for people
@@ -261,7 +261,7 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
     """
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success'],
+                                outcomes=[SUCCESS],
                                 input_keys=['operator_name'],
                                 output_keys=['phrase'])
 
@@ -269,5 +269,5 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
         userdata.phrase = "Ok, " + userdata.operator_name + ", I am now going to search for your friends. I'll be back soon!"
 
         # Can only succeed
-        return 'success'
+        return SUCCESS
 #endregion

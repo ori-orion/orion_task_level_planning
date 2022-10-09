@@ -38,7 +38,7 @@ class RegisterFace(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success','failure'],
+        smach.State.__init__(self, outcomes=[SUCCESS,FAILURE],
                                 input_keys=['face_id'],
                                 output_keys=['registered_face_id'])
 
@@ -83,7 +83,7 @@ class RecogniseFace(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success', 'failure'],
+        smach.State.__init__(self, outcomes=[SUCCESS, FAILURE],
                                 input_keys=['min_score_threshold'],
                                 output_keys=['face_id','face_match_score'])
 
@@ -139,7 +139,7 @@ class DetectFaceAttributes(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success'],
+        smach.State.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['face_id'],
                                 output_keys=['face_attributes', 'num_attributes'])
 
@@ -183,7 +183,7 @@ class ClearFaceDB(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success'])
+        smach.State.__init__(self, outcomes=[SUCCESS])
 
     def execute(self, userdata):
         # set action goal and call action server

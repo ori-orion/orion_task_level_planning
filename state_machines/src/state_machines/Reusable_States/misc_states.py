@@ -26,7 +26,7 @@ class GetTime(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes = ['success'],
+                                outcomes = [SUCCESS],
                                 output_keys=['current_time'])
 
     def execute(self, userdata):
@@ -34,7 +34,7 @@ class GetTime(smach.State):
         now = rospy.Time.now()
         userdata.current_time = now
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
-        return 'success'
+        return SUCCESS
 
 class CheckDoorIsOpenState(smach.State):
     """ State for robot to check if the door is open. TODO: THE ACTION SERVER NEEDS TESTING!
@@ -73,7 +73,7 @@ class CheckDoorIsOpenState(smach.State):
 #region Look at states
 class LookUpState(smach.State):
     def __init__(self, height=1.2):
-        smach.State.__init__(self, outcomes=['success']);
+        smach.State.__init__(self, outcomes=[SUCCESS]);
 
         self.height = height;
 
@@ -85,7 +85,7 @@ class LookUpState(smach.State):
             point=hsrb_interface.geometry.Vector3(1, 0, self.height), 
             ref_frame_id="base_link");
 
-        return 'success';
+        return SUCCESS;
 
 class LookAtHuman(smach.State):
     """
@@ -97,7 +97,7 @@ class LookAtHuman(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, 
-            outcomes=['success'],
+            outcomes=[SUCCESS],
             input_keys=['closest_human']);
 
         self.robot = hsrb_interface.Robot();
@@ -124,7 +124,7 @@ class LookAtHuman(smach.State):
                     point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
-        return 'success';
+        return SUCCESS;
 
 class LookAtPoint(smach.State):
     """
@@ -133,18 +133,20 @@ class LookAtPoint(smach.State):
     Inputs:
         pose:Pose   The point to look at in 3D space.
     """
-    def __init__(self):
+    def __init__(self, z_looking_at = 1.3):
         smach.State.__init__(
             self, 
-            outcomes=['success'],
+            outcomes=[SUCCESS],
             input_keys=['pose']);
 
         self.robot = hsrb_interface.Robot();
-        self.whole_body = self.robot.try_get('whole_body');
+        self.whole_body = self.robot.try_get('whole_body');7
+
+        self.z_looking_at = z_looking_at;
     
     def execute(self, userdata):
         pose:Pose = userdata.pose;
-        point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.3);
+        point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, self.z_looking_at);
         
         # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
         try:
@@ -162,14 +164,14 @@ class LookAtPoint(smach.State):
                     point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
-        return 'success';
+        return SUCCESS;
 
 #endregion
 
 class SpinState(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
-                                outcomes = ['success', 'failure'],
+                                outcomes = [SUCCESS, FAILURE],
                                 input_keys=[], output_keys=[]);
 
     def execute(self, userdata):
@@ -178,7 +180,7 @@ class SpinState(smach.State):
         client.send_goal(SpinGoal());
         client.wait_for_result();
 
-        return 'success';
+        return SUCCESS;
 
 class CreateGuestAttributesDict(smach.State):
     """ Smach state to build the guest attributes dictionary from userdata values.
@@ -188,7 +190,7 @@ class CreateGuestAttributesDict(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes = ['success'],
+                                outcomes = [SUCCESS],
                                 input_keys=['guest_attributes','name','gender','pronouns','face_id','face_attributes'],
                                 output_keys=['guest_attributes'])
 
@@ -203,7 +205,7 @@ class CreateGuestAttributesDict(smach.State):
         print(userdata.guest_attributes);
 
         # rospy.loginfo("Created guest_attributes dict: {}".format(userdata.guest_attributes))
-        return 'success'
+        return SUCCESS
 
 class ShouldIContinueGuestSearchState(smach.State):
     """ State determines whether we should continue or go back.
@@ -256,7 +258,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success'],
+        smach.State.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
 
         self.couch_left = Point();
@@ -305,7 +307,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
         if number_of_guests_found == 0:
             talk_phrase = "I could not find any of your mates. Don't worry, I'm sure they will arrive soon!"
             call_talk_request_action_server(phrase=talk_phrase)
-            return 'success'
+            return SUCCESS
 
         if number_of_guests_found > 0:
             guest_names = [];
@@ -460,4 +462,4 @@ class AnnounceGuestDetailsToOperator(smach.State):
         #         pass
         #     call_talk_request_action_server(phrase=talk_phrase)
 
-        return 'success'
+        return SUCCESS

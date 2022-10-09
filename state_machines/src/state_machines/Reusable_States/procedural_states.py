@@ -2,12 +2,12 @@
 # Sometimes useful for different things.
 
 import smach;
-from state_machines.Reusable_States.outcomes_enum import *;
+from state_machines.Reusable_States.utils import *;
 
 TRUE_STR = 'true';
 FALSE_STR = 'false';
 
-class lessThanState(smach.State):
+class LessThanState(smach.State):
     def __init__(self):
         smach.State.__init__(
             self,
@@ -20,7 +20,7 @@ class lessThanState(smach.State):
         else:
             return FALSE_STR;
 
-class incrementValue(smach.State):
+class IncrementValue(smach.State):
     def __init__(self, increment_by=None):
         smach.State.__init__(
             self,
@@ -42,8 +42,10 @@ class GetPropertyAtIndex(smach.State):
     """
     Gets a (set) property at a given index in the array.
     Inputs:
-        input_list:list - What list are we taking the property from?
-        index:int       - What index from that list are we interested in?
+        input_list:list     - What list are we taking the property from?
+        index:int           - What index from that list are we interested in?
+    Outputs:
+        output_param:Any    - Returns the desired parameter. 
     The state of 'index_out_of_range' will be returned if the index is not within the bounds.
     """
     def __init__(self, property_getting:str):
@@ -51,7 +53,7 @@ class GetPropertyAtIndex(smach.State):
             self,
             outcomes=[SUCCESS, 'index_out_of_range'],
             input_keys=['input_list', 'index'],
-            output_keys=['output_val']);
+            output_keys=['output_param']);
     
         self.property_getting = property_getting;
 

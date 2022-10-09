@@ -1,3 +1,4 @@
+from state_machines.Reusable_States.procedural_states import *;
 from state_machines.Reusable_States.include_all import *;
 
 from smach import Concurrence
@@ -298,7 +299,7 @@ def create_search_for_human():
     """
 
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE],
+        outcomes=[SUCCESS, FAILURE, 'one_person_found'],
         input_keys=[
             'room_node_uid', 'failure_threshold', 'prev_node_nav_to'],
         output_keys=[
@@ -348,13 +349,56 @@ def create_search_for_human():
             transitions={
                 SUCCESS:SUCCESS,
                 FAILURE:FAILURE,
-                'one_person_found':FAILURE},
+                'one_person_found':'one_person_found'},
             remapping={});
 
     return sub_sm;
 
 
+"""
+Point at all the guests in sequence.
+"""
+def create_point_to_all_guests():
+    """
+    Points to all the guests in sequence.
+    Inputs:
+        guests:Human[]  - An array giving all the guests.
+    """
 
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[
+            'guests'],
+        output_keys=[]);
+
+    sub_sm.userdata.index = 0;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'GetGuestPosition',
+            GetPropertyAtIndex('obj_position'),
+            transitions={
+                SUCCESS:'LookAtGuest', 
+                'index_out_of_range':SUCCESS},
+            remapping={'output_param':'ith_guest_pose'});
+            
+        smach.StateMachine.add(
+            'LookAtGuest',
+            LookAtPoint(),
+            transitions={SUCCESS:'CommentOnGuestExistence'},
+            remapping={'pose':'ith_guest_pose'});
+
+        smach.StateMachine.add(
+            'CommentOnGuestExistence',
+            SpeakState(phrase="There's a guest here."),
+            transitions={SUCCESS:'IncrementGuestIndex'});
+
+        smach.StateMachine.add(
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
+    pass;
 
 
 """
