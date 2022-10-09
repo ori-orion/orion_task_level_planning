@@ -210,8 +210,8 @@ class PointAtEntity(smach.State):
             input_keys=['point_at_loc'],
             output_keys=[]);
 
-        self.statement_having_pointed = statement_having_pointed;
-        self.statement_before_pointing = statement_before_pointing;
+        self.statement_having_pointed = "" if statement_having_pointed is None else statement_having_pointed;
+        self.statement_before_pointing = "" if statement_before_pointing is None else statement_before_pointing;
         self.point_at_obj_server = actionlib.SimpleActionClient('point_to_object',PointToObjectAction);
         
         self.tfbroadcaster = tf2_ros.TransformBroadcaster();

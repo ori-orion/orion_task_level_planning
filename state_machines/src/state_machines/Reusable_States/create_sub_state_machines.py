@@ -379,10 +379,11 @@ def create_point_to_all_guests():
             'GetGuestPosition',
             GetPropertyAtIndex('obj_position'),
             transitions={
-                SUCCESS:'LookAtGuest', 
+                SUCCESS:'PointAtGuest',         # LookAtGuest
                 'index_out_of_range':SUCCESS},
             remapping={'output_param':'ith_guest_pose'});
-            
+        
+        #region For merely looking at the guests
         smach.StateMachine.add(
             'LookAtGuest',
             LookAtPoint(),
@@ -393,6 +394,17 @@ def create_point_to_all_guests():
             'CommentOnGuestExistence',
             SpeakState(phrase="There's a guest here."),
             transitions={SUCCESS:'IncrementGuestIndex'});
+        #endregion
+
+        #region For actually pointing at the guests.
+        smach.StateMachine.add(
+            'PointAtGuest',
+            PointAtEntity("Here is a guest."),
+            transitions={
+                SUCCESS:"IncrementGuestIndex",
+                FAILURE:FAILURE},
+            remapping={'point_at_loc':'ith_guest_pose'});
+        #endregion
 
         smach.StateMachine.add(
             'IncrementGuestIndex',
