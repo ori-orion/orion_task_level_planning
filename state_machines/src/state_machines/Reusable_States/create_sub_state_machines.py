@@ -336,7 +336,6 @@ def create_search_for_human():
 
 """
 Looks at all the guests in sequence.
-TODO: We need to upgrade this to a point command.
 """
 def create_point_to_all_guests():
     """
@@ -394,6 +393,54 @@ def create_point_to_all_guests():
             remapping={'val':'index'});
 
     return sub_sm;
+
+
+"""
+We now need to go through guest by guest asking name and another detail.
+We need description and location for findMyMates.py
+"""
+def create_get_guest_details():
+    """
+    Asks all the guests details about them.
+    Inputs:
+        guest_list:Human[]  - An array giving all the guests.
+    Outputs:
+        speaking_phrase:str - A string to report back to the operator.
+    """
+
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[
+            'guest_list'],
+        output_keys=[]);
+
+    sub_sm.userdata.index = 0;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'GetGuestPosition',
+            GetPropertyAtIndex('obj_position'),
+            transitions={
+                SUCCESS:'PointAtGuest',         # LookAtGuest
+                'index_out_of_range':SUCCESS},
+            remapping={
+                'input_list':'guest_list',
+                'output_param':'ith_guest_pose'});
+        
+        smach.StateMachine.add(
+            'GetGuestInformation',
+            create_learn_guest_sub_state_machine(),
+            transitions={
+                SUCCESS:'IncrementGuestIndex',
+                FAILURE:FAILURE});
+
+        smach.StateMachine.add(
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
+
+    return sub_sm;    
 
 
 """
