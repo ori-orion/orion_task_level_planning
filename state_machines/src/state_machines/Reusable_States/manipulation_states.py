@@ -199,7 +199,7 @@ class PutObjectOnSurfaceState(smach.State):
         else:
             return FAILURE
 
-
+point_at_uid_ref = 0;
 class PointAtEntity(smach.State):
 
     def __init__(self, statement_having_pointed=None, statement_before_pointing=None):
@@ -213,15 +213,14 @@ class PointAtEntity(smach.State):
         self.statement_before_pointing = "" if statement_before_pointing is None else statement_before_pointing;
         self.point_at_obj_server = actionlib.SimpleActionClient('point_to_object',PointToObjectAction);
         
-        self.tfbroadcaster = tf2_ros.TransformBroadcaster();
+        self.tfbroadcaster = tf2_ros.StaticTransformBroadcaster();
         self.tfBuffer = tf2_ros.Buffer();
         self.listener = tf2_ros.TransformListener(self.tfBuffer);
 
-        self.point_at_uid_ref = 0;
-
     def createPointAtTf_UID(self) -> str:
-        self.point_at_uid_ref += 1;
-        return "POINT_AT_TF_UID_" + str(self.point_at_uid_ref);
+        global point_at_uid_ref;
+        point_at_uid_ref += 1;
+        return "POINT_AT_TF_UID_" + str(point_at_uid_ref);
 
     def execute(self, userdata):
         tf_uid = self.createPointAtTf_UID();
@@ -240,12 +239,12 @@ class PointAtEntity(smach.State):
         transform.child_frame_id = tf_uid;
         self.tfbroadcaster.sendTransform([transform]);
         
-        trans = None;
-        while (trans is None):
-            trans = self.tfBuffer.lookup_transform(
-                tf_uid, 
-                GLOBAL_FRAME, 
-                rospy.Time(), timeout=rospy.Duration(2));
+        # trans = None;
+        # while (trans is None):
+        #     trans = self.tfBuffer.lookup_transform(
+        #         tf_uid, 
+        #         GLOBAL_FRAME, 
+        #         rospy.Time(), timeout=rospy.Duration(2));
         
         goal = PointToObjectGoal();
         goal.goal_tf = tf_uid;

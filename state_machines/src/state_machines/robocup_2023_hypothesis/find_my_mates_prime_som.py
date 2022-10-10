@@ -39,6 +39,8 @@ def primeSOM():
 
     rospy.init_node('find_my_mates_prime_som');
 
+    print("rospy.Time.now()=", rospy.Time.now());
+
     rospy.wait_for_service('/som/human_observations/input');
     human_obs_srv = rospy.ServiceProxy('/som/human_observations/input', SOMAddHumanObs);
     counter = 0;
