@@ -5,7 +5,7 @@ This file contains code for the find my mate task, including the
 state machine itself.
 
 Author: Ricardo Cannizzaro
-Owner: Ricardo Cannizzaro
+Owner: Matthew Munks
 
 """
 
@@ -251,10 +251,15 @@ def create_state_machine():
             'PointAtAllGuests',
             create_point_to_all_guests(),
             transitions={
-                SUCCESS:'SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE',
+                SUCCESS:'ANNOUNCE_FINISH_SEARCH',
                 FAILURE:TASK_FAILURE},
             remapping={'guests':'guests'});
 
+        # At this point we have an array of guests:Human[], of each guest that we have seen.
+        # Going from here, we would need to ask names etc, but the real question is whether that's
+        # worth it. 
+
+        #region Old infrastructure for asking about guests.
         smach.StateMachine.add('SHOULD_I_CONTINUE_GUEST_SEARCH_INTERMEDIATE', 
                                 ShouldIContinueGuestSearchState(),
                                 transitions={'yes':'LEARN_GUEST_SUB',
@@ -287,28 +292,31 @@ def create_state_machine():
                                 SpeakState(phrase="I am continuing to search for guests"),
                                 transitions={SUCCESS:'SEARCH_FOR_GUEST_SUB'},
                                 remapping={}) 
+        #endregion
 
         smach.StateMachine.add('ANNOUNCE_FINISH_SEARCH',
                                 SpeakState(phrase="I have finished searching for guests."),
                                 transitions={SUCCESS:'LookBackAtOperator'},   # correct transition
                                 # transitions={SUCCESS:'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},   # switch for testing withpiout simple nav
-                                remapping={}) 
+                                remapping={});
         
         # smach.StateMachine.add("GetOperatorPose")
 
         # navigate back to operator - TODO - consider changing to top nav
-        smach.StateMachine.add('NAV_RETURN_TO_OPERATOR',
-                               SimpleNavigateState(),
-                               transitions={SUCCESS:'GET_GUEST_RELATIONS',
-                                            FAILURE:'NAV_RETURN_TO_OPERATOR',
-                                            REPEAT_FAILURE:'GET_GUEST_RELATIONS'},
-                                remapping={'pose':'operator_pose',
-                                           'number_of_failures': 'simple_navigation_failures',
-                                           'failure_threshold':'simple_navigation_failure_threshold'});
+        smach.StateMachine.add(
+            'NAV_RETURN_TO_OPERATOR',
+            SimpleNavigateState(),
+            transitions={SUCCESS:'GET_GUEST_RELATIONS',
+                         FAILURE:'NAV_RETURN_TO_OPERATOR',
+                         REPEAT_FAILURE:'GET_GUEST_RELATIONS'},
+            remapping={'pose':'operator_pose',
+                       'number_of_failures': 'simple_navigation_failures',
+                       'failure_threshold':'simple_navigation_failure_threshold'});
+        
         smach.StateMachine.add(
             "LookBackAtOperator",
             LookAtPoint(),
-            transitions={SUCCESS:'ANNOUNCE_GUEST_DETAILS_TO_OPERATOR'},
+            transitions={SUCCESS:'ANNOUNCE_FINISH'},
             remapping={'pose':'operator_pose'});
 
         smach.StateMachine.add(

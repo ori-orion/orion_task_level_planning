@@ -86,47 +86,12 @@ def create_learn_guest_sub_state_machine():
                                 transitions={SUCCESS:FAILURE},
                                 remapping={})
 
-        # ask for guest's gender
-        # smach.StateMachine.add('ASK_GUEST_GENDER',
-        #                        SpeakAndListenState(),
-        #                         transitions={SUCCESS: 'ASK_GUEST_PRONOUNS',
-        #                                     FAILURE:'ASK_GUEST_GENDER',
-        #                                     'repeat_failure':'ASK_GUEST_PRONOUNS'},
-        #                         remapping={'question':'ask_gender_phrase',
-        #                                     'operator_response': 'guest_gender',
-        #                                     'candidates':'ask_gender_candidates',
-        #                                     'params':'speak_and_listen_params_empty',
-        #                                     'timeout':'speak_and_listen_timeout',
-        #                                     'number_of_failures': 'speak_and_listen_failures',
-        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-
-        # ask for guest's pronouns
-        # smach.StateMachine.add('ASK_GUEST_PRONOUNS',
-        #                        SpeakAndListenState(),
-        #                         transitions={SUCCESS: 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
-        #                                     FAILURE:'ASK_GUEST_PRONOUNS',
-        #                                     'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
-        #                         remapping={'question':'ask_pronouns_phrase',
-        #                                     'operator_response': 'guest_pronouns',
-        #                                     'candidates':'ask_pronouns_candidates',
-        #                                     'params':'speak_and_listen_params_empty',
-        #                                     'timeout':'speak_and_listen_timeout',
-        #                                     'number_of_failures': 'speak_and_listen_failures',
-        #                                     'failure_threshold': 'speak_and_listen_failure_threshold'})
-
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(phrase="Please sit still."),
                                 transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
                                 # transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={})
-
-        # capture guest's face
-        # smach.StateMachine.add('CAPTURE_GUEST_FACE',
-        #                         RegisterFace(),
-        #                         transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
-        #                                     FAILURE:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
-        #                         remapping={'face_id':'guest_name'})
 
         # detect guest face attributes
         smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
