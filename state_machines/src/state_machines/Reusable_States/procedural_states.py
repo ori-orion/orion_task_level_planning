@@ -63,5 +63,5 @@ class GetPropertyAtIndex(smach.State):
         if index_looking_in < 0 or index_looking_in >= len(list_looking_at):
             return 'index_out_of_range';
         entry = list_looking_at[index_looking_in];
-        userdata.output_val = getattr(entry, self.property_getting);
+        userdata.output_param = getattr(entry, self.property_getting);
         return SUCCESS;
