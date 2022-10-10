@@ -30,8 +30,8 @@ class GetRobotLocationState(smach.State):
 
     def execute(self, userdata):
         # Wait for one message on topic and then set as the location
-        pose = rospy.wait_for_message('/global_pose', PoseStamped)
-        userdata.robot_location = pose.pose
+        pose = get_current_pose();
+        userdata.robot_location = pose;
         rospy.loginfo(pose)
         return 'stored'
 
@@ -41,6 +41,7 @@ class SimpleNavigateState(smach.State):
     """ State for navigating directly to a location on the map.
 
     This state is given a pose and navigates there.
+    If the robot stays in the same place for more than a second, then assume failed nav.
 
     input_keys:
         pose: pose for the robot to navigate to
@@ -50,6 +51,8 @@ class SimpleNavigateState(smach.State):
         number_of_failures: the updated failure counter upon state exit
     """
 
+    DISTANCE_SAME_PLACE_THRESHOLD = 0.01;
+
     def __init__(self):
         smach.State.__init__(
             self,
@@ -57,32 +60,55 @@ class SimpleNavigateState(smach.State):
             input_keys=['pose', 'number_of_failures', 'failure_threshold'],
             output_keys=['number_of_failures'])
 
+    def repeat_failure_infrastructure(self, userdata) -> str:
+        userdata.number_of_failures += 1
+        if userdata.number_of_failures >= userdata.failure_threshold:
+             # reset number of failures because we've already triggered the repeat failure outcome
+            userdata.number_of_failures = 0
+            return REPEAT_FAILURE
+        return FAILURE
+
     def execute(self, userdata):
+        target_pose:Pose = userdata.pose;
+        initial_pose = get_current_pose();
+
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose = userdata.pose
-        rospy.loginfo(goal.target_pose.pose)
+        goal.target_pose.pose = target_pose;
+        # rospy.loginfo(goal.target_pose.pose)
 
         navigate_action_client = actionlib.SimpleActionClient('move_base/move',  MoveBaseAction)
-        navigate_action_client.wait_for_server()
-        navigate_action_client.send_goal(goal)
-        navigate_action_client.wait_for_result()
-        status = navigate_action_client.get_state()
+        rospy.loginfo('\t\tWaiting for move_base/move.');
+        navigate_action_client.wait_for_server();
+        rospy.loginfo('\t\tSending nav goal.');
+        navigate_action_client.send_goal(goal);
+
+        # We want to be able to check to see if the robot has moved or not
+        # (to check to see if path planning has failed.)
+        navigate_action_client.wait_for_result(rospy.Duration(1));
+        rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
+
+        current_pose = get_current_pose();
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose)=" + str(distance_between_poses(current_pose, target_pose)));
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose)=" + str(distance_between_poses(current_pose, initial_pose)));
+        if (distance_between_poses(current_pose, target_pose) > self.DISTANCE_SAME_PLACE_THRESHOLD and 
+            distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
+
+            rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
+            return self.repeat_failure_infrastructure(userdata);
+
+        navigate_action_client.wait_for_result();
+        status = navigate_action_client.get_state();
         navigate_action_client.cancel_all_goals()
         rospy.loginfo('status = ' + str(status))
         if status == GoalStatus.SUCCEEDED:
             userdata.number_of_failures = 0
             return SUCCESS
         else:
-            userdata.number_of_failures += 1
-            if userdata.number_of_failures >= userdata.failure_threshold:
-                 # reset number of failures because we've already triggered the repeat failure outcome
-                userdata.number_of_failures = 0
-                return REPEAT_FAILURE
-            return FAILURE
+            return self.repeat_failure_infrastructure(userdata);
 
 #TODO - make a topological localisation node
 #       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
