@@ -315,9 +315,13 @@ def create_search_for_human():
     with sub_sm:
 
         smach.StateMachine.add(
-            'NavToOpPose',
-            
-        )
+            'NavToCentreOfRoom',
+            SimpleNavigateState(),
+            transitions={
+                SUCCESS:'CreateHumanQuery',
+                FAILURE:'NavToCentreOfRoom',
+                REPEAT_FAILURE: FAILURE},
+            remapping={'pose':'centre_of_room_pose'});
 
         #region Assumes existence of the topological nodes.
         smach.StateMachine.add(

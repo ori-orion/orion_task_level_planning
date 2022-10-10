@@ -76,6 +76,10 @@ def create_state_machine():
     operator_pose = utils.dict_to_obj(rospy.get_param('/operator_pose_approx'), operator_pose);
     sm.userdata.operator_pose = operator_pose;
 
+    centre_of_room_pose = Pose();
+    centre_of_room_pose = utils.dict_to_obj(rospy.get_param('centre_of_room_pose'), centre_of_room_pose);
+    sm.userdata.centre_of_room_pose = centre_of_room_pose;
+
     # speaking to guests
     # sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
     # sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."

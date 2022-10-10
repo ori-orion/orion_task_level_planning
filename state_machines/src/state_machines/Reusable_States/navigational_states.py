@@ -51,10 +51,11 @@ class SimpleNavigateState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self,
-                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
-                                input_keys=['pose', 'number_of_failures', 'failure_threshold'],
-                                output_keys=['number_of_failures'])
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
+            input_keys=['pose', 'number_of_failures', 'failure_threshold'],
+            output_keys=['number_of_failures'])
 
     def execute(self, userdata):
         # Navigating without top nav
