@@ -299,7 +299,7 @@ def create_search_for_human():
         approximate_operator_pose:Pose  - What is the approximate operator pose? This will be used to identify the operator out of all the humans observed.
     Outputs:
         operator_pose:Pose        - The position of the operator.
-        guests:Human[]            - An array with all the guests on it.        
+        guest_list:Human[]        - An array with all the guests on it.        
     """
 
     sub_sm = smach.StateMachine(
@@ -308,7 +308,7 @@ def create_search_for_human():
             'centre_of_room_pose', 'room_node_uid', 'failure_threshold', 'prev_node_nav_to',
             'approximate_operator_pose'],
         output_keys=[
-            'operator_pose', 'guests']);
+            'operator_pose', 'guest_list']);
                         
     sub_sm.userdata.number_of_failures = 0;
 
@@ -380,13 +380,13 @@ def create_point_to_all_guests():
     """
     Points to all the guests in sequence.
     Inputs:
-        guests:Human[]  - An array giving all the guests.
+        guest_list:Human[]  - An array giving all the guests.
     """
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=[
-            'guests'],
+            'guest_list'],
         output_keys=[]);
 
     sub_sm.userdata.index = 0;
@@ -398,7 +398,9 @@ def create_point_to_all_guests():
             transitions={
                 SUCCESS:'PointAtGuest',         # LookAtGuest
                 'index_out_of_range':SUCCESS},
-            remapping={'output_param':'ith_guest_pose'});
+            remapping={
+                'input_list':'guest_list',
+                'output_param':'ith_guest_pose'});
         
         #region For merely looking at the guests
         smach.StateMachine.add(

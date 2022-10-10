@@ -41,13 +41,19 @@ def primeSOM():
 
     rospy.wait_for_service('/som/human_observations/input');
     human_obs_srv = rospy.ServiceProxy('/som/human_observations/input', SOMAddHumanObs);
+    counter = 0;
     def push_to_service(pose_in:Pose):
         adding = SOMAddHumanObsRequest();
         adding.adding.obj_position = pose_in;
+        adding.adding.observed_at = rospy.Time.now();
+        adding.adding.object_uid = "prime_" + str(counter);
         human_obs_srv(adding);
 
     push_to_service(operator_pose);
+    counter += 1;
     push_to_service(guest_1_pose);
+    counter += 1;
     push_to_service(guest_2_pose);
+    counter += 1;
 
-    pass
+primeSOM();

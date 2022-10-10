@@ -68,6 +68,7 @@ class PerformSOMQuery(smach.State):
             return FAILURE;
 
         userdata.som_query_results = result.returns;
+        rospy.loginfo('\t\t' + str(len(result.returns)) + " entities found matching the query.")
         return SUCCESS;
 
 class FindMyMates_IdentifyOperatorGuests(smach.State):
@@ -78,7 +79,7 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
                                         - Note that if the operator is on one side of the room, then a point over on this side of the room should be sufficient.
     Outputs:
         operator_pose:Pose  - What is the position of the operator?
-        guests:Human[]      - Returns a list of the guests.
+        guest_list:Human[]  - Returns a list of the guests.
     """
     def __init__(self):
         smach.State.__init__(self, 

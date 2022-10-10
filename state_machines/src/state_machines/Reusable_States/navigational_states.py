@@ -51,7 +51,7 @@ class SimpleNavigateState(smach.State):
         number_of_failures: the updated failure counter upon state exit
     """
 
-    DISTANCE_SAME_PLACE_THRESHOLD = 0.01;
+    DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
 
     def __init__(self):
         smach.State.__init__(
@@ -88,7 +88,7 @@ class SimpleNavigateState(smach.State):
 
         # We want to be able to check to see if the robot has moved or not
         # (to check to see if path planning has failed.)
-        navigate_action_client.wait_for_result(rospy.Duration(1));
+        navigate_action_client.wait_for_result(rospy.Duration(2));
         rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
 
         current_pose = get_current_pose();

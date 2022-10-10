@@ -200,7 +200,6 @@ class PutObjectOnSurfaceState(smach.State):
             return FAILURE
 
 
-point_at_uid_ref = 0;
 class PointAtEntity(smach.State):
 
     def __init__(self, statement_having_pointed=None, statement_before_pointing=None):
@@ -218,9 +217,11 @@ class PointAtEntity(smach.State):
         self.tfBuffer = tf2_ros.Buffer();
         self.listener = tf2_ros.TransformListener(self.tfBuffer);
 
+        self.point_at_uid_ref = 0;
+
     def createPointAtTf_UID(self) -> str:
-        point_at_uid_ref += 1;
-        return "POINT_AT_TF_UID_" + str(point_at_uid_ref);
+        self.point_at_uid_ref += 1;
+        return "POINT_AT_TF_UID_" + str(self.point_at_uid_ref);
 
     def execute(self, userdata):
         tf_uid = self.createPointAtTf_UID();
