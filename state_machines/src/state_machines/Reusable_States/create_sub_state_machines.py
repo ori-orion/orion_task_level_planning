@@ -292,10 +292,11 @@ def create_search_for_human():
     Note also that there are two navigational systems in place, only one of which is currently in use. 
         centre_of_room_pose and room_node_uid correspond to the move_base and topological node navigation respectively.
     Inputs:
-        centre_of_room_pose:Pose  - The pose we are navigating to in the middle of the room to perform the search.
-        room_node_uid:str         - The room node id for the room we want to search in.
-        failure_threshold         - the number of cumulative failures required to return the repeat_failure outcome
-        prev_node_nav_to          - This is something used by any of the topological nodes. Unimportant for the purposes of this specifically.
+        centre_of_room_pose:Pose        - The pose we are navigating to in the middle of the room to perform the search.
+        room_node_uid:str               - The room node id for the room we want to search in.
+        failure_threshold               - the number of cumulative failures required to return the repeat_failure outcome
+        prev_node_nav_to                - This is something used by any of the topological nodes. Unimportant for the purposes of this specifically.
+        approximate_operator_pose:Pose  - What is the approximate operator pose? This will be used to identify the operator out of all the humans observed.
     Outputs:
         operator_pose:Pose        - The position of the operator.
         guests:Human[]            - An array with all the guests on it.        
@@ -304,7 +305,8 @@ def create_search_for_human():
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'one_person_found'],
         input_keys=[
-            'centre_of_room_pose', 'room_node_uid', 'failure_threshold', 'prev_node_nav_to'],
+            'centre_of_room_pose', 'room_node_uid', 'failure_threshold', 'prev_node_nav_to',
+            'approximate_operator_pose'],
         output_keys=[
             'operator_pose', 'guests']);
                         

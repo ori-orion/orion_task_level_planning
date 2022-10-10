@@ -242,8 +242,10 @@ def create_state_machine():
             transitions={SUCCESS:'PointAtAllGuests',
                         FAILURE:'ANNOUNCE_FINISH_SEARCH',
                         'one_person_found':'ANNOUNCE_FINISH_SEARCH'},
-            remapping={'room_node_uid':'guest_room_node_id',
-                        'failure_threshold':'topological_navigation_failure_threshold'})
+            remapping={
+                'room_node_uid':'guest_room_node_id',
+                'failure_threshold':'topological_navigation_failure_threshold',
+                'approximate_operator_pose':'operator_pose'})
 
         smach.StateMachine.add(
             'PointAtAllGuests',
