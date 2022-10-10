@@ -41,7 +41,7 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryObjectsRequest();
 
         if self.save_time:
-            output.query.last_observed_at = rospy.time.now();
+            output.query.last_observed_at = rospy.Time.now();
 
         userdata.som_query = output;
         return SUCCESS;

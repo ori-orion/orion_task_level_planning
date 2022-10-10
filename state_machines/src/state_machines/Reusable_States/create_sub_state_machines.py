@@ -426,7 +426,8 @@ def create_point_to_all_guests():
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'GetGuestPosition'},
             remapping={'val':'index'});
-    pass;
+
+    return sub_sm;
 
 
 """

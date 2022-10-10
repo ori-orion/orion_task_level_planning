@@ -218,10 +218,11 @@ def create_state_machine():
             transitions={SUCCESS:'INTRODUCTION_TO_OPERATOR'});
 
         # introduce to operator
-        smach.StateMachine.add('INTRODUCTION_TO_OPERATOR',
-                                SpeakState(phrase="Hi, nice to meet you! I am here to help look for your friends!"),
-                                transitions={SUCCESS:'ASK_OPERATOR_NAME'},
-                                remapping={})
+        smach.StateMachine.add(
+            'INTRODUCTION_TO_OPERATOR',
+            SpeakState(phrase="Hi, nice to meet you! I am here to help look for your friends!"),
+            transitions={SUCCESS:'NAV_TO_ROOM_CENTRE'},
+            remapping={})
 
 
         smach.StateMachine.add(
@@ -231,17 +232,18 @@ def create_state_machine():
                 SUCCESS:'SEARCH_FOR_GUEST_SUB',
                 FAILURE:'NAV_TO_ROOM_CENTRE',
                 REPEAT_FAILURE:'SEARCH_FOR_GUEST_SUB'},
-            remapping={'pose':'mid_room_pose'});
+            remapping={'pose':'centre_of_room_pose'});
 
         # start the search for an un-spoken-to guest
         # create_search_for_guest_sub_state_machine()
-        smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
-                                create_search_for_human(),
-                                transitions={SUCCESS:'PointAtAllGuests',
-                                            FAILURE:'ANNOUNCE_FINISH_SEARCH',
-                                            'one_person_found':'ANNOUNCE_FINISH_SEARCH'},
-                                remapping={'room_node_uid':'guest_room_node_id',
-                                            'failure_threshold':'topological_navigation_failure_threshold'})
+        smach.StateMachine.add(
+            'SEARCH_FOR_GUEST_SUB', 
+            create_search_for_human(),
+            transitions={SUCCESS:'PointAtAllGuests',
+                        FAILURE:'ANNOUNCE_FINISH_SEARCH',
+                        'one_person_found':'ANNOUNCE_FINISH_SEARCH'},
+            remapping={'room_node_uid':'guest_room_node_id',
+                        'failure_threshold':'topological_navigation_failure_threshold'})
 
         smach.StateMachine.add(
             'PointAtAllGuests',

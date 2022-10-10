@@ -1,4 +1,4 @@
-from geometry_msgs.msg import Pose, Point;
+from geometry_msgs.msg import Pose, Point, PoseStamped;
 
 import numpy as np;
 
@@ -101,6 +101,10 @@ def attribute_to_sentence(attribute):
     atr = attribute.split('_')
     atr = [a.lower() for a in atr]
     return atr
+
+def get_current_pose() -> Pose:
+    pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped)
+    return pose.pose;
 
 
 # From semantic_mapping/.../utils.py
