@@ -135,17 +135,29 @@ class AskPersonNameState(smach.State):
         number_of_failures: the updated failure counter upon state exit
     """
 
-    def __init__(self):
+    def __init__(self, timeout=None, question=None):
         smach.State.__init__(self,
                                 outcomes=[SUCCESS,FAILURE,REPEAT_FAILURE],
                                 input_keys=['question','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['recognised_name', 'number_of_failures'])
+        
+        self.timeout = timeout;
+        self.question = question;
 
     def execute(self, userdata):
+        if (self.timeout == None):
+            timeout = userdata.timeout;
+        else:
+            timeout = self.timeout;
+        if self.question == None:
+            question = userdata.question;
+        else:
+            question = self.question;
+
         ask_name_goal = AskPersonNameGoal()
-        rospy.loginfo(f"Asking question {userdata.question} with timeout {userdata.timeout}")
-        ask_name_goal.question = userdata.question
-        ask_name_goal.timeout = userdata.timeout
+        rospy.loginfo(f"Asking question {question} with timeout {timeout}")
+        ask_name_goal.question = question
+        ask_name_goal.timeout = timeout
 
         ask_name_action_client = actionlib.SimpleActionClient('ask_person_name', AskPersonNameAction)
         ask_name_action_client.wait_for_server()

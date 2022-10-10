@@ -20,7 +20,6 @@ def create_learn_guest_sub_state_machine():
 
     # speech defaults
     sub_sm.userdata.speak_and_listen_params_empty = []
-    sub_sm.userdata.speak_and_listen_timeout = 5
     sub_sm.userdata.speak_and_listen_failures = 0
     sub_sm.userdata.speak_and_listen_failure_threshold = 2
 
@@ -63,16 +62,14 @@ def create_learn_guest_sub_state_machine():
 
         # ask for guest's name - New ask guest name action server
         smach.StateMachine.add('ASK_GUEST_NAME',
-                               AskPersonNameState(),
+                               AskPersonNameState(timeout=5, question="What is your name?"),
                                 transitions={SUCCESS: 'ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 # transitions={SUCCESS: 'CREATE_GUEST_ATTRIBUTES_DICT',   # Skip other sub machine states, for testing
                                             FAILURE:'ANNOUNCE_MISSED_GUEST_NAME',
                                             'repeat_failure':'ANNOUNCE_GUEST_FACE_REGISTRATION_START'},
-                                remapping={'question':'ask_name_phrase',
-                                            'recognised_name': 'guest_name',
-                                            'timeout':'speak_and_listen_timeout',
-                                            'number_of_failures': 'speak_and_listen_failures',
-                                            'failure_threshold': 'speak_and_listen_failure_threshold'})
+                                remapping={'recognised_name': 'guest_name',
+                                           'number_of_failures': 'speak_and_listen_failures',
+                                           'failure_threshold': 'speak_and_listen_failure_threshold'})
 
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_GUEST_NAME',
@@ -417,13 +414,12 @@ def create_intro_to_operator(operator_pose:Pose):
     with sub_sm:
         # ask for operator's name - New ask guest name action server - TODO - test        
         smach.StateMachine.add('ASK_OPERATOR_NAME',
-                                AskPersonNameState(),
+                                AskPersonNameState(timeout=5),
                                 transitions={SUCCESS: 'SearchForOperator',
                                             FAILURE:'ANNOUNCE_MISSED_NAME',
                                             REPEAT_FAILURE:'SearchForOperator'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
-                                            'timeout':'speak_and_listen_timeout',
                                             'number_of_failures': 'speak_and_listen_failures',
                                             'failure_threshold': 'speak_and_listen_failure_threshold'})
 
