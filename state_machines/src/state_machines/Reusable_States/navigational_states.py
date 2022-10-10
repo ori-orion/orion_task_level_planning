@@ -52,7 +52,7 @@ class SimpleNavigateState(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['success', 'failure', 'repeat_failure'],
+                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
                                 input_keys=['pose', 'number_of_failures', 'failure_threshold'],
                                 output_keys=['number_of_failures'])
 
@@ -74,14 +74,14 @@ class SimpleNavigateState(smach.State):
         rospy.loginfo('status = ' + str(status))
         if status == GoalStatus.SUCCEEDED:
             userdata.number_of_failures = 0
-            return 'success'
+            return SUCCESS
         else:
             userdata.number_of_failures += 1
             if userdata.number_of_failures >= userdata.failure_threshold:
                  # reset number of failures because we've already triggered the repeat failure outcome
                 userdata.number_of_failures = 0
-                return 'repeat_failure'
-            return 'failure'
+                return REPEAT_FAILURE
+            return FAILURE
 
 #TODO - make a topological localisation node
 #       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
@@ -119,7 +119,7 @@ class TopologicalNavigateState(smach.State):
         self.stop_repeat_navigation = stop_repeat_navigation;
 
         smach.State.__init__(self,
-                                outcomes=['success', 'failure', 'repeat_failure'],
+                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
                                 output_keys=['number_of_failures', 'prev_node_nav_to']);
 
@@ -130,7 +130,7 @@ class TopologicalNavigateState(smach.State):
     def execute(self, userdata):
         if self.stop_repeat_navigation==True and userdata.node_id == userdata.prev_node_nav_to:
             rospy.loginfo("Repeat navigation to the same node prevented.")
-            return 'success'
+            return SUCCESS
 
         # Navigating with top nav
         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
@@ -162,14 +162,14 @@ class TopologicalNavigateState(smach.State):
         if result.success:
             userdata.number_of_failures = 0;
             userdata.prev_node_nav_to = userdata.node_id;
-            return 'success'
+            return SUCCESS
         else:
             userdata.number_of_failures += 1
             if userdata.number_of_failures >= userdata.failure_threshold:
                  # reset number of failures because we've already triggered the repeat failure outcome
                 userdata.number_of_failures = 0
-                return 'repeat_failure'
-            return 'failure'
+                return REPEAT_FAILURE
+            return FAILURE
 
 class GetClosestNodeState(smach.State):
     """
@@ -180,14 +180,14 @@ class GetClosestNodeState(smach.State):
     """
     def __init__(self):
         smach.State.__init__(self, 
-                                outcomes=['success'],
+                                outcomes=[SUCCESS],
                                 input_keys=['goal_pose'],
                                 output_keys=['closest_node']);
 
     def execute(self, userdata):
         goal_pose:Pose = userdata.goal_pose;
         userdata.closest_node = get_closest_node(goal_pose.position);
-        return 'success';
+        return SUCCESS;
 
 class NavigateDistanceFromGoalSafely(smach.State):
     """
@@ -201,7 +201,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, 
-            outcomes=['success'],
+            outcomes=[SUCCESS],
             input_keys=['pose']);
 
         self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
@@ -242,7 +242,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
         # Waiting for the result as a backup.
         self._mb_client.wait_for_result();
 
-        return 'success';
+        return SUCCESS;
 
 #endregion
 
@@ -266,7 +266,7 @@ class GetNextNavLoc(smach.State):
     DISTANCE_FROM_HUMAN = 0.3;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', 'failure'],
+        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', FAILURE],
                                 input_keys=['closest_human', 'robot_location'],
                                 output_keys=['pose_to_nav_to']);
 
@@ -349,7 +349,7 @@ class SetSafePoseFromObject(smach.State):
     DISTANCE_FROM_POSE = 1;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success'],
+        smach.State.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['pose', 'robot_location'],
                                 output_keys=['pose_out']);
 
@@ -390,7 +390,7 @@ class SetSafePoseFromObject(smach.State):
 
         userdata.pose_out = new_pose;
             
-        return 'success';
+        return SUCCESS;
 
 class SearchForGuestNavToNextNode(smach.State):
     """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
@@ -406,7 +406,7 @@ class SearchForGuestNavToNextNode(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                                outcomes=['searched', 'exhausted_search', 'failure', 'preempted'],
+                                outcomes=['searched', 'exhausted_search', FAILURE, 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
@@ -460,7 +460,7 @@ class SearchForGuestNavToNextNode(smach.State):
                     rospy.logwarn('Navigating with top nav to node "{}" failed. Abandoning.'.format(node_id))
                     # now remove the node from the nodes_not_searched list, because the nav action failed
                     del userdata.nodes_not_searched[0]
-                    return 'failure'
+                    return FAILURE
             # rospy.sleep(2)  # TODO - remove after testing
         # One final check for preempt. We only want to remove the node from the list if nothing was found.
         if self.preempt_requested():

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 The main aim here is to be able to test this in siulation.
 In order to do this, we will prime the SOM system with fake humans to interact with.
@@ -35,6 +36,8 @@ def primeSOM():
     guest_2_pose.orientation.y = 0.0
     guest_2_pose.orientation.z = -0.44044671674760205
     guest_2_pose.orientation.w = 0.8977787532049628
+
+    rospy.init_node('find_my_mates_prime_som');
 
     rospy.wait_for_service('/som/human_observations/input');
     human_obs_srv = rospy.ServiceProxy('/som/human_observations/input', SOMAddHumanObs);

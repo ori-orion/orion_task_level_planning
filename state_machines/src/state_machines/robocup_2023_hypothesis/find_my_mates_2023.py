@@ -73,7 +73,7 @@ def create_state_machine():
     # set the robot's pose to speak to the operator - TODO
     # Defaults to...
     operator_pose = Pose();
-    operator_pose = utils.dict_to_obj(rospy.get_param('/operator_pose'), operator_pose);
+    operator_pose = utils.dict_to_obj(rospy.get_param('/operator_pose_approx'), operator_pose);
     sm.userdata.operator_pose = operator_pose;
 
     # speaking to guests
