@@ -30,15 +30,23 @@ class PickUpObjectState(smach.State):
         number_of_failures: the updated failure counter upon state exit
     """
 
-    def __init__(self):
-        smach.State.__init__(self,
-                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
-                                input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
-                                output_keys=['number_of_failures']);
+    def __init__(self, object_name=None):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
+            input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
+            output_keys=['number_of_failures']);
+
+        self.object_name = object_name;
 
     def execute(self, userdata):
+        if (self.object_name == None):
+            object_name = userdata.object_name;
+        else:
+            object_name = self.object_name;
+
         pick_up_goal = PickUpObjectGoal()
-        pick_up_goal.goal_tf = userdata.object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
+        pick_up_goal.goal_tf = object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
 
         # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
         tf_listener = tf.TransformListener()
@@ -58,8 +66,8 @@ class PickUpObjectState(smach.State):
                 break
 
         if not found_by_name:
-            if userdata.object_name in userdata.ar_marker_ids:
-                ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[userdata.object_name])
+            if object_name in userdata.ar_marker_ids:
+                ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[object_name])
                 rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(pick_up_goal.goal_tf, ar_tf_string))
 
                 found_by_ar_marker = False
@@ -259,3 +267,13 @@ class PointAtEntity(smach.State):
         else:
             return FAILURE;
     
+class DropEntity(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=[],
+            output_keys=[]);
+
+    def execute(self, userdata):
+        return SUCCESS;

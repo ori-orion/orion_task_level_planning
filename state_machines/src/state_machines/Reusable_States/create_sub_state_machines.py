@@ -288,14 +288,14 @@ def create_search_for_human():
             remapping={'pose':'centre_of_room_pose'});
 
         #region Assumes existence of the topological nodes.
-        smach.StateMachine.add(
-            'NavToNearestNode',
-            TopologicalNavigateState(stop_repeat_navigation=True),
-            transitions={
-                SUCCESS:'CreateHumanQuery',
-                FAILURE:'NavToNearestNode',
-                'repeat_failure':FAILURE},
-            remapping={'node_id':'room_node_uid'});
+        # smach.StateMachine.add(
+        #     'NavToNearestNode',
+        #     TopologicalNavigateState(stop_repeat_navigation=True),
+        #     transitions={
+        #         SUCCESS:'CreateHumanQuery',
+        #         FAILURE:'NavToNearestNode',
+        #         'repeat_failure':FAILURE},
+        #     remapping={'node_id':'room_node_uid'});
         #endregion
 
         smach.StateMachine.add(
@@ -501,6 +501,41 @@ def create_intro_to_operator(operator_pose:Pose):
                                     FAILURE:TASK_FAILURE},
                         remapping={'operator_name':'operator_name', 
                                     'operator_som_id':'operator_som_id'})
+
+
+"""
+Drop off the bin bag.
+"""
+def create_drop_off_bin_bag():
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=['drop_off_location'],
+        output_keys=[]);
+                        
+    sub_sm.userdata.number_of_failures = 0;
+
+    sub_sm.userdata.nearest_to = None;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'NavToDropOff',
+            SimpleNavigateState(),
+            transitions={
+                SUCCESS:'DropBinBag',
+                FAILURE:'NavToDropOff',
+                REPEAT_FAILURE:'DropBinBag'},
+            remapping={'pose':'drop_off_location'});
+        
+        smach.StateMachine.add(
+            'DropBinBag',
+            DropEntity(),
+            transitions={
+                SUCCESS:'NAV_TO_OPERATOR',
+                FAILURE:'NAV_TO_OPERATOR',
+                REPEAT_FAILURE:'NAV_TO_OPERATOR'},
+            remapping={'pose':'drop_off_location'});
+    return sub_sm;
+
 
 def create_repeated_trials(state:type, outcomes, input_keys, output_keys, attempts_to_failure=3):
 

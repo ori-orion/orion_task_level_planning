@@ -152,8 +152,8 @@ def create_state_machine():
         #   TODO - fix and test the check door state for future competitions
         smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
                                 CheckDoorIsOpenState(),
-                                transitions={   'open':'SAVE_START_TIME', 
-                                                'closed':'WAIT_FOR_START_SIGNAL'})
+                                transitions={'open':'SAVE_START_TIME', 
+                                             'closed':'WAIT_FOR_START_SIGNAL'})
 
         # save the start time
         smach.StateMachine.add('SAVE_START_TIME',
@@ -363,7 +363,11 @@ def create_state_machine():
         sm = setupErrorStates(sm);
         
         # TODO - Reset e
-    return sm;
+    return sm;        smach.StateMachine.add(
+            "LookBackAtOperator",
+            LookAtPoint(),
+            transitions={SUCCESS:'ANNOUNCE_FINISH'},
+            remapping={'pose':'operator_pose'});
 
 rospy.init_node('find_my_mates_state_machine');
 
