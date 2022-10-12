@@ -58,11 +58,17 @@ def create_state_machine():
     # sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
 
 
- 
-    sm.userdata.bin_1_pose = Pose();
-    sm.userdata.bin_2_pose = Pose();
+    bin_1_pose = Pose();
+    bin_1_pose = utils.dict_to_obj(rospy.get_param('bin_1_pose'), bin_1_pose);
+    sm.userdata.bin_1_pose = bin_1_pose;
 
-    sm.userdata.drop_point = Pose();
+    bin_2_pose = Pose();
+    bin_2_pose = utils.dict_to_obj(rospy.get_param('bin_2_pose'), bin_2_pose);
+    sm.userdata.bin_2_pose = bin_2_pose;
+
+    drop_point = Pose();
+    drop_point = utils.dict_to_obj(rospy.get_param('drop_off_location'), drop_point);
+    sm.userdata.drop_point = drop_point;
     
     # In some cases, we don't want to navigate to the topological node 
     # if the last one we went to was that node. (I.e., if we're then#
@@ -77,89 +83,40 @@ def create_state_machine():
     with sm:       
         # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
         #   TODO - fix and test the check door state for future competitions
-        smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
-                                CheckDoorIsOpenState(),
-                                transitions={'open':'SAVE_START_TIME', 
-                                             'closed':'WAIT_FOR_START_SIGNAL'})
+        smach.StateMachine.add(
+            'WAIT_FOR_START_SIGNAL',
+            CheckDoorIsOpenState(),
+            transitions={'open':'SAVE_START_TIME', 
+                         'closed':'WAIT_FOR_START_SIGNAL'})
 
         # save the start time
-        smach.StateMachine.add('SAVE_START_TIME',
-                                GetTime(),
-                                transitions={SUCCESS:'NavThroughDoor'}, 
-                                remapping={'current_time':'task_start_time'})
-
         smach.StateMachine.add(
-            'NavThroughDoor',
-            SimpleNavigateState(),
-            transitions={
-                SUCCESS:'NAV_TO_OPERATOR',
-                FAILURE:'NAV_TO_OPERATOR',
-                REPEAT_FAILURE:'NAV_TO_OPERATOR'},
-            remapping={'pose':'bin_1_pose'});
-
-        smach.StateMachine.add(
-            'PickUpBinBag',
-            PickUpObjectState(object_name="bin_bag"),
-            transitions={
-                SUCCESS:'NavToDropOff1',
-                FAILURE:'PickUpBinBag',
-                REPEAT_FAILURE:TASK_FAILURE});
+            'SAVE_START_TIME',
+            GetTime(),
+            transitions={SUCCESS:'DropOff1'}, 
+            remapping={'current_time':'task_start_time'})
  
         smach.StateMachine.add(
-            'NavToDropOff1',
+            'DropOff1',
             create_drop_off_bin_bag(),
             transitions={
-                SUCCESS:'awefkbaw',
-                FAILURE:'PickUpBinBag',
-                REPEAT_FAILURE:TASK_FAILURE});
+                SUCCESS:'DropOff2',
+                FAILURE:'DropOff2'},
+            remapping={
+                'pick_up_location':'bin_1_pose',
+                'drop_off_location':'drop_point'});
 
         smach.StateMachine.add(
-            'NavToBin2',
-            SimpleNavigateState(),
-            transitions={
-                SUCCESS:'PickUpBinBag',
-                FAILURE:'NavToBin2',
-                REPEAT_FAILURE:'TASK_FAILURE'},
-            remapping={'pose':'bin_2_pose'});
-
-        smach.StateMachine.add(
-            'PickUpBinBag',
-            PickUpObjectState(object_name="bin_bag"),
-            transitions={
-                SUCCESS:'NavToDropOff2',
-                FAILURE:'PickUpBinBag',
-                REPEAT_FAILURE:TASK_FAILURE});
-
-        smach.StateMachine.add(
-            'NavToDropOff2',
+            'DropOff2',
             create_drop_off_bin_bag(),
             transitions={
-                SUCCESS:'TASK_SUCCESS',
-                FAILURE:'NavToDropOff2',
-                REPEAT_FAILURE:TASK_FAILURE});
+                SUCCESS:TASK_SUCCESS,
+                FAILURE:TASK_FAILURE},
+            remapping={
+                'pick_up_location':'bin_2_pose',
+                'drop_off_location':'drop_point'});
         
-
-        # wait for hotword to start the task
-        # smach.StateMachine.add('WAIT_FOR_HOTWORD',
-        #                         WaitForHotwordState(),
-        #                         transitions={SUCCESS: 'ANNOUNCE_TASK_INTENTIONS',
-        #                                      FAILURE: 'WAIT_FOR_HOTWORD'},
-        #                         remapping={'timeout':'hotword_timeout'})
-        
-        # announce task intentions
-        smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
-                                SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
-                                transitions={SUCCESS:'SAVE_START_TIME'},
-                                remapping={})
-        
-
-        
-        # TODO - Reset e
-    return sm;        smach.StateMachine.add(
-            "LookBackAtOperator",
-            LookAtPoint(),
-            transitions={SUCCESS:'ANNOUNCE_FINISH'},
-            remapping={'pose':'operator_pose'});
+    return sm;
 
 rospy.init_node('find_my_mates_state_machine');
 

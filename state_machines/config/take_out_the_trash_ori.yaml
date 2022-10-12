@@ -1,0 +1,47 @@
+# Basic flag to wait for the parameters to be loaded in.
+params_loaded: True
+
+# Gives the location of the first bin.
+bin_1_pose: {
+  position: {
+    x: 2.8958758795522246,
+    y: 0.11781111332003316,
+    z: 0.0
+  },
+  orientation: {
+    x: 0.0,
+    y: 0.0,
+    z: 0.7356250581776015,
+    w: 0.6773889383369058
+  }
+}
+
+# Gives the location of the second bin.
+bin_2_pose: {
+  position: {
+    x: 2.8958758795522246,
+    y: 0.11781111332003316,
+    z: 0.0
+  },
+  orientation: {
+    x: 0.0,
+    y: 0.0,
+    z: 0.7356250581776015,
+    w: 0.6773889383369058
+  }
+}
+
+# Gives the location of the drop off location.
+drop_off_location: {
+  position: {
+    x: 2.8958758795522246,
+    y: 0.11781111332003316,
+    z: 0.0
+  },
+  orientation: {
+    x: 0.0,
+    y: 0.0,
+    z: 0.7356250581776015,
+    w: 0.6773889383369058
+  }
+}

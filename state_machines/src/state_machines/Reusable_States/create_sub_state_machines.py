@@ -509,14 +509,32 @@ Drop off the bin bag.
 def create_drop_off_bin_bag():
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
-        input_keys=['drop_off_location'],
+        input_keys=['pick_up_location', 'drop_off_location'],
         output_keys=[]);
                         
     sub_sm.userdata.number_of_failures = 0;
+    sub_sm.userdata.failure_threshold = 3;
 
     sub_sm.userdata.nearest_to = None;
 
     with sub_sm:
+        smach.StateMachine.add(
+            'NavToPickUp',
+            SimpleNavigateState(),
+            transitions={
+                SUCCESS:'PickUpBinBag',
+                FAILURE:'NavToPickUp',
+                REPEAT_FAILURE:FAILURE},
+            remapping={'pose':'pick_up_location'});
+
+        smach.StateMachine.add(
+            'PickUpBinBag',
+            PickUpObjectState(object_name="bin_bag"),
+            transitions={
+                SUCCESS:'NavToDropOff',
+                FAILURE:'PickUpBinBag',
+                REPEAT_FAILURE:TASK_FAILURE});
+
         smach.StateMachine.add(
             'NavToDropOff',
             SimpleNavigateState(),
@@ -530,10 +548,9 @@ def create_drop_off_bin_bag():
             'DropBinBag',
             DropEntity(),
             transitions={
-                SUCCESS:'NAV_TO_OPERATOR',
-                FAILURE:'NAV_TO_OPERATOR',
-                REPEAT_FAILURE:'NAV_TO_OPERATOR'},
-            remapping={'pose':'drop_off_location'});
+                SUCCESS:SUCCESS,
+                FAILURE:'DropBinBag'},
+            remapping={});
     return sub_sm;
 
 
