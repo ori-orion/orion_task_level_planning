@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
-from state_machines.Reusable_States.create_sub_state_machines import *;
+from state_machines.SubStateMachines.create_sub_state_machines import *;
 
 if __name__ == '__main__':
     rospy.init_node('testing_search_humans');

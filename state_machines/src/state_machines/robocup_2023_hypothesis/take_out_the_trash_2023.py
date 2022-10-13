@@ -17,7 +17,7 @@ import smach_ros
 import actionlib
 
 from state_machines.Reusable_States.include_all import *;
-from state_machines.Reusable_States.create_sub_state_machines import *;
+from state_machines.SubStateMachines.create_sub_state_machines import *;
 
 # from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 # from set_up_clients import create_stage_1_clients
