@@ -348,11 +348,6 @@ class GetHumanRelativeLoc(smach.State):
                                 input_keys=['couch_left','couch_right', 'left_of_couch', 'right_of_couch'],
                                 output_keys=['relevant_matches'])
 
-        rospy.wait_for_service('/som/objects/relational_query');
-        rospy.wait_for_service('/som/humans/basic_query');
-        self.relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
-        self.humans_query = rospy.ServiceProxy('/som/humans/basic_query', orion_actions.srv.SOMQueryHumans);
-
     def get_most_relevant_relation(self, relation:Relation) -> str:
         if relation.left:
             return " was to the left of the ";
@@ -398,6 +393,12 @@ class GetHumanRelativeLoc(smach.State):
         return relevant_matches;
 
     def execute(self, userdata):
+
+        rospy.wait_for_service('/som/objects/relational_query');
+        rospy.wait_for_service('/som/humans/basic_query');
+        self.relational_query_srv = rospy.ServiceProxy('/som/objects/relational_query', orion_actions.srv.SOMRelObjQuery);
+        self.humans_query = rospy.ServiceProxy('/som/humans/basic_query', orion_actions.srv.SOMQueryHumans);
+
         
         human_query = SOMQueryHumansRequest();
         human_query.query.spoken_to_state = Human._SPOKEN_TO;
