@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from state_machines.Reusable_States.utils import *;
 
 import smach;
@@ -11,11 +13,51 @@ from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, Point
 
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 
 import math;
+
+import nav_msgs.msg;
+
+class NavigationalListener:
+
+    def __init__(self, listen_to:str = "/base_path_planner/inflated_static_obstacle_map"):
+        rospy.Subscriber(
+            listen_to,
+            nav_msgs.msg.GridCells,
+            self.occupancyMapCallback);
+
+        self.most_recent_map = None;
+
+    def occupancyMapCallback(self, data:nav_msgs.msg.GridCells):
+        print("Nav callback:")
+        print("\theader      = ", data.header);
+        print("\tcell_width  = ", data.cell_width);
+        print("\tcell_height = ", data.cell_height);
+        print("\tlen(cells)  = ", len(data.cells));
+
+        self.most_recent_map = data;
+
+    def isPointOccluded(self, point:Point) -> bool:
+        if self.most_recent_map == None:
+            return True;
+
+        w = self.most_recent_map.cell_width;
+        h = self.most_recent_map.cell_height;
+        
+        for point_cell in self.most_recent_map.cells:
+            point_cell:Point;
+
+            # Assuming a 2D map.
+            if (point_cell.x - w < point.x < point_cell.x + w) and (point_cell.y - h < point.y < point_cell.y + h):
+                return True;
+        
+        return False;
+
+
+
 
 class GetRobotLocationState(smach.State):
     """ Smach state for getting the robot's current location.
@@ -232,13 +274,14 @@ class NavigateDistanceFromGoalSafely(smach.State):
             input_keys=['pose']);
 
         self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
-        self._mb_client.wait_for_server()
 
     def get_robot_pose(self) -> Pose:
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
         return robot_pose.pose;
 
     def execute(self, userdata):
+        self._mb_client.wait_for_server();
+
         target_pose:Pose = userdata.pose;
         target_pose.position.z = 0;
 
@@ -496,3 +539,10 @@ class SearchForGuestNavToNextNode(smach.State):
         # now remove the node from the nodes_not_searched list, because we have now searched it
         del userdata.nodes_not_searched[0]
         return 'searched'
+
+if __name__ == '__main__':
+    rospy.init_node('listening_to_nav');
+
+    NavigationalListener();
+
+    rospy.spin();
