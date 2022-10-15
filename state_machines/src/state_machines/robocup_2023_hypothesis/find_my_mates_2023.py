@@ -16,8 +16,8 @@ import rospy
 import smach_ros
 import actionlib
 
-from state_machines.Reusable_States.include_all import *;
-from state_machines.SubStateMachines.create_sub_state_machines import *;
+from state_machines.SubStateMachines.include_all import *;
+# from state_machines.SubStateMachines.create_sub_state_machines import *;
 
 # from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 # from set_up_clients import create_stage_1_clients
@@ -138,30 +138,11 @@ def create_state_machine():
 
 
     with sm:
-        # TODO - remove after testing
-        # short-ciruit straight to SEARCH_FOR_GUEST_SUB to test logic 
-        # smach.StateMachine.add('SEARCH_FOR_GUEST_SUB', 
-        #                         create_search_for_guest_sub_state_machine(),
-        #                         transitions={SUCCESS:'CREATE_POSE_TO_APPROACH_GUEST',
-        #                                     FAILURE:'ANNOUNCE_FINISH_SEARCH'},
-        #                         remapping={'nodes_not_searched':'nodes_not_searched',
-        #                                     'operator_uid':'operator_som_id',
-        #                                     'failure_threshold':'topological_navigation_failure_threshold'})
-        
-        # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
-        #   TODO - fix and test the check door state for future competitions
-        smach.StateMachine.add('WAIT_FOR_START_SIGNAL',
-                                CheckDoorIsOpenState(),
-                                transitions={'open':'SAVE_START_TIME', 
-                                             'closed':'WAIT_FOR_START_SIGNAL'})
-
-        # save the start time
-        smach.StateMachine.add('SAVE_START_TIME',
-                                GetTime(),
-                                transitions={SUCCESS:'NavThroughDoor'}, # correct transition
-                                # transitions={SUCCESS:'SEARCH_FOR_GUEST_SUB'}, # TODO - switch for testing
-                                # transitions={SUCCESS:'LEARN_GUEST_SUB'}, # TODO - switch for testing
-                                remapping={'current_time':'task_start_time'})
+        smach.StateMachine.add(
+            'Startup',
+            create_wait_for_startup(),
+            transitions={
+                SUCCESS:'NavThroughDoor'});
 
         smach.StateMachine.add(
             'NavThroughDoor',
@@ -171,13 +152,6 @@ def create_state_machine():
                 FAILURE:'NAV_TO_OPERATOR',
                 REPEAT_FAILURE:'NAV_TO_OPERATOR'},
             remapping={'node_id':'operator_room_node_id'});
-
-        # wait for hotword to start the task
-        # smach.StateMachine.add('WAIT_FOR_HOTWORD',
-        #                         WaitForHotwordState(),
-        #                         transitions={SUCCESS: 'ANNOUNCE_TASK_INTENTIONS',
-        #                                      FAILURE: 'WAIT_FOR_HOTWORD'},
-        #                         remapping={'timeout':'hotword_timeout'})
         
         # announce task intentions
         smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',

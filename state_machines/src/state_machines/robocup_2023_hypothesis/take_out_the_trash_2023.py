@@ -16,8 +16,8 @@ import rospy
 import smach_ros
 import actionlib
 
-from state_machines.Reusable_States.include_all import *;
-from state_machines.SubStateMachines.create_sub_state_machines import *;
+from state_machines.SubStateMachines.include_all import *;
+# from state_machines.SubStateMachines.create_sub_state_machines import *;
 
 # from state_machines.reusable_states import * # pylint: disable=unused-wildcard-import
 # from set_up_clients import create_stage_1_clients
@@ -84,17 +84,9 @@ def create_state_machine():
         # # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
         #   TODO - fix and test the check door state for future competitions
         smach.StateMachine.add(
-            'WAIT_FOR_START_SIGNAL',
-            CheckDoorIsOpenState(),
-            transitions={'open':'SAVE_START_TIME', 
-                         'closed':'WAIT_FOR_START_SIGNAL'})
-
-        # save the start time
-        smach.StateMachine.add(
-            'SAVE_START_TIME',
-            GetTime(),
-            transitions={SUCCESS:'DropOff1'}, 
-            remapping={'current_time':'task_start_time'})
+            'Startup',
+            create_wait_for_startup(),
+            transitions={SUCCESS:'DropOff1'})
  
         smach.StateMachine.add(
             'DropOff1',

@@ -18,6 +18,7 @@ import actionlib
 import hsrb_interface;
 hsrb_interface.robot.enable_interactive();
 
+#region Temporal states
 class GetTime(smach.State):
     """ Smach state for current time using ROS clock.
 
@@ -35,6 +36,19 @@ class GetTime(smach.State):
         userdata.current_time = now
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
         return SUCCESS
+
+class WaitForSecs(smach.State):
+    def __init__(self, num_secs):
+        smach.State.__init__(
+            self,
+            outcomes = [SUCCESS]);
+        self.num_secs = num_secs;
+
+    def execute(self, userdata):
+        rospy.sleep(self.num_secs);
+        return SUCCESS;
+#endregion
+
 
 class CheckDoorIsOpenState(smach.State):
     """ State for robot to check if the door is open. TODO: THE ACTION SERVER NEEDS TESTING!
