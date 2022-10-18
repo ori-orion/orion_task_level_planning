@@ -108,7 +108,7 @@ def get_current_pose() -> Pose:
     return pose.pose;
 
 def point_to_numpy(point:Point) -> np.ndarray:
-    return np.asarray([point.x, point.y, point.z]);
+    return np.asarray([point.x, point.y, point.z], dtype=float);
 
 
 # From semantic_mapping/.../utils.py
