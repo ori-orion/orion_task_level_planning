@@ -25,7 +25,7 @@ class OrderGuestsFound(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, 
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS],
             input_keys=['guest_list'],
             output_keys=['guest_list']);
 
@@ -209,9 +209,15 @@ def create_search_for_human(start_with_nav:bool = True):
             'FindMyMatesOperatorDetection',
             FindMyMates_IdentifyOperatorGuests(),
             transitions={
-                SUCCESS:SUCCESS,
+                SUCCESS:'OrderGuests',
                 FAILURE:FAILURE,
                 'one_person_found':'one_person_found'},
+            remapping={});
+
+        smach.StateMachine.add(
+            'OrderGuests',
+            OrderGuestsFound(),
+            transitions={SUCCESS:SUCCESS},
             remapping={});
 
     return sub_sm;
