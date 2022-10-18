@@ -102,9 +102,13 @@ def attribute_to_sentence(attribute):
     atr = [a.lower() for a in atr]
     return atr
 
+# Returns the current location of the robot.
 def get_current_pose() -> Pose:
     pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped)
     return pose.pose;
+
+def point_to_numpy(point:Point) -> np.ndarray:
+    return np.asarray([point.x, point.y, point.z]);
 
 
 # From semantic_mapping/.../utils.py

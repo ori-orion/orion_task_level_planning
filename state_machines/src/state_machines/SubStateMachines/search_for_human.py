@@ -1,4 +1,79 @@
+from operator import indexOf
 from state_machines.Reusable_States.include_all import *;
+
+import numpy as np;
+
+"""
+It would be really useful to order the people found from left to right.
+This state does this.
+"""
+class OrderGuestsFound(smach.State):
+    """
+    Inputs/Outputs:
+        guest_list:Human[]      The list of guests found. 
+    
+    The aim of this is to minimise the angles between consecutive members,
+    as well as to make all the cross products align.
+    Now, if A is to the left of B from the robot's perspective, then AxB should point 
+        vaguely downwards.
+    This gets slightly more confusing because of the rotational aspect. 
+    Luckily we only expect a maximum of 4 guests, so we can brute force it. 
+    """
+
+    DOWNWARDS = np.asarray([0,0,-1]);
+
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['guest_list'],
+            output_keys=['guest_list']);
+
+
+
+    def execute(self, userdata):
+        robot_location:np.ndarray = point_to_numpy(get_current_pose().position);
+
+        guest_list:list = userdata.guest_list;
+
+        respective_to_vecs = [];
+        for guest in guest_list:
+            guest:Human;
+            appending = point_to_numpy(guest.obj_position.position) - robot_location;
+            # We want these vectors to be normalised because we're going to be comparing the magnitude of them.
+            appending /= np.linalg.norm(appending);
+            respective_to_vecs.append(appending);
+            
+        respective_next_to = [];
+        for i in range(len(guest_list)):
+            best_cos_angle_diff = 1000;
+            best_match = -1;
+            for j in range(len(guest_list)):
+                if i==j:
+                    continue;
+
+                if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
+                    cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j])
+                    if cos_angle < best_cos_angle_diff:
+                        best_cos_angle_diff = cos_angle;
+                        best_match = j;
+            
+            if best_match == -1:
+                respective_next_to.append(None);
+            else:
+                respective_next_to.append(best_match);
+
+        guest_list_new = [];
+        next_index = indexOf(respective_next_to, None);
+        if next_index == -1:
+            next_index = 0;
+        for i in range(len(guest_list)):
+            guest_list_new.append(guest_list[next_index]);
+            next_index = indexOf(respective_next_to, next_index);
+            
+        userdata.guest_list = guest_list_new;
+
+        return SUCCESS;
+
 
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
@@ -46,16 +121,16 @@ def create_search_for_human(start_with_nav:bool = True):
                     REPEAT_FAILURE: FAILURE},
                 remapping={'pose':'centre_of_room_pose'});
 
-        #region Assumes existence of the topological nodes.
-        # smach.StateMachine.add(
-        #     'NavToNearestNode',
-        #     TopologicalNavigateState(stop_repeat_navigation=True),
-        #     transitions={
-        #         SUCCESS:'CreateHumanQuery',
-        #         FAILURE:'NavToNearestNode',
-        #         'repeat_failure':FAILURE},
-        #     remapping={'node_id':'room_node_uid'});
-        #endregion
+            #region Assumes existence of the topological nodes.
+            # smach.StateMachine.add(
+            #     'NavToNearestNode',
+            #     TopologicalNavigateState(stop_repeat_navigation=True),
+            #     transitions={
+            #         SUCCESS:'CreateHumanQuery',
+            #         FAILURE:'NavToNearestNode',
+            #         'repeat_failure':FAILURE},
+            #     remapping={'node_id':'room_node_uid'});
+            #endregion
 
         smach.StateMachine.add(
             'CreateHumanQuery',
