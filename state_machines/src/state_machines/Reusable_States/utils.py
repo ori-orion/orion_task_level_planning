@@ -6,7 +6,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 import rospy;
 
-from strands_navigation_msgs.msg import TopologicalMap
+# from strands_navigation_msgs.msg import TopologicalMap
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 
@@ -57,23 +57,23 @@ def distance_between_poses(pose_1:Pose, pose_2:Pose):
 
     return distance_between_points(pos_1, pos_2);
 
-def get_closest_node(dest_pose):
-    """ Get the closest node to a destination pose. Returns name and pose. """
+# def get_closest_node(dest_pose):
+#     """ Get the closest node to a destination pose. Returns name and pose. """
 
-    top_map = rospy.wait_for_message('/topological_map', TopologicalMap)
+#     top_map = rospy.wait_for_message('/topological_map', TopologicalMap)
 
-    nodes = top_map.nodes
+#     nodes = top_map.nodes
 
-    best_dist = float('inf')
-    best_node_pose = (None, None)
+#     best_dist = float('inf')
+#     best_node_pose = (None, None)
 
-    for node in nodes:
-        new_dist = distance_between_poses(node.pose, dest_pose)
-        if new_dist < best_dist:
-            best_dist = new_dist
-            best_node_pose = (node.name, node.pose)
+#     for node in nodes:
+#         new_dist = distance_between_poses(node.pose, dest_pose)
+#         if new_dist < best_dist:
+#             best_dist = new_dist
+#             best_node_pose = (node.name, node.pose)
 
-    return best_node_pose
+#     return best_node_pose
 
 def get_point_magnitude(point:Point):
     return np.sqrt(point.x*point.x + point.y*point.y + point.z*point.z);

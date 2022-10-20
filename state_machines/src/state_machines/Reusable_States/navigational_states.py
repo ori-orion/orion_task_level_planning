@@ -240,23 +240,23 @@ class TopologicalNavigateState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-class GetClosestNodeState(smach.State):
-    """
-    Inputs:
-        goal_pose:Pose:     The pose we want to navigate to.
-    Outputs:
-        closest_node:str:   The node we will go via.
-    """
-    def __init__(self):
-        smach.State.__init__(self, 
-                                outcomes=[SUCCESS],
-                                input_keys=['goal_pose'],
-                                output_keys=['closest_node']);
+# class GetClosestNodeState(smach.State):
+#     """
+#     Inputs:
+#         goal_pose:Pose:     The pose we want to navigate to.
+#     Outputs:
+#         closest_node:str:   The node we will go via.
+#     """
+#     def __init__(self):
+#         smach.State.__init__(self, 
+#                                 outcomes=[SUCCESS],
+#                                 input_keys=['goal_pose'],
+#                                 output_keys=['closest_node']);
 
-    def execute(self, userdata):
-        goal_pose:Pose = userdata.goal_pose;
-        userdata.closest_node = get_closest_node(goal_pose.position);
-        return SUCCESS;
+#     def execute(self, userdata):
+#         goal_pose:Pose = userdata.goal_pose;
+#         userdata.closest_node = get_closest_node(goal_pose.position);
+#         return SUCCESS;
 
 class NavigateDistanceFromGoalSafely(smach.State):
     """

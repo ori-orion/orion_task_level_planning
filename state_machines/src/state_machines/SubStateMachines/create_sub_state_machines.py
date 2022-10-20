@@ -216,18 +216,18 @@ def create_topo_nav_state_machine():
     
 
     with sub_sm:
-        smach.StateMachine.add('GetClosestNode',
-                                GetClosestNodeState(),
-                                transitions={SUCCESS:'NavToNearestNode'});
+        # smach.StateMachine.add('GetClosestNode',
+        #                         GetClosestNodeState(),
+        #                         transitions={SUCCESS:'NavToNearestNode'});
         
-        smach.StateMachine.add(
-            'NavToNearestNode',
-            TopologicalNavigateState(),
-            transitions={
-                SUCCESS:'NavToFinalGoal',
-                FAILURE:'NavToNearestNode',
-                'repeat_failure':'NavToFinalGoal'},
-            remapping={'node_id':'closest_node'});
+        # smach.StateMachine.add(
+        #     'NavToNearestNode',
+        #     TopologicalNavigateState(),
+        #     transitions={
+        #         SUCCESS:'NavToFinalGoal',
+        #         FAILURE:'NavToNearestNode',
+        #         'repeat_failure':'NavToFinalGoal'},
+        #     remapping={'node_id':'closest_node'});
 
         smach.StateMachine.add(
             'NavToFinalGoal',
