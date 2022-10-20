@@ -11,9 +11,9 @@ import math;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
-from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
-    ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
-        ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
+# from orion_face_recognition.msg import ActionServer_CapFaceAction, ActionServer_CapFaceGoal, \
+#     ActionServer_FindMatchAction, ActionServer_FindMatchGoal, ActionServer_FindAttrsAction, ActionServer_FindAttrsGoal, \
+#         ActionServer_ClearDatabaseAction, ActionServer_ClearDatabaseGoal
 
 import actionlib;
 

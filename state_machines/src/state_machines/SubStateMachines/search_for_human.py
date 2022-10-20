@@ -127,7 +127,7 @@ class OrderGuestsFound(smach.State):
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
 """
-def create_search_for_human(start_with_nav:bool = True):
+def create_search_for_human(execute_nav_commands, start_with_nav:bool = True):
     """
     For searching for humans in a given room.
     This will prioritise humans that haven't been spoken to, and then go to the operators that are closer to you.
@@ -163,7 +163,7 @@ def create_search_for_human(start_with_nav:bool = True):
         if start_with_nav:
             smach.StateMachine.add(
                 'NavToCentreOfRoom',
-                SimpleNavigateState(),
+                SimpleNavigateState(execute_nav_commands=execute_nav_commands),
                 transitions={
                     SUCCESS:'CreateHumanQuery',
                     FAILURE:'NavToCentreOfRoom',

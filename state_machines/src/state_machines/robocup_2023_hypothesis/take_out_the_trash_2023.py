@@ -69,6 +69,11 @@ def create_state_machine():
     drop_point = Pose();
     drop_point = utils.dict_to_obj(rospy.get_param('drop_off_location'), drop_point);
     sm.userdata.drop_point = drop_point;
+
+    execute_nav_commands = True;
+    if rospy.has_param('execute_navigation_commands'):
+        if rospy.get_param('execute_navigation_commands') == False:
+            execute_nav_commands = False;
     
     # In some cases, we don't want to navigate to the topological node 
     # if the last one we went to was that node. (I.e., if we're then#
@@ -90,7 +95,7 @@ def create_state_machine():
  
         smach.StateMachine.add(
             'DropOff1',
-            create_drop_off_bin_bag(),
+            create_drop_off_bin_bag(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'DropOff2',
                 FAILURE:'DropOff2'},
@@ -100,7 +105,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'DropOff2',
-            create_drop_off_bin_bag(),
+            create_drop_off_bin_bag(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:TASK_SUCCESS,
                 FAILURE:TASK_FAILURE},
