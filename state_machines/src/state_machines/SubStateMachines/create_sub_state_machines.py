@@ -86,7 +86,7 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(phrase="Please sit still."),
-                                transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 # transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={})
 

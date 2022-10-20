@@ -29,3 +29,4 @@ centre_of_room_pose: {
   }
 }
 
+execute_navigation_commands: true

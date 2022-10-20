@@ -45,3 +45,5 @@ drop_off_location: {
     w: 0.6773889383369058
   }
 }
+
+execute_navigation_commands: true

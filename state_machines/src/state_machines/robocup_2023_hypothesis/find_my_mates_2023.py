@@ -160,11 +160,11 @@ def create_state_machine():
                 REPEAT_FAILURE:'NAV_TO_OPERATOR'},
             remapping={'node_id':'operator_room_node_id'});
         
-        # announce task intentions
-        smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
-                                SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
-                                transitions={SUCCESS:'SAVE_START_TIME'},
-                                remapping={})
+        # # announce task intentions
+        # smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
+        #                         SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
+        #                         transitions={SUCCESS:'SAVE_START_TIME'},
+        #                         remapping={})
         
         """
         navigate to operator
