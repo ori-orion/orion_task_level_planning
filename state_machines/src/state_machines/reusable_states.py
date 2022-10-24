@@ -1519,11 +1519,12 @@ class PickUpObjectState(smach.State):
         pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         pick_up_object_action_client.wait_for_server()
 
+        rospy.loginfo("waiting for server")
         pick_up_object_action_client.send_goal(pick_up_goal)
         pick_up_object_action_client.wait_for_result()
-
+        rospy.loginfo("waiting for result")
         result = pick_up_object_action_client.get_result().result
-
+        rospy.loginfo("Got result")
         if result:
             userdata.number_of_failures = 0
             return 'success'
