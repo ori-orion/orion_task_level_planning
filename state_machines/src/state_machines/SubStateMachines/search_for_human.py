@@ -66,6 +66,8 @@ class OrderGuestsFound(smach.State):
         print("\tOrdering guest tests passed");
 
     def orderFields(self, guest_list:list, robot_location:np.ndarray) -> list:
+        print("Number of guests found is", len(guest_list));
+
         respective_to_vecs = [];
         for guest in guest_list:
             guest:Human;
