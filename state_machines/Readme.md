@@ -10,6 +10,7 @@ Find six misplaced objects in a room and bring them to their predefined location
 
 Move 5 objects from a table to the cabinet, grouping them by category.
 This feels like the most feasable next task. 
+Manipulation needs to know what's empty beforehand. 
 
 ### Serve Breakfast
 
@@ -54,7 +55,7 @@ Requires person identification.
 Drink identification.
 Picking up a drink
 
-## Unknown stage.
+## Stage II
 
 ### Hand me that.
 
