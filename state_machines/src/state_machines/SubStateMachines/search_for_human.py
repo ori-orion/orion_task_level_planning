@@ -3,6 +3,7 @@
 from state_machines.Reusable_States.include_all import *;
 
 import numpy as np;
+from geometry_msgs.msg import Pose
 
 """
 It would be really useful to order the people found from left to right.
@@ -65,6 +66,8 @@ class OrderGuestsFound(smach.State):
         print("\tOrdering guest tests passed");
 
     def orderFields(self, guest_list:list, robot_location:np.ndarray) -> list:
+        print("Number of guests found is", len(guest_list));
+
         respective_to_vecs = [];
         for guest in guest_list:
             guest:Human;
@@ -228,9 +231,8 @@ if __name__ == '__main__':
     # state.testState();
 
     rospy.init_node('search_for_human_test');
-    
     sub_sm = create_search_for_human(False);
-
+    sub_sm.userdata.approximate_operator_pose = Pose();
     sub_sm.execute();
     
     rospy.spin();
