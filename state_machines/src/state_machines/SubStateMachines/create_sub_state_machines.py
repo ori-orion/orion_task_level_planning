@@ -86,17 +86,17 @@ def create_learn_guest_sub_state_machine():
         # tell guest face registration is starting
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_START',
                                 SpeakState(phrase="Please sit still."),
-                                transitions={SUCCESS:'DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB'},
+                                transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 # transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
                                 remapping={})
 
         # detect guest face attributes
-        smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
-                                DetectFaceAttributes(),
-                                transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
-                                remapping={'face_id':'guest_name',
-                                            'face_attributes':'guest_face_attributes',
-                                            'num_attributes':'guest_num_attributes'  })
+        # smach.StateMachine.add('DETECT_OPERATOR_FACE_ATTRIBUTES_BY_DB',
+        #                         DetectFaceAttributes(),
+        #                         transitions={SUCCESS:'ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH'},
+        #                         remapping={'face_id':'guest_name',
+        #                                     'face_attributes':'guest_face_attributes',
+        #                                     'num_attributes':'guest_num_attributes'  })
 
         # tell guest face registration is finished
         smach.StateMachine.add('ANNOUNCE_GUEST_FACE_REGISTRATION_FINISH',
@@ -208,7 +208,7 @@ def create_search_for_guest_sub_state_machine():
 """
 Navigation state machine where you first navigate to the closest topological node, and then to the final location.
 """
-def create_topo_nav_state_machine():
+def create_topo_nav_state_machine(execute_nav_commands):
     sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE],
                             input_keys=['goal_pose'],
                             output_keys=[]);
@@ -216,22 +216,22 @@ def create_topo_nav_state_machine():
     
 
     with sub_sm:
-        smach.StateMachine.add('GetClosestNode',
-                                GetClosestNodeState(),
-                                transitions={SUCCESS:'NavToNearestNode'});
+        # smach.StateMachine.add('GetClosestNode',
+        #                         GetClosestNodeState(),
+        #                         transitions={SUCCESS:'NavToNearestNode'});
         
-        smach.StateMachine.add(
-            'NavToNearestNode',
-            TopologicalNavigateState(),
-            transitions={
-                SUCCESS:'NavToFinalGoal',
-                FAILURE:'NavToNearestNode',
-                'repeat_failure':'NavToFinalGoal'},
-            remapping={'node_id':'closest_node'});
+        # smach.StateMachine.add(
+        #     'NavToNearestNode',
+        #     TopologicalNavigateState(),
+        #     transitions={
+        #         SUCCESS:'NavToFinalGoal',
+        #         FAILURE:'NavToNearestNode',
+        #         'repeat_failure':'NavToFinalGoal'},
+        #     remapping={'node_id':'closest_node'});
 
         smach.StateMachine.add(
             'NavToFinalGoal',
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:SUCCESS,
                 FAILURE:'NavToFinalGoal',
@@ -415,7 +415,7 @@ def create_intro_to_operator(operator_pose:Pose):
 """
 Drop off the bin bag.
 """
-def create_drop_off_bin_bag():
+def create_drop_off_bin_bag(execute_nav_commands):
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=['pick_up_location', 'drop_off_location'],
@@ -429,7 +429,7 @@ def create_drop_off_bin_bag():
     with sub_sm:
         smach.StateMachine.add(
             'NavToPickUp',
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'PickUpBinBag',
                 FAILURE:'NavToPickUp',
@@ -446,7 +446,7 @@ def create_drop_off_bin_bag():
 
         smach.StateMachine.add(
             'NavToDropOff',
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'DropBinBag',
                 FAILURE:'NavToDropOff',

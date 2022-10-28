@@ -1,9 +1,133 @@
+#!/usr/bin/env python3
+
 from state_machines.Reusable_States.include_all import *;
+
+import numpy as np;
+
+"""
+It would be really useful to order the people found from left to right.
+This state does this.
+"""
+class OrderGuestsFound(smach.State):
+    """
+    Inputs/Outputs:
+        guest_list:Human[]      The list of guests found. 
+    
+    The aim of this is to minimise the angles between consecutive members,
+    as well as to make all the cross products align.
+    Now, if A is to the left of B from the robot's perspective, then AxB should point 
+        vaguely downwards.
+    This gets slightly more confusing because of the rotational aspect. 
+    Luckily we only expect a maximum of 4 guests, so we can brute force it. 
+    """
+
+    DOWNWARDS = np.asarray([0,0,-1]);
+
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=['guest_list'],
+            output_keys=['guest_list']);
+
+
+    def testState(self):
+        print("Ordering guests test.");
+        robot_location = np.asarray([0,0,0]);
+
+        guest_list = [];
+
+        names = ["n1", "n2", "n3", "n4"];
+
+        def create_human(name, x,y,z) -> Human:
+            output = Human();
+            output.obj_position.position.x = x;
+            output.obj_position.position.y = y;
+            output.obj_position.position.z = z;
+            output.name = name;
+            return output;
+
+        guest_list.append(create_human(names[1], 0, 1, 0));
+        guest_list.append(create_human(names[3], 1, 0, 0));
+        guest_list.append(create_human(names[0], -1, 0, 0));
+        guest_list.append(create_human(names[2], 1, 1, 0));
+
+        ordered_guests = self.orderFields(guest_list, robot_location);
+
+        for i in range(len(ordered_guests)):
+            guest:Human = ordered_guests[i];
+            print("\t", guest.name);
+
+        for i in range(len(ordered_guests)):
+            assert(type(ordered_guests[i]) is Human);
+            guest:Human = ordered_guests[i];
+            assert(guest.name == names[i]);
+
+        print("\tOrdering guest tests passed");
+
+    def orderFields(self, guest_list:list, robot_location:np.ndarray) -> list:
+        respective_to_vecs = [];
+        for guest in guest_list:
+            guest:Human;
+            appending = point_to_numpy(guest.obj_position.position) - robot_location;
+            # We want these vectors to be normalised because we're going to be comparing the magnitude of them.
+            print(appending);
+            appending /= np.linalg.norm(appending);
+            respective_to_vecs.append(appending);
+            
+        respective_next_to = [];
+        for i in range(len(guest_list)):
+            print(i);
+
+            best_cos_angle_diff = -1;
+            best_match = -1;
+            for j in range(len(guest_list)):
+                if i==j:
+                    continue;
+
+                if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
+                    cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j]);
+                    print("\t", j, cos_angle);
+                    if cos_angle > best_cos_angle_diff:
+                        best_cos_angle_diff = cos_angle;
+                        best_match = j;
+            
+            if best_match == -1:
+                respective_next_to.append(None);
+            else:
+                respective_next_to.append(best_match);
+
+        print(respective_next_to);
+
+        guest_list_new = [];
+        try:
+            next_index = respective_next_to.index(None);
+        except ValueError:
+            next_index = 0;
+
+        for i in range(len(guest_list)):
+            print(next_index);
+            guest_list_new.append(guest_list[next_index]);
+            if (i < len(guest_list) - 1):
+                next_index = respective_next_to.index(next_index);
+                
+        
+        return guest_list_new;
+
+
+    def execute(self, userdata):
+        robot_location:np.ndarray = point_to_numpy(get_current_pose().position);
+
+        guest_list:list = userdata.guest_list;
+            
+        userdata.guest_list = self.orderFields(guest_list, robot_location);
+
+        return SUCCESS;
+
 
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
 """
-def create_search_for_human(start_with_nav:bool = True):
+def create_search_for_human(execute_nav_commands, start_with_nav:bool = True):
     """
     For searching for humans in a given room.
     This will prioritise humans that haven't been spoken to, and then go to the operators that are closer to you.
@@ -39,23 +163,23 @@ def create_search_for_human(start_with_nav:bool = True):
         if start_with_nav:
             smach.StateMachine.add(
                 'NavToCentreOfRoom',
-                SimpleNavigateState(),
+                SimpleNavigateState(execute_nav_commands=execute_nav_commands),
                 transitions={
                     SUCCESS:'CreateHumanQuery',
                     FAILURE:'NavToCentreOfRoom',
                     REPEAT_FAILURE: FAILURE},
                 remapping={'pose':'centre_of_room_pose'});
 
-        #region Assumes existence of the topological nodes.
-        # smach.StateMachine.add(
-        #     'NavToNearestNode',
-        #     TopologicalNavigateState(stop_repeat_navigation=True),
-        #     transitions={
-        #         SUCCESS:'CreateHumanQuery',
-        #         FAILURE:'NavToNearestNode',
-        #         'repeat_failure':FAILURE},
-        #     remapping={'node_id':'room_node_uid'});
-        #endregion
+            #region Assumes existence of the topological nodes.
+            # smach.StateMachine.add(
+            #     'NavToNearestNode',
+            #     TopologicalNavigateState(stop_repeat_navigation=True),
+            #     transitions={
+            #         SUCCESS:'CreateHumanQuery',
+            #         FAILURE:'NavToNearestNode',
+            #         'repeat_failure':FAILURE},
+            #     remapping={'node_id':'room_node_uid'});
+            #endregion
 
         smach.StateMachine.add(
             'CreateHumanQuery',
@@ -85,19 +209,29 @@ def create_search_for_human(start_with_nav:bool = True):
             'FindMyMatesOperatorDetection',
             FindMyMates_IdentifyOperatorGuests(),
             transitions={
-                SUCCESS:SUCCESS,
+                SUCCESS:'OrderGuests',
                 FAILURE:FAILURE,
                 'one_person_found':'one_person_found'},
+            remapping={});
+
+        smach.StateMachine.add(
+            'OrderGuests',
+            OrderGuestsFound(),
+            transitions={SUCCESS:SUCCESS},
             remapping={});
 
     return sub_sm;
 
 if __name__ == '__main__':
-    rospy.init_node('search_for_human_test');
-    
-    sub_sm = create_search_for_human(False);
 
-    sub_sm.execute();
+    state = OrderGuestsFound();
+    state.testState();
+
+    # rospy.init_node('search_for_human_test');
     
-    rospy.spin();
+    # sub_sm = create_search_for_human(False);
+
+    # sub_sm.execute();
+    
+    # rospy.spin();
 

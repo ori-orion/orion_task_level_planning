@@ -95,12 +95,14 @@ class SimpleNavigateState(smach.State):
 
     DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
 
-    def __init__(self):
+    def __init__(self, execute_nav_commands):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
             input_keys=['pose', 'number_of_failures', 'failure_threshold'],
-            output_keys=['number_of_failures'])
+            output_keys=['number_of_failures']);
+
+        self.execute_nav_commands = execute_nav_commands;
 
     def repeat_failure_infrastructure(self, userdata) -> str:
         userdata.number_of_failures += 1
@@ -111,6 +113,9 @@ class SimpleNavigateState(smach.State):
         return FAILURE
 
     def execute(self, userdata):
+        if self.execute_nav_commands == False:
+            return SUCCESS;
+
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
 
@@ -177,7 +182,7 @@ class TopologicalNavigateState(smach.State):
     # the goal.  
     MAX_DISTANCE_TOPO_HALTED = 0.05;
 
-    def __init__(self, stop_repeat_navigation:bool = False):
+    def __init__(self, execute_nav_commands, stop_repeat_navigation:bool = False):
         """
         stop_repeat_navigation:bool  - If we have just navigated to a node, we may get asked to go there in the near 
             future. In some cases, there is no point in this. (Say you are searching a room and have found something, 
@@ -186,6 +191,7 @@ class TopologicalNavigateState(smach.State):
             Otherwise it will navigate to the node as per normal.
         """
         self.stop_repeat_navigation = stop_repeat_navigation;
+        self.execute_nav_commands = execute_nav_commands;
 
         smach.State.__init__(self,
                                 outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
@@ -200,6 +206,9 @@ class TopologicalNavigateState(smach.State):
         if self.stop_repeat_navigation==True and userdata.node_id == userdata.prev_node_nav_to:
             rospy.loginfo("Repeat navigation to the same node prevented.")
             return SUCCESS
+
+        if self.execute_nav_commands == False:
+            return SUCCESS;
 
         # Navigating with top nav
         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
@@ -240,23 +249,23 @@ class TopologicalNavigateState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-class GetClosestNodeState(smach.State):
-    """
-    Inputs:
-        goal_pose:Pose:     The pose we want to navigate to.
-    Outputs:
-        closest_node:str:   The node we will go via.
-    """
-    def __init__(self):
-        smach.State.__init__(self, 
-                                outcomes=[SUCCESS],
-                                input_keys=['goal_pose'],
-                                output_keys=['closest_node']);
+# class GetClosestNodeState(smach.State):
+#     """
+#     Inputs:
+#         goal_pose:Pose:     The pose we want to navigate to.
+#     Outputs:
+#         closest_node:str:   The node we will go via.
+#     """
+#     def __init__(self):
+#         smach.State.__init__(self, 
+#                                 outcomes=[SUCCESS],
+#                                 input_keys=['goal_pose'],
+#                                 output_keys=['closest_node']);
 
-    def execute(self, userdata):
-        goal_pose:Pose = userdata.goal_pose;
-        userdata.closest_node = get_closest_node(goal_pose.position);
-        return SUCCESS;
+#     def execute(self, userdata):
+#         goal_pose:Pose = userdata.goal_pose;
+#         userdata.closest_node = get_closest_node(goal_pose.position);
+#         return SUCCESS;
 
 class NavigateDistanceFromGoalSafely(smach.State):
     """
@@ -267,7 +276,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
     DISTANCE_FROM_POSE = 1;
 
-    def __init__(self):
+    def __init__(self, execute_nav_commands):
         smach.State.__init__(
             self, 
             outcomes=[SUCCESS],
@@ -275,11 +284,16 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
         self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
 
+        self.execute_nav_commands = execute_nav_commands;
+
     def get_robot_pose(self) -> Pose:
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
         return robot_pose.pose;
 
     def execute(self, userdata):
+        if self.execute_nav_commands == False:
+            return SUCCESS;
+
         self._mb_client.wait_for_server();
 
         target_pose:Pose = userdata.pose;
@@ -474,14 +488,19 @@ class SearchForGuestNavToNextNode(smach.State):
         nodes_not_searched: list of topological node ids that were not visited during search (does not include the final node because there may be another person there)
     """
 
-    def __init__(self):
+    def __init__(self, execute_nav_commands):
         smach.State.__init__(self,
                                 outcomes=['searched', 'exhausted_search', FAILURE, 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'failure_threshold'],
                                 output_keys=['nodes_not_searched'])
 
+        self.execute_nav_commands = execute_nav_commands;
+
     def execute(self, userdata):
+        if self.execute_nav_commands == False:
+            return 'searched';
+
         # If topological nodes aren't working, then uncomment the lines below to skip attempts to use it:
         # Don't actually try to travel along the topological nodes because it's not working at the moment
         # while True:

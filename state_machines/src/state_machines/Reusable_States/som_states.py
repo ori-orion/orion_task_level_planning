@@ -120,9 +120,6 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
             
             return SUCCESS;
 
-            
-    pass;
-
 
 
 

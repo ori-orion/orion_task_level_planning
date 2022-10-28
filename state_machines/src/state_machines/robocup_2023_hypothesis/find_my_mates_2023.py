@@ -80,6 +80,11 @@ def create_state_machine():
     centre_of_room_pose = utils.dict_to_obj(rospy.get_param('centre_of_room_pose'), centre_of_room_pose);
     sm.userdata.centre_of_room_pose = centre_of_room_pose;
 
+    execute_nav_commands = True;
+    if rospy.has_param('execute_navigation_commands'):
+        if rospy.get_param('execute_navigation_commands') == False:
+            execute_nav_commands = False;
+
     # speaking to guests
     # sm.userdata.introduction_to_guest_phrase = "Hi, I'm Bam Bam, welcome to the party! I'm going to learn some information about you so I can tell the host about you!"
     # sm.userdata.no_one_there_phrase = "Hmmm. I don't think anyone is there."
@@ -146,18 +151,20 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NavThroughDoor',
-            TopologicalNavigateState(stop_repeat_navigation=True),
+            TopologicalNavigateState(
+                execute_nav_commands=execute_nav_commands, 
+                stop_repeat_navigation=True),
             transitions={
                 SUCCESS:'NAV_TO_OPERATOR',
                 FAILURE:'NAV_TO_OPERATOR',
                 REPEAT_FAILURE:'NAV_TO_OPERATOR'},
             remapping={'node_id':'operator_room_node_id'});
         
-        # announce task intentions
-        smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
-                                SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
-                                transitions={SUCCESS:'SAVE_START_TIME'},
-                                remapping={})
+        # # announce task intentions
+        # smach.StateMachine.add('ANNOUNCE_TASK_INTENTIONS',
+        #                         SpeakState(phrase="Hi, I'm Bam Bam and I'm here to find some mates!"),
+        #                         transitions={SUCCESS:'SAVE_START_TIME'},
+        #                         remapping={})
         
         """
         navigate to operator
@@ -179,7 +186,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NAV_TO_OPERATOR',
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'LOOK_AT_OPERATOR',
                 FAILURE:'NAV_TO_OPERATOR',
@@ -201,7 +208,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             "NAV_TO_ROOM_CENTRE",
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'SEARCH_FOR_GUEST_SUB',
                 FAILURE:'NAV_TO_ROOM_CENTRE',
@@ -212,7 +219,7 @@ def create_state_machine():
         # create_search_for_guest_sub_state_machine()
         smach.StateMachine.add(
             'SEARCH_FOR_GUEST_SUB', 
-            create_search_for_human(),
+            create_search_for_human(execute_nav_commands=execute_nav_commands),
             transitions={SUCCESS:'PointAtAllGuests',
                         FAILURE:'ANNOUNCE_FINISH_SEARCH',
                         'one_person_found':'ANNOUNCE_FINISH_SEARCH'},
@@ -279,7 +286,7 @@ def create_state_machine():
         # navigate back to operator - TODO - consider changing to top nav
         smach.StateMachine.add(
             'NAV_RETURN_TO_OPERATOR',
-            SimpleNavigateState(),
+            SimpleNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={SUCCESS:'GET_GUEST_RELATIONS',
                          FAILURE:'NAV_RETURN_TO_OPERATOR',
                          REPEAT_FAILURE:'GET_GUEST_RELATIONS'},
@@ -317,7 +324,7 @@ def create_state_machine():
         # TODO - consider changing to topological navigation state
         smach.StateMachine.add(
             'NAV_TO_EXIT',
-            TopologicalNavigateState(),
+            TopologicalNavigateState(execute_nav_commands=execute_nav_commands),
             transitions={SUCCESS:'SAVE_END_TIME',
                         FAILURE:'NAV_TO_EXIT',
                         REPEAT_FAILURE:TASK_FAILURE},
