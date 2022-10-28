@@ -56,6 +56,9 @@ class PerformSOMQuery(smach.State):
     def execute(self, userdata):
 
         query = userdata.som_query;
+
+        print(query);
+
         if type(query) == SOMQueryHumansRequest:
             rospy.wait_for_service('/som/humans/basic_query');
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
