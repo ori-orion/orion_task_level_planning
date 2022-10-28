@@ -56,6 +56,7 @@ class PerformSOMQuery(smach.State):
     def execute(self, userdata):
 
         query = userdata.som_query;
+        print(query);
         if type(query) == SOMQueryHumansRequest:
             rospy.wait_for_service('/som/humans/basic_query');
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
@@ -69,6 +70,7 @@ class PerformSOMQuery(smach.State):
 
         userdata.som_query_results = result.returns;
         rospy.loginfo('\t\t' + str(len(result.returns)) + " entities found matching the query.")
+        print(result);
         return SUCCESS;
 
 class FindMyMates_IdentifyOperatorGuests(smach.State):

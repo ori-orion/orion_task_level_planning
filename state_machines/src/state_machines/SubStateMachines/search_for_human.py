@@ -224,14 +224,14 @@ def create_search_for_human(execute_nav_commands, start_with_nav:bool = True):
 
 if __name__ == '__main__':
 
-    state = OrderGuestsFound();
-    state.testState();
+    # state = OrderGuestsFound();
+    # state.testState();
 
-    # rospy.init_node('search_for_human_test');
+    rospy.init_node('search_for_human_test');
     
-    # sub_sm = create_search_for_human(False);
+    sub_sm = create_search_for_human(False);
 
-    # sub_sm.execute();
+    sub_sm.execute();
     
-    # rospy.spin();
+    rospy.spin();
 
