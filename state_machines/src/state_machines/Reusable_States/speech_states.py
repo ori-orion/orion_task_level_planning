@@ -211,6 +211,24 @@ class WaitForHotwordState(smach.State):
             rospy.logwarn("Hotword not received within timeout")
             return FAILURE
 
+
+class AskFromSelection(smach.State):
+    """
+    A state for asking a selection of questions.
+    """
+
+    NO_RESPONSE_RESPONSES = [
+        "Sorry, I didn't quite catch that."
+    ];
+
+    def __init__(self):
+        smach.State.__init__(self,
+            outcomes=[SUCCESS, "no_response"],
+            input_keys=[],
+            output_keys=["responses"])
+    pass;
+
+
 #region Create Phrase stuff.
 # This seems to set `userdata.phrase` for subsequent speaking.
 # Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow
