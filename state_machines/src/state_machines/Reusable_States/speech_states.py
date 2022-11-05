@@ -8,12 +8,28 @@ from orion_actions.srv import *;
 import rospy;
 
 import math;
+import random;
+import copy;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
 import actionlib;
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
+
+NAMES = ['Gemma', 'Acacia', 'Ollie', 'Nick', 'Hollie',
+          'Charlie', 'Matt', 'Daniele', 'Chris', 'Paul', 'Lars', 'John',
+          'Michael', 'Matthew', 'Clarissa', 'Ricardo', 'Mia', 'Shu', 'Owen',
+          'Jianeng', 'Kim', 'Liam', 'Kelvin', 'Benoit', 'Mark']
+
+COLOURS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple",
+           "Black", "White", "Grey", "Brown", "Beige"]
+
+FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
+          'nectarine'] # TODO: Fill in with the YCB benchmark
+
+DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
+
 
 class SpeakState(smach.State):
     """ Smach state for the robot to speak a phrase.
@@ -215,17 +231,194 @@ class WaitForHotwordState(smach.State):
 class AskFromSelection(smach.State):
     """
     A state for asking a selection of questions.
+    Outcomes: [SUCCESS, "no_response"]
+    Inputs:
+        responses_arr       - The array of dictionary responses that we are appending to.
+        output_speech_arr   - The array of output speeches that we are appending to.
+    Outputs:
+        responses           - The individual response.
+        output_speech       - The individual speech output.
+        responses_arr       - The array of dictionary responses that we are appending to.
+        output_speech_arr   - The array of output speeches that we are appending to.
+
+    Note that the ..._arr variables are only accessed if self.append_result_to_array==True
     """
 
     NO_RESPONSE_RESPONSES = [
-        "Sorry, I didn't quite catch that."
+        "Sorry, I didn't quite catch that.",
+        "Please could you repeat that."
     ];
 
-    def __init__(self):
+    # Note the overall architecture here:
+    # Each entry is of type ([tag], [question], [candidates?])
+    # We will go in sequence over the larger list and then 
+    # with the inner lists, that represents a choice over a set of options.
+    DEFAULT_QUESTIONS = [
+        ("name", "Hello, What's your name?", NAMES),
+        [
+            ("age", "How old are you?"),
+            ("place", "Where are you from?")
+            ("drink", "What's your favourite drink?", DRINKS)
+            ("colour", "What's your favourite colour?", COLOURS)
+        ]
+    ];
+
+    END_PHRASES = [
+        "Nice to meet you."
+    ];
+
+    def __init__(self, questions = None, append_result_to_array=True):
+        smach.State.__init__(self,
+            outcomes=[SUCCESS, "no_response"],
+            input_keys=["responses_arr", "output_speech_arr"],
+            output_keys=[
+                "responses", "output_speech", 
+                "responses_arr", "output_speech_arr"]);
+
+        self.use_default_questions = (questions == None);
+        if self.use_default_questions:
+            self.questions = AskFromSelection.DEFAULT_QUESTIONS;
+        else:
+            self.questions = questions;
+        self.append_result_to_array = append_result_to_array;
+
+    def ask_question(self, asking:tuple) -> str:  # -> str, bool
+        speak_listen_goal = SpeakAndListenGoal()
+        speak_listen_goal.question = asking[1];
+        if len(asking) == 3:
+            speak_listen_goal.candidates = asking[2];
+        else:
+            speak_listen_goal.candidates = [];
+        speak_listen_goal.params = [];
+        speak_listen_goal.timeout = 5;
+
+        # rospy.loginfo("Pre sending goal");
+        self.speak_listen_action_client.send_goal(speak_listen_goal)
+
+        rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
+
+        self.speak_listen_action_client.wait_for_result()
+        rospy.loginfo("Post wait for result");
+
+        result = self.speak_listen_action_client.get_result();
+
+        information = result.answer;
+        succeeded = result.succeeded;
+        transcription = result.transcription;
+        if len(transcription) == 0:
+            rospy.loginfo("Nothing was said");
+            speak_listen_goal.question = AskFromSelection.NO_RESPONSE_RESPONSES[random.randrange(len(AskFromSelection.NO_RESPONSE_RESPONSES))];
+        elif succeeded == False:
+            speak_listen_goal.question = "Yes, but " + speak_listen_goal.question;
+
+        if succeeded == False or len(transcription) == 0:
+            self.speak_listen_action_client.send_goal(speak_listen_goal)
+
+            rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
+
+            self.speak_listen_action_client.wait_for_result()
+            rospy.loginfo("Post wait for result");
+
+            result = self.speak_listen_action_client.get_result();
+            information = result.answer;
+            succeeded = result.succeeded;
+            transcription = result.transcription;
+
+            if len(transcription) == 0 or succeeded == False:
+                rospy.loginfo("No logical response gained. Moving on.");
+                return "", False;
+        else:
+            return information, True;
+
+    def tag_to_speech(self, tag:str, information:str):
+        output = "";
+        if tag == "age":
+            output += " age is " + information;
+        elif tag == "place":
+            output += " from " + information;
+        elif tag == "drink":
+            output += " favorite drink is " + information;
+        elif tag == "colour":
+            output += " favourite colour is " + information;
+        output += ". ";
+
+    def execute(self, userdata):
+        
+        self.speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+        self.speak_listen_action_client.wait_for_server()
+
+        output_dict = {};
+
+        for question_set in self.questions:
+            if type(question_set) is list:
+                question_set:list;
+                question = question_set[random.randrange(len(question_set))];
+            else:
+                question = question_set;
+
+            information, succeeded = self.ask_question(question);
+
+            if succeeded:
+                output_dict[question[0]] = information;
+
+        output_dict_copy = copy.deepcopy(output_dict);
+
+        output_speech = "";
+        if "name" in output_dict_copy:
+            POSSIBLE_NAME_PREFIXES = ["we have ", "we have someone called "];
+            output_speech += POSSIBLE_NAME_PREFIXES[random.randrange(len(POSSIBLE_NAME_PREFIXES))] + output_dict_copy["name"];
+            del(output_dict_copy["name"]);
+        else:
+            output_speech += "we have someone who didn't give their name"
+         
+        
+        if len(output_dict_copy.keys) != 0:
+            entry_tag = output_dict_copy.keys[0];
+            POSSIBLE_SECOND_PREFIXES = [". Their", " who's", " and their"]
+            output_speech += POSSIBLE_SECOND_PREFIXES[random.randrange(len(POSSIBLE_SECOND_PREFIXES))];
+            output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
+
+        for entry_tag in output_dict_copy.keys():
+            output_speech += " Their"
+            output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
+                
+        userdata.output_speech = output_speech;
+        userdata.responses = output_dict;
+    
+        if self.append_result_to_array:
+            responses_arr:list = userdata.responses_arr;
+            output_speech_arr:list = userdata.output_speech_arr;
+            responses_arr.append(output_dict);
+            output_speech_arr.append(output_speech);
+            userdata.responses_arr = responses_arr;
+            userdata.output_speech_arr = output_speech_arr;
+
+        
+        #region END PHRASE
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = AskFromSelection.END_PHRASES[random.randrange(len(AskFromSelection.END_PHRASES))];
+
+        rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))
+        speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+
+        speak_action_client.wait_for_server()
+        speak_action_client.send_goal(action_goal)
+        speak_action_client.wait_for_result()
+        #endregion
+                
+        if len(output_dict.keys()) > 0:
+            return SUCCESS;
+        else:
+            return "no_response";
+    pass;
+
+class ReportBackToOperator(smach.State):
+    def __init__(self, questions = None):
         smach.State.__init__(self,
             outcomes=[SUCCESS, "no_response"],
             input_keys=[],
-            output_keys=["responses"])
+            output_keys=["responses", "output_speech"]);
     pass;
 
 
