@@ -95,7 +95,7 @@ class SimpleNavigateState(smach.State):
 
     DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
 
-    def __init__(self, execute_nav_commands):
+    def __init__(self, execute_nav_commands:bool):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],

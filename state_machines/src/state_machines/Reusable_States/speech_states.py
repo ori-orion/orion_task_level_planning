@@ -413,14 +413,6 @@ class AskFromSelection(smach.State):
             return "no_response";
     pass;
 
-class ReportBackToOperator(smach.State):
-    def __init__(self, questions = None):
-        smach.State.__init__(self,
-            outcomes=[SUCCESS, "no_response"],
-            input_keys=[],
-            output_keys=["responses", "output_speech"]);
-    pass;
-
 
 #region Create Phrase stuff.
 # This seems to set `userdata.phrase` for subsequent speaking.

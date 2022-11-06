@@ -14,6 +14,8 @@ class OrderGuestsFound(smach.State):
     Inputs/Outputs:
         guest_list:Human[]      The list of guests found. 
     
+    Order the guests from left to right.
+
     The aim of this is to minimise the angles between consecutive members,
     as well as to make all the cross products align.
     Now, if A is to the left of B from the robot's perspective, then AxB should point 
@@ -127,10 +129,54 @@ class OrderGuestsFound(smach.State):
         return SUCCESS;
 
 
+class ReportBackToOperator(smach.State):
+    """
+    So the AskFromSelection state returns a set of things to say. We then need to say them.
+    We will assume the guests are ordered from left to right. 
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+            outcomes=[SUCCESS],
+            input_keys=["responses_arr", "output_speech_arr"],
+            output_keys=[]);
+
+    def execute(self, userdata):
+        PREFIXES = ["First ", "Then "];
+        output_speech_arr:list = userdata.output_speech_arr;
+
+        prefix_index = 0;
+
+        phrase_speaking = "";
+
+        for human_speech in output_speech_arr:
+            human_speech:str;
+            if len(human_speech) == 0:
+                continue;
+
+            phrase_speaking += PREFIXES[prefix_index] + human_speech;
+
+            prefix_index = (prefix_index+1 if prefix_index < len(PREFIXES)-1 else prefix_index);
+        
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = phrase_speaking
+
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+        speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
+                                        TalkRequestAction)
+
+        speak_action_client.wait_for_server()
+        speak_action_client.send_goal(action_goal)
+        speak_action_client.wait_for_result()
+    pass;
+
+
+
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
 """
-def create_search_for_human(execute_nav_commands, start_with_nav:bool = True):
+def create_search_for_human(execute_nav_commands:bool, start_with_nav:bool = True):
     """
     For searching for humans in a given room.
     This will prioritise humans that haven't been spoken to, and then go to the operators that are closer to you.
@@ -225,15 +271,134 @@ def create_search_for_human(execute_nav_commands, start_with_nav:bool = True):
 
     return sub_sm;
 
+
+"""
+Looks at all the guests in sequence.
+"""
+def create_talk_to_guests():
+    """
+    Points to all the guests in sequence.
+    Inputs:
+        guest_list:Human[]      - An array giving all the guests.
+    Outputs:
+        responses_arr:dict[]    - An array of all the raw responses.
+        output_speech_arr:str[] - An array of the things to say.
+    """
+
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[
+            'guest_list'],
+        output_keys=[
+            "responses_arr",
+            "output_speech_arr"
+        ]);
+
+    sub_sm.userdata.index = 0;
+
+    sub_sm.userdata.responses_arr = [];
+    sub_sm.userdata.output_speech_arr = [];
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'GetGuestPosition',
+            GetPropertyAtIndex('obj_position'),
+            transitions={
+                SUCCESS:'PointAtGuest',         
+                'index_out_of_range':SUCCESS},
+            remapping={
+                'input_list':'guest_list',
+                'output_param':'ith_guest_pose'});
+        
+        smach.StateMachine.add(
+            'LookAtGuest',
+            LookAtPoint(),
+            transitions={SUCCESS:'TalkToGuest'},
+            remapping={'pose':'ith_guest_pose'});
+
+        smach.StateMachine.add(
+            'TalkToGuest',
+            AskFromSelection(append_result_to_array=True),
+            transitions={
+                SUCCESS:'IncrementGuestIndex',
+                "no_response":'IncrementGuestIndex'},
+            remapping={
+                "responses_arr" : "responses_arr",
+                "output_speech_arr" : "output_speech_arr"
+            });
+
+        smach.StateMachine.add(
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
+
+    return sub_sm;
+
+
+"""
+This then does both the searching and the talking.
+For testing purposes mainly given that there's no navigation 
+to where the operator is.
+"""
+def create_search_talk_and_report(execute_nav_commands, start_with_nav):
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[],
+        output_keys=[]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'SearchForGuests',
+            create_search_for_human(execute_nav_commands=execute_nav_commands, start_with_nav=start_with_nav),
+            transitions={
+                SUCCESS:'PointAtGuest',
+                FAILURE:FAILURE,
+                'one_person_found':FAILURE},
+            remapping={
+                'operator_pose':'operator_pose', 
+                'guest_list':'guest_list'
+            });
+        
+        smach.StateMachine.add(
+            'TalkToGuests',
+            create_talk_to_guests(),
+            transitions={
+                SUCCESS:'LookAtOperator',
+                FAILURE:FAILURE},
+            remapping={
+                "responses_arr":"responses_arr",
+                "output_speech_arr":"output_speech_arr"
+            });
+
+        smach.StateMachine.add(
+            'LookAtOperator',
+            LookAtPoint(),
+            transitions={SUCCESS:'TalkToGuest'},
+            remapping={'pose':'operator_pose'});
+        
+        smach.StateMachine.add(
+            'ReportBackToOperator',
+            ReportBackToOperator(),
+            transitions={SUCCESS:SUCCESS});
+        
+    return sub_sm;
+
+
 if __name__ == '__main__':
 
     # state = OrderGuestsFound();
     # state.testState();
 
     rospy.init_node('search_for_human_test');
-    sub_sm = create_search_for_human(False);
+
+    # sub_sm = create_search_for_human(False);
+    # sub_sm.userdata.approximate_operator_pose = Pose();
+    # sub_sm.execute();
+
+    sub_sm = create_search_talk_and_report(execute_nav_commands=False, start_with_nav=False);
     sub_sm.userdata.approximate_operator_pose = Pose();
     sub_sm.execute();
-    
+
     rospy.spin();
 
