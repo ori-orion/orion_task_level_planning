@@ -300,7 +300,7 @@ class AskFromSelection(smach.State):
         self.speak_listen_action_client.wait_for_result()
         rospy.loginfo("Post wait for result");
 
-        result = self.speak_listen_action_client.get_result();
+        result:SpeakAndListenResult = self.speak_listen_action_client.get_result();
 
         information = result.answer;
         succeeded = result.succeeded;
