@@ -73,6 +73,7 @@ class PerformSOMQuery(smach.State):
 
         userdata.som_query_results = result.returns;
         rospy.loginfo('\t\t' + str(len(result.returns)) + " entities found matching the query.")
+        print(result);
         return SUCCESS;
 
 class FindMyMates_IdentifyOperatorGuests(smach.State):
