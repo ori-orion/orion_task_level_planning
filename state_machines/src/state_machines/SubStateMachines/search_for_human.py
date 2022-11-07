@@ -304,7 +304,7 @@ def create_talk_to_guests():
             'GetGuestPosition',
             GetPropertyAtIndex('obj_position'),
             transitions={
-                SUCCESS:'PointAtGuest',         
+                SUCCESS:'LookAtGuest',         
                 'index_out_of_range':SUCCESS},
             remapping={
                 'input_list':'guest_list',
@@ -352,7 +352,7 @@ def create_search_talk_and_report(execute_nav_commands, start_with_nav):
             'SearchForGuests',
             create_search_for_human(execute_nav_commands=execute_nav_commands, start_with_nav=start_with_nav),
             transitions={
-                SUCCESS:'PointAtGuest',
+                SUCCESS:'TalkToGuests',
                 FAILURE:FAILURE,
                 'one_person_found':FAILURE},
             remapping={
@@ -374,7 +374,7 @@ def create_search_talk_and_report(execute_nav_commands, start_with_nav):
         smach.StateMachine.add(
             'LookAtOperator',
             LookAtPoint(),
-            transitions={SUCCESS:'TalkToGuest'},
+            transitions={SUCCESS:'ReportBackToOperator'},
             remapping={'pose':'operator_pose'});
         
         smach.StateMachine.add(
