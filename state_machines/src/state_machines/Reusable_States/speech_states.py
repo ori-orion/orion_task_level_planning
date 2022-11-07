@@ -257,8 +257,8 @@ class AskFromSelection(smach.State):
         ("name", "Hello, What's your name?", NAMES),
         [
             ("age", "How old are you?"),
-            ("place", "Where are you from?")
-            ("drink", "What's your favourite drink?", DRINKS)
+            ("place", "Where are you from?"),
+            ("drink", "What's your favourite drink?", DRINKS),
             ("colour", "What's your favourite colour?", COLOURS)
         ]
     ];
