@@ -31,6 +31,9 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
 
+SPEAK_THROUGH_CONSOLE = False;
+
+
 class SpeakState(smach.State):
     """ Smach state for the robot to speak a phrase.
 
@@ -53,6 +56,10 @@ class SpeakState(smach.State):
             phrase_speaking = userdata.phrase;
         else:
             phrase_speaking = self.phrase;
+
+        if SPEAK_THROUGH_CONSOLE:
+            print("SpeakState:", phrase_speaking);
+            return SUCCESS;
 
         action_goal = TalkRequestGoal()
         action_goal.data.language = Voice.kEnglish  # enum for value: 1
@@ -104,6 +111,14 @@ class SpeakAndListenState(smach.State):
             question_speaking = userdata.question;
         else:
             question_speaking = self.question;
+
+        if SPEAK_THROUGH_CONSOLE:
+            print("SpeakAndListenState:", question_speaking);
+            userdata.operator_response = input(">>>");
+            if len(userdata.operator_response) == 0:
+                return FAILURE;
+            return SUCCESS;
+
 
         speak_listen_goal = SpeakAndListenGoal()
         speak_listen_goal.question = question_speaking
@@ -276,11 +291,39 @@ class AskFromSelection(smach.State):
                 "responses_arr", "output_speech_arr"]);
 
         self.use_default_questions = (questions == None);
+
         if self.use_default_questions:
             self.questions = AskFromSelection.DEFAULT_QUESTIONS;
         else:
             self.questions = questions;
+
         self.append_result_to_array = append_result_to_array;
+
+    def run_action_client(self, speak_listen_goal) -> SpeakAndListenResult:
+        """
+        Actually runs the client and gets the result.
+        This will "speak" through the console if SPEAK_THROUGH_CONSOLE is selected. 
+            (Should be useful for debugging.)
+        """
+
+        if SPEAK_THROUGH_CONSOLE:
+            print("AskFromSelection:", speak_listen_goal.question);
+            output_speech = input(">>>");
+            output = SpeakAndListenResult();
+            output.transcription = output_speech;
+            output.answer = output_speech;
+            output.succeeded = True;
+            return output;
+
+        self.speak_listen_action_client.send_goal(speak_listen_goal)
+
+        rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
+
+        self.speak_listen_action_client.wait_for_result()
+        rospy.loginfo("Post wait for result");
+
+        return self.speak_listen_action_client.get_result();
+
 
     def ask_question(self, asking:tuple) -> str:  # -> str, bool
         speak_listen_goal = SpeakAndListenGoal()
@@ -291,41 +334,30 @@ class AskFromSelection(smach.State):
             speak_listen_goal.candidates = [];
         speak_listen_goal.params = [];
         speak_listen_goal.timeout = 5;
-
-        # rospy.loginfo("Pre sending goal");
-        self.speak_listen_action_client.send_goal(speak_listen_goal)
-
-        rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
-
-        self.speak_listen_action_client.wait_for_result()
-        rospy.loginfo("Post wait for result");
-
-        result:SpeakAndListenResult = self.speak_listen_action_client.get_result();
+        
+        result:SpeakAndListenResult = self.run_action_client(speak_listen_goal);
 
         information = result.answer;
         succeeded = result.succeeded;
         transcription = result.transcription;
-        if len(transcription) == 0:
-            rospy.loginfo("Nothing was said");
-            speak_listen_goal.question = AskFromSelection.NO_RESPONSE_RESPONSES[random.randrange(len(AskFromSelection.NO_RESPONSE_RESPONSES))];
-        elif succeeded == False:
-            speak_listen_goal.question = "Yes, but " + speak_listen_goal.question;
 
         if succeeded == False or len(transcription) == 0:
-            self.speak_listen_action_client.send_goal(speak_listen_goal)
 
-            rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
+            if len(transcription) == 0:
+                rospy.loginfo("Nothing was said");
+                speak_listen_goal.question = AskFromSelection.NO_RESPONSE_RESPONSES[random.randrange(len(AskFromSelection.NO_RESPONSE_RESPONSES))];
+            elif succeeded == False:
+                speak_listen_goal.question = "Yes, but " + speak_listen_goal.question;
 
-            self.speak_listen_action_client.wait_for_result()
-            rospy.loginfo("Post wait for result");
+            result = self.run_action_client(speak_listen_goal);
 
-            result = self.speak_listen_action_client.get_result();
-            information = result.answer;
-            succeeded = result.succeeded;
-            transcription = result.transcription;
+            information:str = result.answer;
+            succeeded:bool = result.succeeded;
+            transcription:str = result.transcription;
 
             if len(transcription) == 0 or succeeded == False:
-                rospy.loginfo("No logical response gained. Moving on.");
+                rospy.loginfo(
+                    "No logical response gained. transcription=" + transcription + ", succeeded=" + succeeded + ". Moving on.");
                 return "", False;
         else:
             return information, True;
@@ -363,7 +395,12 @@ class AskFromSelection(smach.State):
 
         output_dict_copy = copy.deepcopy(output_dict);
 
+        #region Constructing the bit where we put together the output speech.
+        # For this whole section, we will be using a copy of the dictionary.
+        # When an item is used, it will be removed. This way we can keep track
+        # of the tags that have been used up.
         output_speech = "";
+        # Let's first address the person's name.
         if "name" in output_dict_copy:
             POSSIBLE_NAME_PREFIXES = ["we have ", "we have someone called "];
             output_speech += POSSIBLE_NAME_PREFIXES[random.randrange(len(POSSIBLE_NAME_PREFIXES))] + output_dict_copy["name"];
@@ -371,16 +408,19 @@ class AskFromSelection(smach.State):
         else:
             output_speech += "we have someone who didn't give their name"
          
-        
+        # Then, if there's something else.
         if len(output_dict_copy.keys) != 0:
             entry_tag = output_dict_copy.keys[0];
             POSSIBLE_SECOND_PREFIXES = [". Their", " who's", " and their"]
             output_speech += POSSIBLE_SECOND_PREFIXES[random.randrange(len(POSSIBLE_SECOND_PREFIXES))];
             output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
+            del(output_dict_copy[entry_tag]);
 
+        # Then if there's anything after that.
         for entry_tag in output_dict_copy.keys():
             output_speech += " Their"
             output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
+        #endregion
                 
         userdata.output_speech = output_speech;
         userdata.responses = output_dict;
@@ -411,7 +451,6 @@ class AskFromSelection(smach.State):
             return SUCCESS;
         else:
             return "no_response";
-    pass;
 
 
 #region Create Phrase stuff.
