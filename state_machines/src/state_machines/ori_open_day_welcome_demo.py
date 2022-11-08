@@ -175,7 +175,7 @@ def create_state_machine():
                                 AskPersonNameState(),
                                 transitions={SUCCESS: 'CREATE_PHRASE_FAMILIAR',
                                             FAILURE:'ANNOUNCE_MISSED_NAME',
-                                            'repeat_failure':'SearchForOperator'},
+                                            'repeat_failure':'ANNOUNCE_MISSED_NAME'},
                                 remapping={'question':'ask_operator_name_phrase',
                                             'recognised_name': 'operator_name',
                                             'timeout':'speak_and_listen_timeout',
