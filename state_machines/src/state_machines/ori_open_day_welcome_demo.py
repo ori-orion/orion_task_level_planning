@@ -56,8 +56,8 @@ def create_state_machine():
     sm = smach.StateMachine(outcomes=[TASK_SUCCESS, TASK_FAILURE]);
 
     # Wait for the prameters to be loaded.
-    while (not rospy.has_param('params_loaded')):
-        rospy.sleep(0.5);
+    # while (not rospy.has_param('params_loaded')):
+    #     rospy.sleep(0.5);
 
     # Create state machine userdata dictionary elements
     
@@ -67,12 +67,12 @@ def create_state_machine():
 
     sm.userdata.person_names = NAMES
     # Load up huge database of additional names (if necessary)
-    # import rospkg
-    # rospack = rospkg.RosPack()
-    # name_file = \
-    #     os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
-    # with open(name_file, 'r') as in_file:
-    #     sm.userdata.person_names += in_file.read().splitlines()
+    import rospkg
+    rospack = rospkg.RosPack()
+    name_file = \
+        os.path.join(rospack.get_path('state_machines'),'grammars/names.txt')
+    with open(name_file, 'r') as in_file:
+        sm.userdata.person_names += in_file.read().splitlines()
 
     sm.userdata.hotword_timeout = 15 # seconds
 
