@@ -15,6 +15,7 @@ from time import sleep
 import rospy
 import smach_ros
 import actionlib
+import typing
 
 from state_machines.Reusable_States.include_all import *;
 from state_machines.Reusable_States.create_sub_state_machines import *;
@@ -48,6 +49,20 @@ class CreatePhraseFamiliar(smach.State):
         # Can only succeed
         return 'success'
 
+## TODO
+def create_dynamic_speak_state(label, text_template, transitions=None, remapping=None, *args, **kwargs):
+    dynamic_phrase = ""
+    # dynamic_phrase = text_template.format() # TODO
+
+    ## TODO - work out how to parameterise the construction of the phrase. Maybe with format arguments
+    sm = smach.StateMachine(outcomes=transitions.values());
+
+    with sm:
+        smach.StateMachine.add(label,
+                                SpeakState(phrase=dynamic_phrase),
+                                transitions=transitions,
+                                remapping=remapping) 
+    return sm
 
 def create_state_machine():
     """ This function creates and returns the state machine for the task. """
