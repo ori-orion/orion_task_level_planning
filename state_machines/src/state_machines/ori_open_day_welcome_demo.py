@@ -185,25 +185,25 @@ def create_state_machine():
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_NAME',
                                 SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
-                                transitions={SUCCESS:'ASK_OPERATOR_NAME'},
+                                transitions={SUCCESS:'GIVE_INFORMATION'},
                                 remapping={})
 
         # create the familiar phrase
         # Note that the output here is the input into 'ANNOUNCE_SEARCH_START'.
-        smach.StateMachine.add('CREATE_PHRASE_FAMILIAR',
-                                CreatePhraseFamiliar(),
-                                transitions={SUCCESS:'SPEAK_PHRASE_FAMILIAR'},
-                                remapping={'operator_name':'operator_name',
-                                            'phrase':'familiar_phrase'})
+        # smach.StateMachine.add('CREATE_PHRASE_FAMILIAR',
+        #                         CreatePhraseFamiliar(),
+        #                         transitions={SUCCESS:'SPEAK_PHRASE_FAMILIAR'},
+        #                         remapping={'operator_name':'operator_name',
+        #                                     'phrase':'familiar_phrase'})
         
-        # announce search start
-        smach.StateMachine.add('SPEAK_PHRASE_FAMILIAR',
-                                SpeakState(),
-                                transitions={SUCCESS:'GIVE_INFORMATION'},
-                                remapping={'phrase':'familiar_phrase'})
+        # # announce search start
+        # smach.StateMachine.add('SPEAK_PHRASE_FAMILIAR',
+        #                         SpeakState(),
+        #                         transitions={SUCCESS:'GIVE_INFORMATION'},
+        #                         remapping={'phrase':'familiar_phrase'})
 
          # give information
-        information_phrase = "I am a Toyota Human Support Robot, designed to help people with everyday tasks around the house. \
+        information_phrase = "Let me tell you a bit about myself! I am a Toyota Human Support Robot, designed to help people with everyday tasks around the house. \
                                 I can do lots of things: recognise human speech, detect objects with my camera, fetch things with my gripper, \
                                     take out the trash, and even act as a host at your next party!\
                                         I am used for research by PhD students, as well as for a home care project. \
