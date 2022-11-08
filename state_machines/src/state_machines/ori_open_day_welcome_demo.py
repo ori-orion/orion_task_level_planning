@@ -217,8 +217,14 @@ def create_state_machine():
         # Farewell operator
         smach.StateMachine.add('FAREWELL_OPERATOR',
                                 SpeakState(phrase="It was nice to meet you! I hope to see you again soon. Goodbye!"),
-                                transitions={SUCCESS:TASK_SUCCESS},
+                                transitions={SUCCESS:"LOOK_AT_NEUTRAL"},
                                 remapping={}) 
+
+        # look to neutral at human
+        smach.StateMachine.add(
+            'LOOK_AT_NEUTRAL',
+            LookUpState(height=1.2),
+            transitions={SUCCESS:TASK_SUCCESS});
 
         sm = setupErrorStates(sm);
         
