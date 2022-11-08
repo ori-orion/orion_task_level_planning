@@ -173,7 +173,7 @@ def create_state_machine():
         # ask for operator's name - New ask guest name action server     
         smach.StateMachine.add('ASK_OPERATOR_NAME',
                                 AskPersonNameState(),
-                                transitions={SUCCESS: 'CREATE_PHRASE_FAMILIAR',
+                                transitions={SUCCESS: 'GIVE_INFORMATION',
                                             FAILURE:'ANNOUNCE_MISSED_NAME',
                                             'repeat_failure':'ANNOUNCE_MISSED_NAME'},
                                 remapping={'question':'ask_operator_name_phrase',
@@ -185,11 +185,11 @@ def create_state_machine():
         # announce that we missed the name, and that we will try again
         smach.StateMachine.add('ANNOUNCE_MISSED_NAME',
                                 SpeakState(phrase="I'm sorry but I didn't understand. Let's try that again."),
-                                transitions={SUCCESS:'GIVE_INFORMATION'},
+                                transitions={SUCCESS:'ASK_OPERATOR_NAME'},
                                 remapping={})
 
         # create the familiar phrase
-        # Note that the output here is the input into 'ANNOUNCE_SEARCH_START'.
+        # # Note that the output here is the input into 'ANNOUNCE_SEARCH_START'.
         # smach.StateMachine.add('CREATE_PHRASE_FAMILIAR',
         #                         CreatePhraseFamiliar(),
         #                         transitions={SUCCESS:'SPEAK_PHRASE_FAMILIAR'},
