@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from state_machines.Reusable_States.utils import *;
 
 import smach;
@@ -31,7 +33,7 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
 
-SPEAK_THROUGH_CONSOLE = False;
+SPEAK_THROUGH_CONSOLE = True;
 
 
 class SpeakState(smach.State):
@@ -345,7 +347,7 @@ class AskFromSelection(smach.State):
 
             if len(transcription) == 0:
                 rospy.loginfo("Nothing was said");
-                speak_listen_goal.question = AskFromSelection.NO_RESPONSE_RESPONSES[random.randrange(len(AskFromSelection.NO_RESPONSE_RESPONSES))];
+                speak_listen_goal.question = random.choice(AskFromSelection.NO_RESPONSE_RESPONSES);
             elif succeeded == False:
                 speak_listen_goal.question = "Yes, but " + speak_listen_goal.question;
 
@@ -357,10 +359,10 @@ class AskFromSelection(smach.State):
 
             if len(transcription) == 0 or succeeded == False:
                 rospy.loginfo(
-                    "No logical response gained. transcription=" + transcription + ", succeeded=" + succeeded + ". Moving on.");
+                    "No logical response gained. transcription=" + transcription + ", succeeded=" + str(succeeded) + ". Moving on.");
                 return "", False;
-        else:
-            return information, True;
+        
+        return information, True;
 
     def tag_to_speech(self, tag:str, information:str):
         output = "";
@@ -373,11 +375,13 @@ class AskFromSelection(smach.State):
         elif tag == "colour":
             output += " favourite colour is " + information;
         output += ". ";
+        return output;
 
     def execute(self, userdata):
         
-        self.speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
-        self.speak_listen_action_client.wait_for_server()
+        if SPEAK_THROUGH_CONSOLE == False:
+            self.speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+            self.speak_listen_action_client.wait_for_server()
 
         output_dict = {};
 
@@ -409,8 +413,8 @@ class AskFromSelection(smach.State):
             output_speech += "we have someone who didn't give their name"
          
         # Then, if there's something else.
-        if len(output_dict_copy.keys) != 0:
-            entry_tag = output_dict_copy.keys[0];
+        if len(output_dict_copy.keys()) != 0:
+            entry_tag = list(output_dict_copy.keys())[0];
             POSSIBLE_SECOND_PREFIXES = [". Their", " who's", " and their"]
             output_speech += POSSIBLE_SECOND_PREFIXES[random.randrange(len(POSSIBLE_SECOND_PREFIXES))];
             output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
@@ -435,16 +439,21 @@ class AskFromSelection(smach.State):
 
         
         #region END PHRASE
-        action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = AskFromSelection.END_PHRASES[random.randrange(len(AskFromSelection.END_PHRASES))];
+        end_phrase = random.choice(AskFromSelection.END_PHRASES);
 
-        rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))
-        speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        if SPEAK_THROUGH_CONSOLE:
+            print("AskFromSelection:", end_phrase);
+        else:
+            action_goal = TalkRequestGoal()
+            action_goal.data.language = Voice.kEnglish  # enum for value: 1
+            action_goal.data.sentence = end_phrase;
 
-        speak_action_client.wait_for_server()
-        speak_action_client.send_goal(action_goal)
-        speak_action_client.wait_for_result()
+            rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))            
+
+            speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+            speak_action_client.wait_for_server()
+            speak_action_client.send_goal(action_goal)
+            speak_action_client.wait_for_result()
         #endregion
                 
         if len(output_dict.keys()) > 0:
@@ -525,3 +534,42 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
         # Can only succeed
         return SUCCESS
 #endregion
+
+
+def askFromSelectionTest():
+    sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=[],
+        output_keys=[]);
+
+    sm.userdata.responses_arr = [];
+    sm.userdata.output_speech_arr = [];
+
+    with sm:
+        smach.StateMachine.add(
+            'TalkToGuest',
+            AskFromSelection(append_result_to_array=True),
+            transitions={
+                SUCCESS:SUCCESS,
+                "no_response":FAILURE},
+            remapping={
+                "responses_arr" : "responses_arr",
+                "output_speech_arr" : "output_speech_arr"
+            });
+    
+    sm.execute();
+
+    print(sm.userdata.responses_arr);
+    print(sm.userdata.output_speech_arr);
+
+
+if __name__ == '__main__':
+
+    # state = OrderGuestsFound();
+    # state.testState();
+
+    rospy.init_node('test_speech');
+
+    askFromSelectionTest();
+
+    # rospy.spin();
