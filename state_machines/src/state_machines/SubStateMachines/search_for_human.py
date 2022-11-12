@@ -129,50 +129,6 @@ class OrderGuestsFound(smach.State):
         return SUCCESS;
 
 
-class ReportBackToOperator(smach.State):
-    """
-    So the AskFromSelection state returns a set of things to say. We then need to say them.
-    We will assume the guests are ordered from left to right. 
-    """
-
-    def __init__(self):
-        smach.State.__init__(self,
-            outcomes=[SUCCESS],
-            input_keys=["responses_arr", "output_speech_arr"],
-            output_keys=[]);
-
-    def execute(self, userdata):
-        PREFIXES = ["First ", "Then "];
-        output_speech_arr:list = userdata.output_speech_arr;
-
-        prefix_index = 0;
-
-        phrase_speaking = "";
-
-        for human_speech in output_speech_arr:
-            human_speech:str;
-            if len(human_speech) == 0:
-                continue;
-
-            phrase_speaking += PREFIXES[prefix_index] + human_speech;
-
-            prefix_index = (prefix_index+1 if prefix_index < len(PREFIXES)-1 else prefix_index);
-        
-        action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = phrase_speaking
-
-        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
-        speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
-                                        TalkRequestAction)
-
-        speak_action_client.wait_for_server()
-        speak_action_client.send_goal(action_goal)
-        speak_action_client.wait_for_result()
-    pass;
-
-
-
 """
 Spin on the spot and then query for the humans you saw since you started spinning.
 """

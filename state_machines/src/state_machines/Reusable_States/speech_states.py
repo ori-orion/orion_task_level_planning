@@ -245,6 +245,7 @@ class WaitForHotwordState(smach.State):
             return FAILURE
 
 
+#region Ask From Selection framework
 class AskFromSelection(smach.State):
     """
     A state for asking a selection of questions.
@@ -415,10 +416,12 @@ class AskFromSelection(smach.State):
         # Then, if there's something else.
         if len(output_dict_copy.keys()) != 0:
             entry_tag = list(output_dict_copy.keys())[0];
-            POSSIBLE_SECOND_PREFIXES = [". Their", " who's", " and their"]
+            POSSIBLE_SECOND_PREFIXES = [". They're", " who's", " and their"]
             output_speech += POSSIBLE_SECOND_PREFIXES[random.randrange(len(POSSIBLE_SECOND_PREFIXES))];
             output_speech += self.tag_to_speech(entry_tag, output_dict_copy[entry_tag]);
             del(output_dict_copy[entry_tag]);
+        else:
+            output_speech += ". "
 
         # Then if there's anything after that.
         for entry_tag in output_dict_copy.keys():
@@ -460,6 +463,57 @@ class AskFromSelection(smach.State):
             return SUCCESS;
         else:
             return "no_response";
+
+class ReportBackToOperator(smach.State):
+    """
+    So the AskFromSelection state returns a set of things to say. We then need to say them.
+    We will assume the guests are ordered from left to right. 
+    """
+
+    def __init__(self):
+        smach.State.__init__(self,
+            outcomes=[SUCCESS],
+            input_keys=["responses_arr", "output_speech_arr"],
+            output_keys=[]);
+
+    def execute(self, userdata):
+        PREFIXES = ["First ", "Then, to their left, ", "To their left, "];
+        output_speech_arr:list = userdata.output_speech_arr;
+
+        prefix_index = 0;
+
+        phrase_speaking = "";
+
+        for human_speech in output_speech_arr:
+            human_speech:str;
+            if len(human_speech) == 0:
+                continue;
+
+            phrase_speaking += PREFIXES[prefix_index] + human_speech;
+
+            prefix_index = (prefix_index+1 if prefix_index < len(PREFIXES)-1 else prefix_index);
+        
+        if SPEAK_THROUGH_CONSOLE:
+            print();
+            print("ReportBackToOperator:", phrase_speaking);
+            print();
+        else:
+            action_goal = TalkRequestGoal()
+            action_goal.data.language = Voice.kEnglish  # enum for value: 1
+            action_goal.data.sentence = phrase_speaking
+
+            rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+            speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
+                                            TalkRequestAction)
+
+            speak_action_client.wait_for_server()
+            speak_action_client.send_goal(action_goal)
+            speak_action_client.wait_for_result()
+
+        return SUCCESS;
+#endregion
+
+
 
 
 #region Create Phrase stuff.
@@ -547,15 +601,53 @@ def askFromSelectionTest():
 
     with sm:
         smach.StateMachine.add(
-            'TalkToGuest',
+            'TalkToGuest1',
             AskFromSelection(append_result_to_array=True),
             transitions={
-                SUCCESS:SUCCESS,
-                "no_response":FAILURE},
+                SUCCESS:'TalkToGuest2',
+                "no_response":'TalkToGuest2'},
             remapping={
                 "responses_arr" : "responses_arr",
                 "output_speech_arr" : "output_speech_arr"
             });
+
+        smach.StateMachine.add(
+            'TalkToGuest2',
+            AskFromSelection(append_result_to_array=True),
+            transitions={
+                SUCCESS:'TalkToGuest3',
+                "no_response":'TalkToGuest3'},
+            remapping={
+                "responses_arr" : "responses_arr",
+                "output_speech_arr" : "output_speech_arr"
+            });
+
+        smach.StateMachine.add(
+            'TalkToGuest3',
+            AskFromSelection(append_result_to_array=True),
+            transitions={
+                SUCCESS:'TalkToGuest4',
+                "no_response":'TalkToGuest4'},
+            remapping={
+                "responses_arr" : "responses_arr",
+                "output_speech_arr" : "output_speech_arr"
+            });
+
+        smach.StateMachine.add(
+            'TalkToGuest4',
+            AskFromSelection(append_result_to_array=True),
+            transitions={
+                SUCCESS:'ReportBack',
+                "no_response":'ReportBack'},
+            remapping={
+                "responses_arr" : "responses_arr",
+                "output_speech_arr" : "output_speech_arr"
+            });
+
+        smach.StateMachine.add(
+            'ReportBack',
+            ReportBackToOperator(),
+            transitions={SUCCESS:SUCCESS});
     
     sm.execute();
 
