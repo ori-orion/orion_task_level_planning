@@ -33,7 +33,7 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
 
-SPEAK_THROUGH_CONSOLE = True;
+SPEAK_THROUGH_CONSOLE = False;
 
 
 class SpeakState(smach.State):
