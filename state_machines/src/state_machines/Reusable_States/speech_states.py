@@ -318,6 +318,8 @@ class AskFromSelection(smach.State):
             output.succeeded = True;
             return output;
 
+        print("Pre sending goal");
+
         self.speak_listen_action_client.send_goal(speak_listen_goal)
 
         rospy.loginfo("HSR asking phrase: '{}'".format(speak_listen_goal.question));
@@ -382,7 +384,9 @@ class AskFromSelection(smach.State):
         
         if SPEAK_THROUGH_CONSOLE == False:
             self.speak_listen_action_client = actionlib.SimpleActionClient('speak_and_listen', SpeakAndListenAction)
+            print("Waiting for speak and listen server");
             self.speak_listen_action_client.wait_for_server()
+            print("Speak and listen server found");
 
         output_dict = {};
 
