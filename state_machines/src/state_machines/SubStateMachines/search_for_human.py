@@ -76,6 +76,8 @@ class OrderGuestsFound(smach.State):
             appending = point_to_numpy(guest.obj_position.position) - robot_location;
             # We want these vectors to be normalised because we're going to be comparing the magnitude of them.
             print(appending);
+            if np.linalg.norm(appending) > 3:   # If the human is greater than 3m away from the human...
+                continue;
             appending /= np.linalg.norm(appending);
             respective_to_vecs.append(appending);
             
