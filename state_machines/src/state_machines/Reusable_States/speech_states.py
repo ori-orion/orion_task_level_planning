@@ -34,7 +34,7 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
 
-SPEAK_THROUGH_CONSOLE = False;
+SPEAK_THROUGH_CONSOLE = True;
 
 
 class SpeakState(smach.State):
@@ -530,6 +530,8 @@ class AskFromSelectionHardCoded(smach.State):
         output_speech_arr:list = userdata.output_speech_arr;
         output_speech_arr.append(self.speaking_phrases[index]);
 
+        return SUCCESS;
+
 
 class ReportBackToOperator(smach.State):
     """
@@ -675,17 +677,17 @@ def askFromSelectionTest():
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
-                SUCCESS:'TalkToGuest2',
-                "no_response":'TalkToGuest2'},
+                SUCCESS:'IncrementGuestIndex1',
+                "no_response":'IncrementGuestIndex1'},
             remapping={
                 "responses_arr" : "responses_arr",
                 "output_speech_arr" : "output_speech_arr"
             });
 
         smach.StateMachine.add(
-            'IncrementGuestIndex',
+            'IncrementGuestIndex1',
             IncrementValue(increment_by=1),
-            transitions={SUCCESS:'GetGuestPosition'},
+            transitions={SUCCESS:'TalkToGuest2'},
             remapping={'val':'index'});
 
         smach.StateMachine.add(
@@ -693,17 +695,17 @@ def askFromSelectionTest():
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
-                SUCCESS:'TalkToGuest3',
-                "no_response":'TalkToGuest3'},
+                SUCCESS:'IncrementGuestIndex2',
+                "no_response":'IncrementGuestIndex2'},
             remapping={
                 "responses_arr" : "responses_arr",
                 "output_speech_arr" : "output_speech_arr"
             });
 
         smach.StateMachine.add(
-            'IncrementGuestIndex',
+            'IncrementGuestIndex2',
             IncrementValue(increment_by=1),
-            transitions={SUCCESS:'GetGuestPosition'},
+            transitions={SUCCESS:'TalkToGuest3'},
             remapping={'val':'index'});
 
         smach.StateMachine.add(
@@ -711,17 +713,17 @@ def askFromSelectionTest():
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
-                SUCCESS:'TalkToGuest4',
-                "no_response":'ReportBack'},
+                SUCCESS:'IncrementGuestIndex3',
+                "no_response":'IncrementGuestIndex3'},
             remapping={
                 "responses_arr" : "responses_arr",
                 "output_speech_arr" : "output_speech_arr"
             });
 
         smach.StateMachine.add(
-            'IncrementGuestIndex',
+            'IncrementGuestIndex3',
             IncrementValue(increment_by=1),
-            transitions={SUCCESS:'GetGuestPosition'},
+            transitions={SUCCESS:'ReportBack'},
             remapping={'val':'index'});
 
         smach.StateMachine.add(
