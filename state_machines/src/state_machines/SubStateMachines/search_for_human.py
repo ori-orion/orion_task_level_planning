@@ -91,13 +91,14 @@ class OrderGuestsFound(smach.State):
                 if i==j:
                     continue;
 
-                if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
-                    cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j]);
-                    print("\t", j, cos_angle);
-                    if cos_angle > best_cos_angle_diff:
-                        best_cos_angle_diff = cos_angle;
-                        best_match = j;
-            
+                if i < len(respective_to_vecs) and j < len(respective_to_vecs):
+                    if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
+                        cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j]);
+                        print("\t", j, cos_angle);
+                        if cos_angle > best_cos_angle_diff:
+                            best_cos_angle_diff = cos_angle;
+                            best_match = j;
+                
             if best_match == -1:
                 respective_next_to.append(None);
             else:
@@ -265,6 +266,7 @@ def create_talk_to_guests():
                 SUCCESS:'LookAtGuest',         
                 'index_out_of_range':SUCCESS},
             remapping={
+                "index":"index",
                 'input_list':'guest_list',
                 'output_param':'ith_guest_pose'});
         
@@ -276,7 +278,8 @@ def create_talk_to_guests():
 
         smach.StateMachine.add(
             'TalkToGuest',
-            AskFromSelection(append_result_to_array=True),
+            # AskFromSelection(append_result_to_array=True),
+            AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
                 SUCCESS:'IncrementGuestIndex',
                 "no_response":'IncrementGuestIndex'},

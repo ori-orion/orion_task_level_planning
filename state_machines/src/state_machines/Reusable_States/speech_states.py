@@ -12,6 +12,7 @@ import rospy;
 import math;
 import random;
 import copy;
+import time;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
@@ -468,6 +469,68 @@ class AskFromSelection(smach.State):
         else:
             return "no_response";
 
+
+class AskFromSelectionHardCoded(smach.State):
+    def __init__(self, append_result_to_array):
+        smach.State.__init__(self,
+            outcomes=[SUCCESS, "no_response"],
+            input_keys=["responses_arr", "output_speech_arr", "index"],
+            output_keys=[
+                "responses", "output_speech", 
+                "responses_arr", "output_speech_arr"]);
+
+        self.questions = ["Hello, what's your name?", 
+            [
+                "Hello Sam, what's your favorite quisine?",
+                "Nice to meet you John. What's your favorite hobby?",
+                "What's your favorite colour?"
+            ]]
+
+        self.answers_0 = ["Sam", "John", "Anna"];
+        self.answers_1 = ["chinese", "sleeping and video gaming", "black"];
+
+        self.speaking_phrases = [
+            "we have someone called Sam. They're favorite quisine is chinese. ",
+            "we have John who's hobbies are sleeping and video gaming. ",
+            "we have Anna who's favorite colour is black. "
+        ]
+
+    def speak(self, speaking):
+        if SPEAK_THROUGH_CONSOLE:
+            print("AskFromSelectionHardCoded: ", speaking);
+        else:
+            action_goal = TalkRequestGoal()
+            action_goal.data.language = Voice.kEnglish  # enum for value: 1
+            action_goal.data.sentence = speaking;
+            
+            rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence));
+
+            self.speak_action_client.send_goal(action_goal)
+            self.speak_action_client.wait_for_result()
+
+    def execute(self, userdata):
+        if SPEAK_THROUGH_CONSOLE == False:
+            self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+            self.speak_action_client.wait_for_server()
+        
+        index:int = userdata.index;
+
+        for element in self.questions:
+            if type(element) is list:
+                self.speak(element[index]);
+            else:
+                self.speak(element);
+            
+            time.sleep(5);
+        
+        time.sleep(5);
+        self.speak("Nice to meet you.");
+
+        userdata.output_speech = self.speaking_phrases[index];
+        output_speech_arr:list = userdata.output_speech_arr;
+        output_speech_arr.append(self.speaking_phrases[index]);
+
+
 class ReportBackToOperator(smach.State):
     """
     So the AskFromSelection state returns a set of things to say. We then need to say them.
@@ -595,6 +658,8 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
 
 
 def askFromSelectionTest():
+    from procedural_states import IncrementValue;
+
     sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=[],
@@ -602,11 +667,13 @@ def askFromSelectionTest():
 
     sm.userdata.responses_arr = [];
     sm.userdata.output_speech_arr = [];
+    sm.userdata.index = 0;
 
     with sm:
         smach.StateMachine.add(
             'TalkToGuest1',
-            AskFromSelection(append_result_to_array=True),
+            # AskFromSelection(append_result_to_array=True),
+            AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
                 SUCCESS:'TalkToGuest2',
                 "no_response":'TalkToGuest2'},
@@ -616,8 +683,15 @@ def askFromSelectionTest():
             });
 
         smach.StateMachine.add(
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
+
+        smach.StateMachine.add(
             'TalkToGuest2',
-            AskFromSelection(append_result_to_array=True),
+            # AskFromSelection(append_result_to_array=True),
+            AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
                 SUCCESS:'TalkToGuest3',
                 "no_response":'TalkToGuest3'},
@@ -627,26 +701,28 @@ def askFromSelectionTest():
             });
 
         smach.StateMachine.add(
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
+
+        smach.StateMachine.add(
             'TalkToGuest3',
-            AskFromSelection(append_result_to_array=True),
+            # AskFromSelection(append_result_to_array=True),
+            AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
                 SUCCESS:'TalkToGuest4',
-                "no_response":'TalkToGuest4'},
+                "no_response":'ReportBack'},
             remapping={
                 "responses_arr" : "responses_arr",
                 "output_speech_arr" : "output_speech_arr"
             });
 
         smach.StateMachine.add(
-            'TalkToGuest4',
-            AskFromSelection(append_result_to_array=True),
-            transitions={
-                SUCCESS:'ReportBack',
-                "no_response":'ReportBack'},
-            remapping={
-                "responses_arr" : "responses_arr",
-                "output_speech_arr" : "output_speech_arr"
-            });
+            'IncrementGuestIndex',
+            IncrementValue(increment_by=1),
+            transitions={SUCCESS:'GetGuestPosition'},
+            remapping={'val':'index'});
 
         smach.StateMachine.add(
             'ReportBack',
