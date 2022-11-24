@@ -116,6 +116,9 @@ class OrderGuestsFound(smach.State):
             print(next_index);
             guest_list_new.append(guest_list[next_index]);
             if (i < len(guest_list) - 1):
+                # ERROR 0 not in list being raised here!
+                # Notes on this error: respective_next_to=[1,None,None].
+                # Guest positions were [-2.19, -2.29, 1.23], [0.094, -0.57, 0.988], [0.63, 0.907, 0.975]
                 next_index = respective_next_to.index(next_index);
                 
         
