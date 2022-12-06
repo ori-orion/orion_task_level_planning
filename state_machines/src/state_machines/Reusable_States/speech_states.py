@@ -33,6 +33,9 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
+COUNTRIES = ["United Kingdom", "America"];
+
+AGE_STRS = [""];
 
 SPEAK_THROUGH_CONSOLE = True;
 
@@ -275,8 +278,8 @@ class AskFromSelection(smach.State):
     DEFAULT_QUESTIONS = [
         ("name", "Hello, What's your name?", NAMES),
         [
-            ("age", "How old are you?"),
-            ("place", "Where are you from?"),
+            ("age", "How old are you?", AGE_STRS),
+            ("place", "What country are you from?", COUNTRIES),
             ("drink", "What's your favourite drink?", DRINKS),
             ("colour", "What's your favourite colour?", COLOURS)
         ]
