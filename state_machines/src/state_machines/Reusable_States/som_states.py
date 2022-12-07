@@ -61,7 +61,7 @@ class CreateSOMQuery(smach.State):
             print("setting class");
             class_:str = userdata.object_class;
             class_ = class_.replace(' ', '_');
-            output.class_ = class_;
+            output.query.class_ = class_;
 
         userdata.som_query = output;
         return SUCCESS;
