@@ -55,7 +55,9 @@ class CreateSOMQuery(smach.State):
 
         print("Checking to see if 'object_class' is within the userdata field.")
         print(dir(userdata));
-        if 'object_class' in dir(userdata) and hasattr(output, 'class_'):
+        print(type(userdata));
+        print(userdata.keys());
+        if 'object_class' in userdata.keys() and hasattr(output, 'class_'):
             class_:str = userdata.object_class;
             class_ = class_.split(' ').join('_');
             output.class_ = class_;
