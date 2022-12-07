@@ -104,6 +104,8 @@ def create_state_machine(userdata=None):
     # sm.userdata.pickup_pose.orientation.z = -0.7027350031010926
     # sm.userdata.pickup_pose.orientation.w =  0.711451695771756
 
+    execute_nav_commands = True;
+
     sm.userdata.object_ar_markers = AR_MARKERS
     sm.userdata.pickup_failures = 0
     sm.userdata.pickup_failure_threshold = 3
@@ -130,12 +132,12 @@ def create_state_machine(userdata=None):
                                 remapping={'robot_location':'start_pose'})
 
         smach.StateMachine.add('INTRO',
-                                SpeakState(),
-                                transitions={'success':'NAV_TO_OPERATOR'},
-                                remapping={'phrase':'intro_phrase'})
+                                SpeakState("Hi, my name is Bam Bam, and `today we're going to show you what I can do!"),
+                                transitions={'success':'NAV_TO_OPERATOR'})#,
+                                #remapping={'phrase':'intro_phrase'})
 
         smach.StateMachine.add('NAV_TO_OPERATOR',
-                               SimpleNavigateState(),
+                               SimpleNavigateState(execute_nav_commands),
                                transitions={'success':'ASK_OPERATOR_NAME',
                                             'failure':'NAV_TO_OPERATOR',
                                             'repeat_failure':'task_failure'},
@@ -170,7 +172,7 @@ def create_state_machine(userdata=None):
                                             'failure_threshold': 'speak_listen_failure_threshold'})
 
         smach.StateMachine.add('NAV_TO_PICKUP',
-                               SimpleNavigateState(),
+                               SimpleNavigateState(execute_nav_commands),
                                transitions={'success':'PICKUP_OBJECT',
                                             'failure':'NAV_TO_PICKUP',
                                             'repeat_failure':'task_failure'},
@@ -213,7 +215,7 @@ def create_state_machine(userdata=None):
                                             'failure':'task_failure'})
 
         smach.StateMachine.add('NAV_BACK_TO_OPERATOR',
-                                SimpleNavigateState(),
+                                SimpleNavigateState(execute_nav_commands),
                                 transitions={'success':'CREATE_OPERATOR_RETURN_PHRASE',
                                             'failure':'NAV_BACK_TO_OPERATOR',
                                             'repeat_failure':'task_failure'},
@@ -270,12 +272,12 @@ def create_state_machine(userdata=None):
                                             'failure': 'task_failure'})
     
         smach.StateMachine.add('THANK_OPERATOR',
-                                SpeakState(),
-                                transitions={'success':'NAV_TO_START'},
-                                remapping={'phrase':'operator_farewell_phrase'})
+                                SpeakState("It looks like my job here is done. Have a nice day!"),
+                                transitions={'success':'NAV_TO_START'}),
+                                #remapping={'phrase':'operator_farewell_phrase'})
 
         smach.StateMachine.add('NAV_TO_START',
-                                SimpleNavigateState(),
+                                SimpleNavigateState(execute_nav_commands),
                                 transitions={'success':'FINAL_ANNOUNCEMENT',
                                             'failure':'NAV_TO_START',
                                             'repeat_failure':'task_failure'},
@@ -284,9 +286,9 @@ def create_state_machine(userdata=None):
                                            'failure_threshold':'simple_navigation_failure_threshold'})
         
         smach.StateMachine.add('FINAL_ANNOUNCEMENT',
-                                SpeakState(),
-                                transitions={'success':'task_success'},
-                                remapping={'phrase':'final_announcement_phrase'})
+                                SpeakState("I'm back where I started, woohoo!"),
+                                transitions={'success':'task_success'})#,
+                                #remapping={'phrase':'final_announcement_phrase'})
 
     return sm
 
