@@ -76,6 +76,8 @@ class OrderGuestsFound(smach.State):
             appending = point_to_numpy(guest.obj_position.position) - robot_location;
             # We want these vectors to be normalised because we're going to be comparing the magnitude of them.
             print(appending);
+            if np.linalg.norm(appending) > 3:   # If the human is greater than 3m away from the human...
+                continue;
             appending /= np.linalg.norm(appending);
             respective_to_vecs.append(appending);
             
@@ -89,13 +91,14 @@ class OrderGuestsFound(smach.State):
                 if i==j:
                     continue;
 
-                if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
-                    cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j]);
-                    print("\t", j, cos_angle);
-                    if cos_angle > best_cos_angle_diff:
-                        best_cos_angle_diff = cos_angle;
-                        best_match = j;
-            
+                if i < len(respective_to_vecs) and j < len(respective_to_vecs):
+                    if np.dot(np.cross(respective_to_vecs[i], respective_to_vecs[j]), self.DOWNWARDS) < 0:
+                        cos_angle = np.dot(respective_to_vecs[i], respective_to_vecs[j]);
+                        print("\t", j, cos_angle);
+                        if cos_angle > best_cos_angle_diff:
+                            best_cos_angle_diff = cos_angle;
+                            best_match = j;
+                
             if best_match == -1:
                 respective_next_to.append(None);
             else:
@@ -113,6 +116,9 @@ class OrderGuestsFound(smach.State):
             print(next_index);
             guest_list_new.append(guest_list[next_index]);
             if (i < len(guest_list) - 1):
+                # ERROR 0 not in list being raised here!
+                # Notes on this error: respective_next_to=[1,None,None].
+                # Guest positions were [-2.19, -2.29, 1.23], [0.094, -0.57, 0.988], [0.63, 0.907, 0.975]
                 next_index = respective_next_to.index(next_index);
                 
         
@@ -263,6 +269,7 @@ def create_talk_to_guests():
                 SUCCESS:'LookAtGuest',         
                 'index_out_of_range':SUCCESS},
             remapping={
+                "index":"index",
                 'input_list':'guest_list',
                 'output_param':'ith_guest_pose'});
         
@@ -274,7 +281,8 @@ def create_talk_to_guests():
 
         smach.StateMachine.add(
             'TalkToGuest',
-            AskFromSelection(append_result_to_array=True),
+            # AskFromSelection(append_result_to_array=True),
+            AskFromSelectionHardCoded(append_result_to_array=True),
             transitions={
                 SUCCESS:'IncrementGuestIndex',
                 "no_response":'IncrementGuestIndex'},
