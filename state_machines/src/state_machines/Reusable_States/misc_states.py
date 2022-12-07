@@ -185,7 +185,7 @@ class LookAtPoint(smach.State):
 class SpinState(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
-                                outcomes = [SUCCESS, FAILURE],
+                                outcomes = [SUCCESS],
                                 input_keys=[], output_keys=[]);
 
     def execute(self, userdata):
