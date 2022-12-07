@@ -57,7 +57,8 @@ class CreateSOMQuery(smach.State):
         print(dir(userdata));
         print(type(userdata));
         print(userdata.keys());
-        if 'object_class' in userdata.keys() and hasattr(output, 'class_'):
+        if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
+            print("setting class");
             class_:str = userdata.object_class;
             class_ = class_.split(' ').join('_');
             output.class_ = class_;
