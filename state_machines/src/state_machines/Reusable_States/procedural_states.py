@@ -65,3 +65,30 @@ class GetPropertyAtIndex(smach.State):
         entry = list_looking_at[index_looking_in];
         userdata.output_param = getattr(entry, self.property_getting);
         return SUCCESS;
+
+class GetListEmpty(smach.State):
+    """
+    Returns whether a list is empty or not.
+    input_keys:
+        input_list:list  - A list to check
+    output_keys:
+        output_keys:bool = len(input_list) == 0. True if it's empty
+    Results:
+        list_not_emtpy   - len(input_list) != 0
+        list_empty       - len(input_list) == 0
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=['list_not_empty', 'list_empty'],
+            input_keys=['input_list'],
+            output_keys=['list_empty']);
+
+    def execute(self, userdata):
+        list_looking_at:list = userdata.input_list;
+        if len(list_looking_at) == 0:
+            userdata.list_empty = True;
+            return 'list_empty';
+        else:
+            userdata.list_empty = False;
+            return 'list_not_empty';

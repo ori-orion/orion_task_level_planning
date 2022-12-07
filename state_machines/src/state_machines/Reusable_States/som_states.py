@@ -1,4 +1,5 @@
 from state_machines.Reusable_States.utils import *;
+from state_machines.Reusable_States.procedural_states import *;
 
 import smach;
 
@@ -20,6 +21,15 @@ Overall interface into SOM:
 
 
 class CreateSOMQuery(smach.State):
+    """
+    Creates a SOM query for an object.
+    input_keys:
+        object_class    - an optional parameter for adding object class information.
+    output_keys:
+        som_query       - the output query
+    results:
+        SUCCESS 
+    """
 
     HUMAN_QUERY = 1;
     OBJECT_QUERY = 2;
@@ -27,7 +37,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=[],
+            input_keys=['object_class'],
             output_keys=['som_query'])
 
         self.query_type = query_type;
@@ -43,10 +53,25 @@ class CreateSOMQuery(smach.State):
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
 
+        if 'object_class' in userdata and hasattr(output, 'class_'):
+            class_:str = userdata.object_class;
+            class_ = class_.split(' ').join('_');
+            output.class_ = class_;
+
         userdata.som_query = output;
         return SUCCESS;
 
 class PerformSOMQuery(smach.State):
+    """
+    Performs a SOM query given an input query.
+    input_keys:
+        som_query                - A query to be executed
+    output_keys:    
+        som_query_results:list   - The results of the query
+    results:
+        SUCCESS                  - If the query succeeded.
+        FAILURE                  - If query is not of an expected type.
+    """
     def __init__(self):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE],
@@ -126,6 +151,46 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
             return SUCCESS;
 
 
+
+def has_seen_object():
+    """
+    Checks whether the robot has seen a given object.
+    Inputs:
+        object_class:str  - A string giving the object class.
+    """
+
+    sub_sm = smach.StateMachine(
+        outcomes=['object_seen', 'object_not_seen', FAILURE],
+        input_keys=['object_class'],
+        output_keys=['item_not_found']);
+
+    sub_sm.userdata.index = 0;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'CreateQuery',
+            CreateSOMQuery(query_type=CreateSOMQuery.OBJECT_QUERY),
+            transitions={SUCCESS:'QuerySom'});
+        
+        smach.StateMachine.add(
+            'QuerySom',
+            PerformSOMQuery(),
+            transitions={
+                SUCCESS:'CommentOnGuestExistence',
+                FAILURE:FAILURE});
+
+        smach.StateMachine.add(
+            'CommentOnGuestExistence',
+            GetListEmpty(),
+            transitions={
+                'list_empty':'object_not_seen',
+                'list_not_empty':'object_seen'},
+            remapping={
+                'input_list':'som_query_results',
+                'list_empty':'item_not_found'
+            });
+
+    return sub_sm;
 
 
 
