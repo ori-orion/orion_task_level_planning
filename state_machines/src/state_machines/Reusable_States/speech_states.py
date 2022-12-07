@@ -524,9 +524,9 @@ class AskFromSelectionHardCoded(smach.State):
             else:
                 self.speak(element);
             
-            time.sleep(5);
+            time.sleep(3);
         
-        time.sleep(5);
+        time.sleep(3);
         self.speak("Nice to meet you.");
 
         userdata.output_speech = self.speaking_phrases[index];
