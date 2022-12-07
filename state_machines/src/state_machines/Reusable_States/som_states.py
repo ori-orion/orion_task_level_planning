@@ -60,7 +60,7 @@ class CreateSOMQuery(smach.State):
         if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
             print("setting class");
             class_:str = userdata.object_class;
-            class_ = class_.split(' ').join('_');
+            class_ = class_.replace(' ', '_');
             output.class_ = class_;
 
         userdata.som_query = output;
