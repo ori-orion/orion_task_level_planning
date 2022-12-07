@@ -104,7 +104,7 @@ def create_state_machine(userdata=None):
     # sm.userdata.pickup_pose.orientation.z = -0.7027350031010926
     # sm.userdata.pickup_pose.orientation.w =  0.711451695771756
 
-    execute_nav_commands = True;
+    execute_nav_commands = False;
 
     sm.userdata.object_ar_markers = AR_MARKERS
     sm.userdata.pickup_failures = 0
