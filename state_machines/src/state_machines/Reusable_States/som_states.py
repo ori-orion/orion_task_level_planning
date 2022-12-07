@@ -181,11 +181,11 @@ def has_seen_object():
             'QuerySom',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'CommentOnGuestExistence',
+                SUCCESS:'CheckIfFound',
                 FAILURE:FAILURE});
 
         smach.StateMachine.add(
-            'CommentOnGuestExistence',
+            'CheckIfFound',
             GetListEmpty(),
             transitions={
                 'list_empty':'object_not_seen',
