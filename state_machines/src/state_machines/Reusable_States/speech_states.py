@@ -37,7 +37,7 @@ COUNTRIES = ["United Kingdom", "America"];
 
 AGE_STRS = [""];
 
-SPEAK_THROUGH_CONSOLE = True;
+SPEAK_THROUGH_CONSOLE = False;
 
 
 class SpeakState(smach.State):
