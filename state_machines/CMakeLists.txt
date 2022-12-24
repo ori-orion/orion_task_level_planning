@@ -7,12 +7,24 @@ project(state_machines)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  orion_actions
-)
+find_package(catkin REQUIRED COMPONENTS 
+    cmake_modules 
+    eigen_conversions 
+    geometry_msgs 
+    message_generation 
+    roscpp
+    sensor_msgs 
+    std_msgs
+    tf2
+    tf2_ros
+    rospy
+    orion_actions)
+
+find_package(PCL REQUIRED COMPONENTS 
+    common 
+    io 
+    segmentation
+    visualization)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -104,10 +116,8 @@ catkin_python_setup()
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES state_machines
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+    CATKIN_DEPENDS roscpp
+    DEPENDS PCL
 )
 
 ###########
@@ -117,14 +127,15 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
+    include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/state_machines.cpp
 # )
+
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -136,6 +147,9 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/state_machines_node.cpp)
 
+add_executable(${PROJECT_NAME}_navigation_services 
+    src/cpp/navigation.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -146,10 +160,16 @@ include_directories(
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(${PROJECT_NAME}_navigation_services ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+target_link_libraries(${PROJECT_NAME}_navigation_services
+    ${catkin_LIBRARIES} ${PCL_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -164,6 +184,10 @@ install(PROGRAMS
   src/open_day_demo
   src/robocup_2022/find_my_mates
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS ${PROJECT_NAME}_navigation_services
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ## Mark executables and/or libraries for installation
