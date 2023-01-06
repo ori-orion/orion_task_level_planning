@@ -80,6 +80,7 @@ public:
         IndexType i1 = this->spaceToIndex(y, origin_y);
         if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
             return BEYOND_MAP_BOUNDARY;
+
         return this->get(i0, i1);
     }
 
@@ -131,6 +132,12 @@ navigating to a place NEARBY BUT NOT ONTOP OF a certain goal
 location. This class will work out the suitable navigation goal 
 involved.
 */
+const double OCCUPANCY_MAP_WIDTH = 3;   //m
+const double PIXEL_SIZE = 0.01;         //m
+const IndexType OCCUPANCY_MAP_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
+// When we have a point that has a pixel above it, we need to fill the occupancy map up to a 
+// certain radius around. This is the radius around which we fill.
+const double FILL_RADIUS = 0.07;        //m
 class GettingSuitableNavGoal {
 private:
     // The point we want to get close to.
@@ -194,6 +201,14 @@ private:
     This function creates the search tree if necessary. It then returns the search tree.
     */
     pcl::search::Search<Point_T>::Ptr getSearchTree();
+
+private:
+    /*
+    Creates the occupancy map.
+    */
+    void createOccupancyMap(
+        OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH>& occupancy_map, 
+        const pcl::PointIndices& indices);
 };
 
 
