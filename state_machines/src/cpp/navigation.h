@@ -1,4 +1,6 @@
 #include <iostream>
+#include <limits>
+#include <math>
 
 // #include <eigen_conversions/eigen_msg.h>
 #include <ros/ros.h>
@@ -24,6 +26,102 @@
 using Point_T = pcl::PointXYZRGB;
 using PointCloud = pcl::PointCloud<Point_T>;
 
+
+/* Base class for all 2D arrays.
+ * 
+ * VERY simple. */
+#define IndexType int
+template<class T, IndexType dim0, IndexType dim1> class Array2D {
+private:
+    T raw_data[dim1*dim0];
+
+public:
+    Array2D() : raw_data() {};
+    ~Array2D() {};
+
+public:
+    T& get(const IndexType& i0, const IndexType& i1) {
+        return this->raw_data[i0 + i1*dim0]
+    }
+};
+
+/* An image class.
+ * 
+ * We need to encode an occupancy map somehow. (A set of points the robot cannot travel to.) 
+ * This will do that. 
+ * The bottom left of each dimension will be encoded by (origin_x, origin_y). 
+ */
+#define byteImageType unsigned char
+#define BEYOND_MAP_BOUNDARY UCHAR_MAX
+#define NOT_OCCUPIED 0
+#define OCCUPIED 1
+template<IndexType dim0, IndexType dim1> class OccupancyMap : public Array2D<byteImageType, dim0, dim1> {
+private:
+    double pixel_size;
+    double origin_x;
+    double origin_y;
+
+public:
+    OccupancyMap(const double& pixel_size, const double& origin_x, const double& origin_y) 
+        : Array2D<char, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y) {};
+    ~OccupancyMap() {};
+
+public:
+    void setAtCoordinate(const double& x, const double&y, const byteImageType& set_to) {
+        IndexType i0 = this->spaceToIndex(x, origin_x);
+        IndexType i1 = this->spaceToIndex(y, origin_y);
+        if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
+            return;
+        
+        this->get(i0, i1) = set_to;
+    }
+    byteImageType getAtCoordinate(const double& x, const double&y) {
+        IndexType i0 = this->spaceToIndex(x, origin_x);
+        IndexType i1 = this->spaceToIndex(y, origin_y);
+        if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
+            return BEYOND_MAP_BOUNDARY;
+        return this->get(i0, i1);
+    }
+
+public:
+    void setWithinRadius(const double& x, const double& y, const double& radius) {
+        for (double i = x-radius; i < x+radius; i+=this->pixel_size) {
+            double y_delta = sqrt(radius*radius - i*i)
+            for (double j = y-y_delta; j < y+y_delta; j+=this->pixel_size) {
+                this->setAtCoordinate(i, j, OCCUPIED);
+            }
+        }
+    }
+
+    void print() {
+        const unsigned short cells_per_print = 5;
+
+        for (int i = 0; i < dim0; i +=cells_per_print) {
+            for (int j = 0; j < dim1; j += cells_per_print) {
+                
+                bool print_space = true;
+                for (int k = 0; k < cells_per_print; k++) {
+                    for (int l = 0; l < cells_per_print; l++) {
+                        if (this->get(i+k, j+l) == OCCUPIED)
+                            print_space = false;
+                    }
+                }
+                if (print_space == true) std::cout << " ";
+                else std::cout << "X";
+
+            }
+            std::cout << std::endl;
+        }
+    }
+
+private:
+    IndexType spaceToIndex(const double& coordinate, const double& starting_coord) {
+        return (IndexType)((coordinate-starting_coord)/pixel_size);
+    }
+    double indexToSpace(const IndexType& index, const double& starting_coord) {
+        return pixel_size * index + starting_coord;
+    }
+};
 
 
 /*
