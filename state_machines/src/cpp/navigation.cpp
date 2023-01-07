@@ -107,6 +107,17 @@ pcl::search::Search<Point_T>::Ptr GettingSuitableNavGoal::getSearchTree(){
     }
     return this->search_tree;
 }
+void GettingSuitableNavGoal::createOccupancyMap(
+    OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH>& occupancy_map, 
+    const pcl::PointIndices& indices) {
+
+    for (auto ptr=indices.indices.begin(); ptr < indices.indices.end(); ptr++) {
+        occupancy_map.setWithinRadius(
+            this->shared_cloud->points[*ptr].x,
+            this->shared_cloud->points[*ptr].y,
+            FILL_RADIUS)
+    }
+}
 
 
 int main(int argc, char **argv) {
