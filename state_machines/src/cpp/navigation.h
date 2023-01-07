@@ -1,6 +1,7 @@
 #include <iostream>
 #include <limits>
-#include <math>
+// #include <math>
+#include <math.h>
 
 // #include <eigen_conversions/eigen_msg.h>
 #include <ros/ros.h>
@@ -41,7 +42,7 @@ public:
 
 public:
     T& get(const IndexType& i0, const IndexType& i1) {
-        return this->raw_data[i0 + i1*dim0]
+        return this->raw_data[i0 + i1*dim0];
     }
 };
 
@@ -87,7 +88,7 @@ public:
 public:
     void setWithinRadius(const double& x, const double& y, const double& radius) {
         for (double i = x-radius; i < x+radius; i+=this->pixel_size) {
-            double y_delta = sqrt(radius*radius - i*i)
+            double y_delta = sqrt(radius*radius - i*i);
             for (double j = y-y_delta; j < y+y_delta; j+=this->pixel_size) {
                 this->setAtCoordinate(i, j, OCCUPIED);
             }
@@ -134,7 +135,7 @@ involved.
 */
 const double OCCUPANCY_MAP_WIDTH = 3;   //m
 const double PIXEL_SIZE = 0.01;         //m
-const IndexType OCCUPANCY_MAP_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
+const IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
 // When we have a point that has a pixel above it, we need to fill the occupancy map up to a 
 // certain radius around. This is the radius around which we fill.
 const double FILL_RADIUS = 0.07;        //m
@@ -207,7 +208,7 @@ private:
     Creates the occupancy map.
     */
     void createOccupancyMap(
-        OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH>& occupancy_map, 
+        OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH>& occupancy_map, 
         const pcl::PointIndices& indices);
 };
 
