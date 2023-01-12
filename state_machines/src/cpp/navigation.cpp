@@ -93,6 +93,12 @@ void GettingSuitableNavGoal::pointCloudCallback(const sensor_msgs::PointCloud2& 
 
     OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH> occupancy_map;
     this->createOccupancyMap(occupancy_map, indices);
+
+    occupancy_map.findNavGoal(
+        this->current_location, 
+        this->location_of_interest, 
+        this->distance_away, 
+        0.2);
     
     // pcl::io::savePLYFileBinary("./point_cloud", cloud);
 
@@ -105,13 +111,17 @@ void GettingSuitableNavGoal::pointCloudCallback(const sensor_msgs::PointCloud2& 
     // {
     // }
 
-    ros::shutdown();
+    this->response_filled_out = true;
+
+    this->pointcloud_subscriber.shutdown();
 }
 void GettingSuitableNavGoal::serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actions::NavigationalQuery::Response& resp) {
     this->pointcloud_subscriber = this->node_handle.subscribe("/hsrb/head_rgbd_sensor/depth_registered/points", 1, this->pointCloudCallback); 
 
-    copyPoint(req.navigating_within_reach_of, this->location_of_interest);  
+    this->location_of_interest = req.navigating_within_reach_of;  
+    this->current_location = req.current_pose;
     this->response_filled_out = false;
+    this->distance_away = req.distance_from_obj;
 
     ros::Duration sleep_duration(0,100000000);
     while (true) {
@@ -121,7 +131,7 @@ void GettingSuitableNavGoal::serviceCallback(orion_actions::NavigationalQuery::R
         sleep_duration.sleep();
     }
 
-    copyPoint(this->navigate_to, resp.navigate_to);
+    resp.navigate_to = this->navigate_to;
 
     return;
 }

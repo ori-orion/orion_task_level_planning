@@ -2,6 +2,7 @@
 #include <limits>
 // #include <math>
 #include <math.h>
+#include <queue>
 
 // #include <eigen_conversions/eigen_msg.h>
 #include <ros/ros.h>
@@ -30,6 +31,34 @@
 using Point_T = pcl::PointXYZRGB;
 using PointCloud = pcl::PointCloud<Point_T>;
 
+
+geometry_msgs::Point operator*(const double& mult, const geometry_msgs::Point& p) {
+    geometry_msgs::Point output;
+    output.x = p.x*mult;
+    output.y = p.y*mult;
+    output.z = p.z*mult;
+    return output;
+}
+geometry_msgs::Point operator+(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
+    geometry_msgs::Point output;
+    output.x = p1.x + p2.x;
+    output.y = p1.y + p2.y;
+    output.z = p1.z + p2.z;
+    return output;
+}
+geometry_msgs::Point operator-(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
+    geometry_msgs::Point output;
+    output.x = p1.x - p2.x;
+    output.y = p1.y - p2.y;
+    output.z = p1.z - p2.z;
+    return output;
+}
+template <class T> double length(const T& vec) {
+    /*
+    A simple template class for finding the length of a vector.
+    */
+    return std::sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
 
 
 template<class T, class U> void copyPoint(const T& copying_from, U& copying_to) {
@@ -66,8 +95,8 @@ public:
  */
 #define byteImageType unsigned char
 #define BEYOND_MAP_BOUNDARY UCHAR_MAX
-#define NOT_OCCUPIED 0
-#define OCCUPIED 1
+#define NOT_OCCUPIED 0x00
+#define OCCUPIED 0x01
 template<IndexType dim0, IndexType dim1> class OccupancyMap : public Array2D<byteImageType, dim0, dim1> {
 private:
     double pixel_size;
@@ -83,19 +112,30 @@ public:
     void setAtCoordinate(const double& x, const double&y, const byteImageType& set_to) {
         IndexType i0 = this->spaceToIndex(x, origin_x);
         IndexType i1 = this->spaceToIndex(y, origin_y);
+        this->setAtCoordinate(i0, i1, set_to);
+    }
+    void setAtCoordinate(const IndexType& i0, const IndexType& i1, const byteImageType& set_to) {
         if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
             return;
-        
         this->get(i0, i1) = set_to;
+    }
+    void orAtCoordinate(const IndexType& i0, const IndexType& i1, const byteImageType& or_with) {
+        if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
+            return;
+        byteImageType& editing = this->get(i0, i1); 
+        editing = editing | or_with;
     }
     byteImageType getAtCoordinate(const double& x, const double&y) {
         IndexType i0 = this->spaceToIndex(x, origin_x);
         IndexType i1 = this->spaceToIndex(y, origin_y);
+        return this->getAtCoordinate(i0, i1);
+    }
+    byteImageType getAtCoordinate(const IndexType& i0, const IndexType& i1) {
         if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
             return BEYOND_MAP_BOUNDARY;
-
         return this->get(i0, i1);
     }
+
 
 public:
     void setWithinRadius(const double& x, const double& y, const double& radius) {
@@ -128,10 +168,76 @@ public:
         }
     }
 
-    void findNavGoal(const Point_T& current_location, Point_T& navigating_to, 
+    geometry_msgs::Point findNavGoal(const geometry_msgs::Point& current_location, geometry_msgs::Point& navigating_to, 
         const double& distance_from_target, const double& allowed_error=0.2) {
         
+        const byteImageType PIXEL_IN_QUEUE = 0x40;
+        const byteImageType PIXEL_VISITED = 0x80;
+
+        geometry_msgs::Point output;
+
+        current_location.z = 0; navigating_to.z = 0;
+
+        geometry_msgs::Point nav_delta = current_location - navigating_to;
+        geometry_msgs::Point starting_query_point = navigating_to + distance_from_target/length(nav_delta) * nav_delta;
+
+        IndexType x_index = spaceToIndex(starting_query_point.x, this->origin_x);
+        IndexType y_index = spaceToIndex(starting_query_point.y, this->origin_y);
+
+        std::queue<IndexType> x_index_queue;
+        std::queue<IndexType> y_index_queue;
+        std::queue<IndexType> x_coord_queue;
+        std::queue<IndexType> y_coord_queue;
         
+
+        x_index_queue.push(x_index);
+        y_index_queue.push(y_index);
+        x_coord_queue.push(starting_query_point.x);
+        y_coord_queue.push(starting_query_point.y);
+
+        double x,y;
+
+        const int LEN_DELTAS = 4;
+        IndexType deltas[] = {0,1,0,-1}; 
+
+        geometry_msgs::Point trial_point;
+
+        while(x_index_queue.empty() == false) {
+            x_index = x_index_queue.front(); x_index_queue.pop();
+            y_index = y_index_queue.front(); y_index_queue.pop();
+            x = x_coord_queue.front(); x_coord_queue.pop();
+            y = y_coord_queue.front(); y_coord_queue.pop();
+
+            if (this->getAtCoordinate(x_index, y_index) & OCCUPIED == 0) {
+                output.x = x;
+                output.y = y;
+                return output;
+            }
+            else {
+                // this->orAtCoordinate(x_index, y_index, PIXEL_VISITED);
+                for (char i = 0; i<LEN_DELTAS; i++) {
+                    IndexType trial_x_index = x_index + deltas[i];
+                    IndexType trial_y_index = y_index + deltas[(i+1)%LEN_DELTAS];
+
+                    trial_point.x = this->indexToSpace(trial_x_index, this->origin_x);
+                    trial_point.y = this->indexToSpace(trial_y_index, this->origin_y);
+
+                    if (length(trial_point-navigating_to) < distance_from_target+allowed_error && 
+                        length(trial_point-navigating_to) > distance_from_target-allowed_error &&
+                        this->getAtCoordinate(trial_x_index, trial_y_index) & PIXEL_IN_QUEUE == 0) {
+
+                        x_index_queue.push(trial_x_index);
+                        y_index_queue.push(trial_y_index);
+                        x_coord_queue.push(trial_point.x);
+                        y_coord_queue.push(trial_point.y);
+
+                        this->orAtCoordinate(trial_x_index, trial_y_index, PIXEL_IN_QUEUE);
+                    }
+                }
+            }
+        }
+
+        return output;
     }
 
 private:
@@ -160,8 +266,9 @@ const double FILL_RADIUS = 0.07;        //m
 class GettingSuitableNavGoal {
 private:
     // The point we want to get close to.
-    Point_T location_of_interest;
-    Point_T navigate_to;
+    geometry_msgs::Point location_of_interest;
+    geometry_msgs::Point navigate_to;
+    geometry_msgs::Point current_location;
 
     // The distance away from the object we want to end up in mm.
     double distance_away;
