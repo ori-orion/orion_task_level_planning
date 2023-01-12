@@ -2,11 +2,10 @@
 
 
 GettingSuitableNavGoal::GettingSuitableNavGoal(
-    const Point_T& location_of_interest,
-    const double& distance_away) 
+    const Point_T& location_of_interest, ros::NodeHandle& node_handle, const double& distance_away) 
     : location_of_interest(location_of_interest), distance_away(distance_away),
-    shared_cloud(new PointCloud()),
-    tf_buffer(), tf_listener(tf_buffer) {};
+    shared_cloud(new PointCloud()), tf_buffer(), tf_listener(tf_buffer), node_handle(node_handle), 
+    pointcloud_subscriber(nullptr) {};
 GettingSuitableNavGoal::~GettingSuitableNavGoal() {};
 inline double sq_distance_2D(const Point_T& p1, const Point_T& p2) {
     Point_T vec(p1.x-p2.x, p1.y-p2.y, 0);
@@ -85,18 +84,40 @@ void GettingSuitableNavGoal::pointCloudCallback(const sensor_msgs::PointCloud2& 
     
     pcl::PointIndices indices;
     this->filterOutFloor_FarObjs(indices);
+
+    OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH> occupancy_map;
+    this->createOccupancyMap(occupancy_map, indices);
+    
     // pcl::io::savePLYFileBinary("./point_cloud", cloud);
 
     // std::cout << current_transform << std::endl;
 
     //... populate cloud
-    pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
-    viewer.showCloud(this->shared_cloud);
-    while (!viewer.wasStopped ())
-    {
-    }
+    // pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
+    // viewer.showCloud(this->shared_cloud);
+    // while (!viewer.wasStopped ())
+    // {
+    // }
 
     ros::shutdown();
+}
+void GettingSuitableNavGoal::serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actions::NavigationalQuery::Response& resp) {
+    this->pointcloud_subscriber = this->node_handle.subscribe("/hsrb/head_rgbd_sensor/depth_registered/points", 1, this->pointCloudCallback); 
+
+    copyPoint(req.navigating_within_reach_of, this->location_of_interest);  
+    this->response_filled_out = false;
+
+    ros::Duration sleep_duration(0,100000000);
+    while (true) {
+        if (this->response_filled_out)
+            break;
+
+        sleep_duration.sleep();
+    }
+
+    copyPoint(this->navigate_to, resp.navigate_to);
+
+    return;
 }
 pcl::search::Search<Point_T>::Ptr GettingSuitableNavGoal::getSearchTree(){
     if (this->search_tree.get() == nullptr) {

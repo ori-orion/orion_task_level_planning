@@ -1,14 +1,17 @@
 #include <iostream>
 #include <limits>
-#include <math>
+#include <math.h>
 
 // #include <eigen_conversions/eigen_msg.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Point.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_eigen/tf2_eigen.h> 
+
+#include "orion_actions/NavigationalQuery.h"
 
 #include <pcl/common/transforms.h>
 #include <pcl/point_cloud.h>
@@ -25,6 +28,15 @@
 
 using Point_T = pcl::PointXYZRGB;
 using PointCloud = pcl::PointCloud<Point_T>;
+
+
+
+template<class T, class U> void copyPoint(const T& copying_from, U& copying_to) {
+    copying_to.x = copying_from.x; 
+    copying_to.y = copying_from.y; 
+    copying_to.z = copying_from.z; 
+}
+
 
 
 /* Base class for all 2D arrays.
@@ -115,6 +127,12 @@ public:
         }
     }
 
+    void findNavGoal(const Point_T& current_location, Point_T& navigating_to, 
+        const double& distance_from_target, const double& allowed_error=0.2) {
+        
+        
+    }
+
 private:
     IndexType spaceToIndex(const double& coordinate, const double& starting_coord) {
         return (IndexType)((coordinate-starting_coord)/pixel_size);
@@ -142,6 +160,7 @@ class GettingSuitableNavGoal {
 private:
     // The point we want to get close to.
     Point_T location_of_interest;
+    Point_T navigate_to;
 
     // The distance away from the object we want to end up in mm.
     double distance_away;
@@ -156,9 +175,17 @@ private:
     tf2_ros::TransformListener tf_listener;
 
 
+private:
+    ros::NodeHandle& node_handle;
+    ros::Subscriber pointcloud_subscriber;
+
+    bool response_filled_out;
+
+
 public:
     GettingSuitableNavGoal(
         const Point_T& location_of_interest,
+        ros::NodeHandle& node_handle,
         const double& distance_away=500);
     ~GettingSuitableNavGoal();
 
@@ -195,6 +222,14 @@ private:
     */
     void pointCloudCallback(const sensor_msgs::PointCloud2& msg);
 
+    /*
+    The service callback.
+
+    Entrypoint into the entire system.
+    */
+    void serviceCallback(
+        orion_actions::NavigationalQuery::Request& req,
+        orion_actions::NavigationalQuery::Response& resp);
     
 private:
     /*
