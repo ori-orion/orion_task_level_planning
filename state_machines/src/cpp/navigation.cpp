@@ -19,6 +19,12 @@ inline double GettingSuitableNavGoal::sq_distance(const Point_T& p1, const Point
 inline double GettingSuitableNavGoal::distance(const Point_T& p1, const Point_T& p2) {
     return std::sqrt(this->distance(p1, p2));
 }
+    
+inline double GettingSuitableNavGoal::sq_distance_2D(const Point_T& p1, const Point_T& p2) {
+    Point_T vec(p1.x-p2.x, p1.y-p2.y, 0);
+
+    return vec.x*vec.x + vec.y*vec.y;
+}
 void GettingSuitableNavGoal::transformPointCloud(
     const PointCloud& original, PointCloud& output) {
 
@@ -129,14 +135,14 @@ pcl::search::Search<Point_T>::Ptr GettingSuitableNavGoal::getSearchTree(){
     return this->search_tree;
 }
 void GettingSuitableNavGoal::createOccupancyMap(
-    OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH>& occupancy_map, 
+    OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH>& occupancy_map, 
     const pcl::PointIndices& indices) {
 
     for (auto ptr=indices.indices.begin(); ptr < indices.indices.end(); ptr++) {
         occupancy_map.setWithinRadius(
             this->shared_cloud->points[*ptr].x,
             this->shared_cloud->points[*ptr].y,
-            FILL_RADIUS)
+            FILL_RADIUS);
     }
 }
 
