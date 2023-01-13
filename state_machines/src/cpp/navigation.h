@@ -261,13 +261,6 @@ private:
 
 
 
-/*
-The callback for getting a point cloud as input.
-
-Is the callback for a message of type point cloud.
-*/
-static void pointCloudCallback(const sensor_msgs::PointCloud2& msg);
-
 
 /*
 There are multiple situations where we have something we might want
@@ -293,9 +286,6 @@ public:
     // The distance away from the object we want to end up in mm.
     double distance_away;
 
-    
-    // The search tree for finding the closest points.
-    pcl::search::Search<Point_T>::Ptr search_tree;
 
     pcl::shared_ptr<PointCloud> shared_cloud;
 
@@ -306,14 +296,9 @@ public:
 public:
     ros::NodeHandle& node_handle;
 
-    bool response_filled_out;
-
 
 public:
-    GettingSuitableNavGoal(
-        const geometry_msgs::Point& location_of_interest,
-        ros::NodeHandle& node_handle,
-        const double& distance_away=500);
+    GettingSuitableNavGoal(ros::NodeHandle& node_handle);
     ~GettingSuitableNavGoal();
 
 public:
@@ -334,20 +319,8 @@ public:
     */
     void filterOutFloor_FarObjs(pcl::PointIndices& output);
 
-    /*
-    The service callback.
 
-    Entrypoint into the entire system.
-    */
-    void serviceCallback(
-        orion_actions::NavigationalQuery::Request& req,
-        orion_actions::NavigationalQuery::Response& resp);
-    
-private:
-    /*
-    This function creates the search tree if necessary. It then returns the search tree.
-    */
-    pcl::search::Search<Point_T>::Ptr getSearchTree();
+
 
 public:
     /*
@@ -359,7 +332,14 @@ public:
 };
 
 
+/*
+The service callback.
 
+Entrypoint into the entire system.
+*/
+bool serviceCallback(
+    orion_actions::NavigationalQuery::Request& req,
+    orion_actions::NavigationalQuery::Response& resp);
 
 /*
 The main function.
