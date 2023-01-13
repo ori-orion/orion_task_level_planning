@@ -32,41 +32,43 @@ using Point_T = pcl::PointXYZRGB;
 using PointCloud = pcl::PointCloud<Point_T>;
 
 
-geometry_msgs::Point operator*(const double& mult, const geometry_msgs::Point& p) {
+inline geometry_msgs::Point operator*(const double& mult, const geometry_msgs::Point& p) {
     geometry_msgs::Point output;
     output.x = p.x*mult;
     output.y = p.y*mult;
     output.z = p.z*mult;
     return output;
 }
-geometry_msgs::Point operator+(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
+inline geometry_msgs::Point operator+(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
     geometry_msgs::Point output;
     output.x = p1.x + p2.x;
     output.y = p1.y + p2.y;
     output.z = p1.z + p2.z;
     return output;
 }
-geometry_msgs::Point operator-(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
+inline geometry_msgs::Point operator-(const geometry_msgs::Point& p1, const geometry_msgs::Point& p2) {
     geometry_msgs::Point output;
     output.x = p1.x - p2.x;
     output.y = p1.y - p2.y;
     output.z = p1.z - p2.z;
     return output;
 }
-template <class T> double length(const T& vec) {
+template <class T> inline double length(const T& vec) {
     /*
     A simple template class for finding the length of a vector.
     */
     return std::sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
-
-template<class T, class U> void copyPoint(const T& copying_from, U& copying_to) {
+template<class T, class U> inline void copyPoint(const T& copying_from, U& copying_to) {
     copying_to.x = copying_from.x; 
     copying_to.y = copying_from.y; 
     copying_to.z = copying_from.z; 
 }
-
+template<class T> inline double square(const T& val) { return val*val; }
+template<class T, class U> inline double sq_distance_2D(const T& p1, const U& p2) {
+    return square(p1.x-p2.x) + square(p1.y-p2.y);
+}
 
 
 /* Base class for all 2D arrays.
@@ -257,18 +259,19 @@ navigating to a place NEARBY BUT NOT ONTOP OF a certain goal
 location. This class will work out the suitable navigation goal 
 involved.
 */
-const double OCCUPANCY_MAP_WIDTH = 3;   //m
-const double PIXEL_SIZE = 0.01;         //m
-const IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
+constexpr double OCCUPANCY_MAP_WIDTH = 3;   //m
+constexpr double PIXEL_SIZE = 0.01;         //m
+constexpr IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
 // When we have a point that has a pixel above it, we need to fill the occupancy map up to a 
 // certain radius around. This is the radius around which we fill.
-const double FILL_RADIUS = 0.07;        //m
+constexpr double FILL_RADIUS = 0.07;        //m
 class GettingSuitableNavGoal {
 private:
     // The point we want to get close to.
     geometry_msgs::Point location_of_interest;
     geometry_msgs::Point navigate_to;
     geometry_msgs::Point current_location;
+
 
     // The distance away from the object we want to end up in mm.
     double distance_away;
@@ -303,13 +306,6 @@ private:
     */
     inline double sq_distance(const Point_T& p1, const Point_T& p2);
     inline double distance(const Point_T& p1, const Point_T& p2);
-
-    /*
-    Returns the squared distance between two points, but does so only in the plane. 
-
-    For navigation, we're only really interested in that bit anyway.
-    */
-    inline double sq_distance_2D(const Point_T& p1, const Point_T& p2);
 
 
     /*

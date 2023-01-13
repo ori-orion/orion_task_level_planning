@@ -7,10 +7,6 @@ GettingSuitableNavGoal::GettingSuitableNavGoal(
     shared_cloud(new PointCloud()), tf_buffer(), tf_listener(tf_buffer), node_handle(node_handle), 
     pointcloud_subscriber() {};
 GettingSuitableNavGoal::~GettingSuitableNavGoal() {};
-inline double sq_distance_2D(const Point_T& p1, const Point_T& p2) {
-    Point_T vec(p1.x-p2.x, p1.y-p2.y, 0);
-    return vec.x*vec.x + vec.y*vec.y;
-}
 inline double GettingSuitableNavGoal::sq_distance(const Point_T& p1, const Point_T& p2) {
     Point_T vec(p1.x-p2.x, p1.y-p2.y, p1.z-p2.z);
 
@@ -53,7 +49,7 @@ void GettingSuitableNavGoal::filterOutFloor_FarObjs(pcl::PointIndices& output) {
             continue;
         if (this->shared_cloud->points[i].z > max_height_of_interest)
             continue;
-        if (this->sq_distance_2D(this->shared_cloud->points[i], this->location_of_interest) > max_radius_of_interest_sq)
+        if (sq_distance_2D(this->shared_cloud->points[i], this->location_of_interest) > max_radius_of_interest_sq)
             continue;
 
         output.indices.push_back(i);
@@ -91,7 +87,7 @@ void GettingSuitableNavGoal::pointCloudCallback(const sensor_msgs::PointCloud2& 
     pcl::PointIndices indices;
     this->filterOutFloor_FarObjs(indices);
 
-    OccupancyMap<OCCUPANCY_MAP_WIDTH, OCCUPANCY_MAP_WIDTH> occupancy_map;
+    OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH> occupancy_map;
     this->createOccupancyMap(occupancy_map, indices);
 
     occupancy_map.findNavGoal(
