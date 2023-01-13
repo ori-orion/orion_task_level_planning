@@ -69,6 +69,13 @@ template<class T> inline double square(const T& val) { return val*val; }
 template<class T, class U> inline double sq_distance_2D(const T& p1, const U& p2) {
     return square(p1.x-p2.x) + square(p1.y-p2.y);
 }
+template<class T> constexpr geometry_msgs::Point toGeoPoint(const T& p) {
+    geometry_msgs::Point output;
+    output.x = p.x;
+    output.y = p.y;
+    output.z = p.z;
+    return output;
+}
 
 
 /* Base class for all 2D arrays.
@@ -107,7 +114,7 @@ private:
 
 public:
     OccupancyMap(const double& pixel_size, const double& origin_x, const double& origin_y) 
-        : Array2D<char, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y) {};
+        : Array2D<byteImageType, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y) {};
     ~OccupancyMap() {};
 
 public:
@@ -178,10 +185,11 @@ public:
 
         geometry_msgs::Point output;
 
-        current_location.z = 0; navigating_to.z = 0;
+        // current_location.z = 0; navigating_to.z = 0;
 
         geometry_msgs::Point nav_delta = current_location - navigating_to;
-        geometry_msgs::Point starting_query_point = navigating_to + distance_from_target/length(nav_delta) * nav_delta;
+        geometry_msgs::Point starting_query_point = navigating_to + distance_from_target/
+            std::sqrt(sq_distance_2D(current_location, navigating_to)) * nav_delta;
 
         IndexType x_index = spaceToIndex(starting_query_point.x, this->origin_x);
         IndexType y_index = spaceToIndex(starting_query_point.y, this->origin_y);
@@ -252,6 +260,15 @@ private:
 };
 
 
+
+/*
+The callback for getting a point cloud as input.
+
+Is the callback for a message of type point cloud.
+*/
+static void pointCloudCallback(const sensor_msgs::PointCloud2& msg);
+
+
 /*
 There are multiple situations where we have something we might want
 to pick up, or put down in a certain location. This involves 
@@ -266,7 +283,7 @@ constexpr IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
 // certain radius around. This is the radius around which we fill.
 constexpr double FILL_RADIUS = 0.07;        //m
 class GettingSuitableNavGoal {
-private:
+public:
     // The point we want to get close to.
     geometry_msgs::Point location_of_interest;
     geometry_msgs::Point navigate_to;
@@ -286,21 +303,20 @@ private:
     tf2_ros::TransformListener tf_listener;
 
 
-private:
+public:
     ros::NodeHandle& node_handle;
-    ros::Subscriber pointcloud_subscriber;
 
     bool response_filled_out;
 
 
 public:
     GettingSuitableNavGoal(
-        const Point_T& location_of_interest,
+        const geometry_msgs::Point& location_of_interest,
         ros::NodeHandle& node_handle,
         const double& distance_away=500);
     ~GettingSuitableNavGoal();
 
-private:
+public:
     /*
     Gets the distance between two points.
     */
@@ -318,14 +334,6 @@ private:
     */
     void filterOutFloor_FarObjs(pcl::PointIndices& output);
 
-    
-    /*
-    The callback for getting a point cloud as input.
-
-    Is the callback for a message of type point cloud.
-    */
-    void pointCloudCallback(const sensor_msgs::PointCloud2& msg);
-
     /*
     The service callback.
 
@@ -341,7 +349,7 @@ private:
     */
     pcl::search::Search<Point_T>::Ptr getSearchTree();
 
-private:
+public:
     /*
     Creates the occupancy map.
     */
@@ -349,6 +357,8 @@ private:
         OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH>& occupancy_map, 
         const pcl::PointIndices& indices);
 };
+
+
 
 
 /*
