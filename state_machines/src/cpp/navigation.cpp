@@ -5,7 +5,7 @@ GettingSuitableNavGoal::GettingSuitableNavGoal(
     const Point_T& location_of_interest, ros::NodeHandle& node_handle, const double& distance_away) 
     : location_of_interest(location_of_interest), distance_away(distance_away),
     shared_cloud(new PointCloud()), tf_buffer(), tf_listener(tf_buffer), node_handle(node_handle), 
-    pointcloud_subscriber(nullptr) {};
+    pointcloud_subscriber() {};
 GettingSuitableNavGoal::~GettingSuitableNavGoal() {};
 inline double sq_distance_2D(const Point_T& p1, const Point_T& p2) {
     Point_T vec(p1.x-p2.x, p1.y-p2.y, 0);
