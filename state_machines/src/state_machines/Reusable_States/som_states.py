@@ -47,6 +47,13 @@ class CreateSOMQuery(smach.State):
         return SUCCESS;
 
 class PerformSOMQuery(smach.State):
+    """
+    Performs a SOM query.
+    Inputs:
+        som_query:<query_type>                  : The query we will give the SOM system. This does type checking for the correct query.
+    Outputs:
+        som_query_results:List[<response_type>] : The response in the form of a raw array.
+    """
     def __init__(self):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE],
