@@ -119,6 +119,8 @@ class SimpleNavigateState(smach.State):
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
 
+        userdata.number_of_failures = 0;
+
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
@@ -152,7 +154,7 @@ class SimpleNavigateState(smach.State):
         navigate_action_client.cancel_all_goals()
         rospy.loginfo('status = ' + str(status))
         if status == GoalStatus.SUCCEEDED:
-            userdata.number_of_failures = 0
+            userdata.number_of_failures = 0;
             return SUCCESS
         else:
             return self.repeat_failure_infrastructure(userdata);
@@ -280,7 +282,8 @@ class NavigateDistanceFromGoalSafely(smach.State):
         smach.State.__init__(
             self, 
             outcomes=[SUCCESS],
-            input_keys=['pose']);
+            input_keys=['pose'],
+            output_keys=['nav_target']);
 
         self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
 
@@ -294,34 +297,30 @@ class NavigateDistanceFromGoalSafely(smach.State):
         if self.execute_nav_commands == False:
             return SUCCESS;
 
-        self._mb_client.wait_for_server();
+        rospy.wait_for_service("tlp/get_nav_goal");
+        nav_goal_getter = rospy.ServiceProxy('tlp/get_nav_goal', NavigationalQuery);
 
-        target_pose:Pose = userdata.pose;
-        target_pose.position.z = 0;
+        nav_goal_getter_req = NavigationalQueryRequest();
+        nav_goal_getter_req.navigating_within_reach_of = userdata.pose.position;
+        nav_goal_getter_req.distance_from_obj = self.DISTANCE_FROM_POSE;
+        nav_goal_getter_req.current_pose = get_current_pose();
+
+        nav_goal_getter_resp = nav_goal_getter(nav_goal_getter_req);
+        nav_goal_getter_resp.navigate_to.position.z = 0;
+
+        userdata.nav_target = nav_goal_getter_resp.navigate_to;
+        return SUCCESS;
+
+        self._mb_client.wait_for_server();
 
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose = target_pose;
-        rospy.loginfo(goal.target_pose.pose)
+        goal.target_pose.pose = nav_goal_getter_resp.navigate_to;
+        rospy.loginfo(goal.target_pose.pose);
         
         self._mb_client.send_goal(goal);
-        print(self._mb_client.get_state());
-        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.PENDING:
-            rospy.sleep(0.1);
-
-        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
-            rospy.sleep(0.1);
-            # rospy.loginfo("Checking location");
-            robot_pose = self.get_robot_pose();
-            robot_pose.position.z = 0;
-            dist_between_poses = distance_between_poses(robot_pose, target_pose);
-            if dist_between_poses < NavigateDistanceFromGoalSafely.DISTANCE_FROM_POSE:
-                rospy.loginfo("Preempting move_base action because we are the distance we want to be from the goal.");
-                self._mb_client.cancel_all_goals();
-                break;
-            pass;
         
         # Waiting for the result as a backup.
         self._mb_client.wait_for_result();

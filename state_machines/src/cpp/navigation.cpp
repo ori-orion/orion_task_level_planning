@@ -110,7 +110,12 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     // {
     // }
 
-    resp.navigate_to = getting_suitable_nav_goal.navigate_to;
+    geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - getting_suitable_nav_goal.navigate_to;
+    nav_delta = (1/length(nav_delta)) * nav_delta;
+
+    resp.navigate_to.position = getting_suitable_nav_goal.navigate_to;
+    resp.navigate_to.orientation.w = nav_delta.x;
+    resp.navigate_to.orientation.z = nav_delta.y;
 
     return true;
 }
