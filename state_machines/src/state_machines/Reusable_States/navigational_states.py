@@ -278,16 +278,14 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
     DISTANCE_FROM_POSE = 1;
 
-    def __init__(self, execute_nav_commands):
+    def __init__(self):
         smach.State.__init__(
             self, 
             outcomes=[SUCCESS],
             input_keys=['pose'],
             output_keys=['nav_target']);
 
-        self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
-
-        self.execute_nav_commands = execute_nav_commands;
+        # self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
 
     def get_robot_pose(self) -> Pose:
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
