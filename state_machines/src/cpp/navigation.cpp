@@ -20,35 +20,62 @@ void GettingSuitableNavGoal::transformPointCloud(
     const std::string target_frame = "map";
     const std::string source_frame = "head_rgbd_sensor_rgb_frame";
 
-    geometry_msgs::TransformStamped transform = this->tf_buffer.lookupTransform(
+    
+
+    const geometry_msgs::TransformStamped transform = this->tf_buffer.lookupTransform(
         target_frame, source_frame, ros::Time(0), ros::Duration(5));
+
     Eigen::Isometry3d matrix_transform = tf2::transformToEigen(transform);
     Eigen::Affine3d affine_transformation(matrix_transform);
 
     pcl::transformPointCloud(original, output, affine_transformation);
 
+    // pcl_ros::transformPointCloud( 
+    //     original,
+    //     output,
+    //     transform.transform);
+
 }
 void GettingSuitableNavGoal::filterOutFloor_FarObjs(pcl::PointIndices& output) {
     // All vals are in mm
-    const double max_floor_height = 10;
-    const double max_height_of_interest = 2000;
-    const double max_radius_of_interest = 1000;
+    const double max_floor_height = 0.01;
+    const double max_height_of_interest = 2;
+    const double max_radius_of_interest = 3;
     const double max_radius_of_interest_sq = max_radius_of_interest*max_radius_of_interest; 
 
+    std::cout 
+        << "(" << this->location_of_interest.x 
+        << ", " << this->location_of_interest.y 
+        << ", " << this->location_of_interest.z << ")" << std::endl;
+
     for (int i = 0; i < this->shared_cloud->points.size(); i++) {
+
+        if (std::isnan(this->shared_cloud->points[i].x) || std::isnan(this->shared_cloud->points[i].y))
+            continue;
+
+        std::cout 
+            << "\t(" <<this->shared_cloud->points[i].x
+            << ", " <<this->shared_cloud->points[i].y
+            << ", " <<this->shared_cloud->points[i].z
+            << ")\t";
+
         if (this->shared_cloud->points[i].z < max_floor_height)
             continue;
         if (this->shared_cloud->points[i].z > max_height_of_interest)
             continue;
         if (sq_distance_2D(this->shared_cloud->points[i], this->location_of_interest) > max_radius_of_interest_sq)
             continue;
+        
 
         output.indices.push_back(i);
     }
+    std::cout << std::endl;
 }
 void GettingSuitableNavGoal::createOccupancyMap(
     OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH>& occupancy_map, 
     const pcl::PointIndices& indices) {
+
+    std::cout << "createOccupancyMap(...)" << std::endl;
 
     for (auto ptr=indices.indices.begin(); ptr < indices.indices.end(); ptr++) {
         occupancy_map.setWithinRadius(
@@ -56,6 +83,7 @@ void GettingSuitableNavGoal::createOccupancyMap(
             this->shared_cloud->points[*ptr].y,
             FILL_RADIUS);
     }
+    std::cout << "\nEND createOccupancyMap(...)" << std::endl;
 }
 
 
@@ -90,6 +118,11 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
         << getting_suitable_nav_goal.shared_cloud->points.size() 
         << " points." 
         << std::endl;
+
+    // ... populate cloud
+    pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
+    viewer.showCloud(getting_suitable_nav_goal.shared_cloud);
+    while (!viewer.wasStopped ()) {}
     
     pcl::PointIndices indices;
     getting_suitable_nav_goal.filterOutFloor_FarObjs(indices);
@@ -104,6 +137,7 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
         PIXEL_SIZE, 
         getting_suitable_nav_goal.location_of_interest.x - OCCUPANCY_MAP_WIDTH/2,
         getting_suitable_nav_goal.location_of_interest.y - OCCUPANCY_MAP_WIDTH/2);
+
     getting_suitable_nav_goal.createOccupancyMap(occupancy_map, indices);
 
     occupancy_map.print();
@@ -113,17 +147,14 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
         getting_suitable_nav_goal.location_of_interest, 
         getting_suitable_nav_goal.distance_away, 
         0.2);
+
+    occupancy_map.print();
     
     // pcl::io::savePLYFileBinary("./point_cloud", cloud);
 
     // std::cout << current_transform << std::endl;
 
-    //... populate cloud
-    // pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
-    // viewer.showCloud(this->shared_cloud);
-    // while (!viewer.wasStopped ())
-    // {
-    // }
+
 
     geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - resp.navigate_to.position;
     nav_delta = (1/length(nav_delta)) * nav_delta;

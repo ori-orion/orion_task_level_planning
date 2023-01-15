@@ -22,6 +22,7 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/PointIndices.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/transforms.h>
 
 #include <memory>
 
@@ -114,18 +115,24 @@ private:
 
 public:
     OccupancyMap(const double& pixel_size, const double& origin_x, const double& origin_y) 
-        : Array2D<byteImageType, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y), pixel_size(pixel_size) {};
+        : Array2D<byteImageType, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y), 
+        pixel_size(pixel_size), printed(false) {};
     ~OccupancyMap() {};
 
 public:
     void setAtCoordinate(const double& x, const double&y, const byteImageType& set_to) {
+        // std::cout << "d";
         IndexType i0 = this->spaceToIndex(x, origin_x);
         IndexType i1 = this->spaceToIndex(y, origin_y);
         this->setAtCoordinate(i0, i1, set_to);
     }
     void setAtCoordinate(const IndexType& i0, const IndexType& i1, const byteImageType& set_to) {
-        if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0)
+        if (i0 >= dim0 || i0 < 0 || i1 >= dim1 || i1 < 0){
+            // if (printed==false)
+            //     std::cout << "(" << i0 << ", " << i1 << ")";
             return;
+        }
+        // std::cout << ".";
         this->get(i0, i1) = set_to;
     }
     void orAtCoordinate(const IndexType& i0, const IndexType& i1, const byteImageType& or_with) {
@@ -147,13 +154,31 @@ public:
 
 
 public:
+    bool printed;
     void setWithinRadius(const double& x, const double& y, const double& radius) {
-        for (double i = x-radius; i < x+radius; i+=this->pixel_size) {
+        // if (printed == false)
+        //     std::cout 
+        //         << "\tpixel_size=" << this->pixel_size << std::endl
+        //         << "\tStart: (" << x << ", " << y << ")"
+        //         << std::endl;
+        
+        for (double i = -radius; i < radius; i+=this->pixel_size) {
+            // if (printed == false) 
+            //     std::cout << "[";
             double y_delta = sqrt(radius*radius - i*i);
-            for (double j = y-y_delta; j < y+y_delta; j+=this->pixel_size) {
-                this->setAtCoordinate(i, j, OCCUPIED);
+            // if (printed == false)
+            //     std::cout << "\t" << y_delta;
+            for (double j = -y_delta; j < y_delta; j+=this->pixel_size) {
+                // if (printed == false) 
+                //     std::cout << "\t;(" << i+x << ", " << j+y << ")";
+                this->setAtCoordinate(i+x, j+y, OCCUPIED);
+                // if (printed == false)
+                //     std::cout << std::endl;
             }
+            // if (printed == false) 
+            //     std::cout << "]," << std::endl;
         }
+        printed = true;
     }
 
     void print() {
@@ -173,7 +198,7 @@ public:
                     }
                 }
                 if (print_question == true) std::cout << "?";
-                else if (print_space == true) std::cout << " ";
+                else if (print_space == true) std::cout << ".";
                 else std::cout << "X";
 
             }
@@ -209,7 +234,8 @@ public:
         IndexType x_index = spaceToIndex(starting_query_point.x, this->origin_x);
         IndexType y_index = spaceToIndex(starting_query_point.y, this->origin_y);
 
-        std::cout << "Starting indices: (" << x_index << ", " << y_index << ")" << std::endl;
+        std::cout << "Starting indices: (" << x_index << ", " << y_index 
+            << "), that being at (" << starting_query_point.x << ", " << starting_query_point.y << ")" << std::endl;
 
         std::queue<IndexType> x_index_queue;
         std::queue<IndexType> y_index_queue;
@@ -235,18 +261,18 @@ public:
             x = x_coord_queue.front(); x_coord_queue.pop();
             y = y_coord_queue.front(); y_coord_queue.pop();
 
-            // std::cout 
-                // << "\tIntrospecting (" 
-                // << x_index 
-                // << ", " 
-                // << y_index 
-                // << ")" 
-                // << std::endl;
+            std::cout 
+                << "\tIntrospecting (" 
+                << x_index 
+                << ", " 
+                << y_index 
+                << "), that being at (" << x << ", " << y << ")" 
+                << std::endl;
 
-            if (this->getAtCoordinate(x_index, y_index) & OCCUPIED == 0) {
+            if ((this->getAtCoordinate(x_index, y_index) & OCCUPIED) == 0) {
                 output.x = x;
                 output.y = y;
-                // std::cout << "\t\tUnoccupied pixel." << std::endl;
+                std::cout << "\t\tUnoccupied pixel at (" << x << ", " << y << ")" << std::endl;
                 return output;
             }
             else {
@@ -293,6 +319,7 @@ public:
 
 private:
     IndexType spaceToIndex(const double& coordinate, const double& starting_coord) {
+        
         // std::cout << "\t\tdelta=" << coordinate-starting_coord << " pixel_size=" << pixel_size << std::endl;
         return (IndexType)((coordinate-starting_coord)/pixel_size);
     }
