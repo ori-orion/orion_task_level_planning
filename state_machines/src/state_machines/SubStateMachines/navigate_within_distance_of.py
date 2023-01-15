@@ -33,10 +33,10 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
 
         smach.StateMachine.add(
             'NavToGoal',
-            SimpleNavigateState(False),
+            SimpleNavigateState(execute_nav_commands),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:'NavToGoal',
+                FAILURE:'LookAtObject',
                 REPEAT_FAILURE: FAILURE},
             remapping={
                 'pose':'nav_target'
@@ -102,8 +102,8 @@ if __name__ == '__main__':
 
     sub_sm = navigate_within_distance_of_pose_input(True);
     sub_sm.userdata.target_pose = Pose();
-    sub_sm.userdata.target_pose.position.x = -0.3;
-    sub_sm.userdata.target_pose.position.y = -1.3;
+    sub_sm.userdata.target_pose.position.x = 4.9;#-0.3;
+    sub_sm.userdata.target_pose.position.y = 0.7;#-1.3;
     sub_sm.userdata.target_pose.position.z = 1.107;
     
     sub_sm.execute();

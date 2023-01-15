@@ -239,8 +239,8 @@ public:
 
         std::queue<IndexType> x_index_queue;
         std::queue<IndexType> y_index_queue;
-        std::queue<IndexType> x_coord_queue;
-        std::queue<IndexType> y_coord_queue;
+        std::queue<double> x_coord_queue;
+        std::queue<double> y_coord_queue;
         
 
         x_index_queue.push(x_index);
@@ -343,7 +343,7 @@ constexpr double PIXEL_SIZE = 0.01;         //m
 constexpr IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
 // When we have a point that has a pixel above it, we need to fill the occupancy map up to a 
 // certain radius around. This is the radius around which we fill.
-constexpr double FILL_RADIUS = 0.07;        //m
+constexpr double FILL_RADIUS = 0.15;        //m
 class GettingSuitableNavGoal {
 public:
     // The point we want to get close to.

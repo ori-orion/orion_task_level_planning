@@ -37,27 +37,27 @@ void GettingSuitableNavGoal::transformPointCloud(
 
 }
 void GettingSuitableNavGoal::filterOutFloor_FarObjs(pcl::PointIndices& output) {
-    // All vals are in mm
+    // All vals are in m
     const double max_floor_height = 0.01;
     const double max_height_of_interest = 2;
     const double max_radius_of_interest = 3;
     const double max_radius_of_interest_sq = max_radius_of_interest*max_radius_of_interest; 
 
-    std::cout 
-        << "(" << this->location_of_interest.x 
-        << ", " << this->location_of_interest.y 
-        << ", " << this->location_of_interest.z << ")" << std::endl;
+    // std::cout 
+    //     << "(" << this->location_of_interest.x 
+    //     << ", " << this->location_of_interest.y 
+    //     << ", " << this->location_of_interest.z << ")" << std::endl;
 
     for (int i = 0; i < this->shared_cloud->points.size(); i++) {
 
         if (std::isnan(this->shared_cloud->points[i].x) || std::isnan(this->shared_cloud->points[i].y))
             continue;
 
-        std::cout 
-            << "\t(" <<this->shared_cloud->points[i].x
-            << ", " <<this->shared_cloud->points[i].y
-            << ", " <<this->shared_cloud->points[i].z
-            << ")\t";
+        // std::cout 
+        //     << "\t(" <<this->shared_cloud->points[i].x
+        //     << ", " <<this->shared_cloud->points[i].y
+        //     << ", " <<this->shared_cloud->points[i].z
+        //     << ")\t";
 
         if (this->shared_cloud->points[i].z < max_floor_height)
             continue;
@@ -120,9 +120,9 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
         << std::endl;
 
     // ... populate cloud
-    pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
-    viewer.showCloud(getting_suitable_nav_goal.shared_cloud);
-    while (!viewer.wasStopped ()) {}
+    // pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
+    // viewer.showCloud(getting_suitable_nav_goal.shared_cloud);
+    // while (!viewer.wasStopped ()) {}
     
     pcl::PointIndices indices;
     getting_suitable_nav_goal.filterOutFloor_FarObjs(indices);
@@ -153,7 +153,7 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     // pcl::io::savePLYFileBinary("./point_cloud", cloud);
 
     // std::cout << current_transform << std::endl;
-
+    getting_suitable_nav_goal.shared_cloud.reset(new PointCloud());
 
 
     geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - resp.navigate_to.position;
@@ -168,7 +168,7 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
 
 int main(int argc, char **argv) {
     // ROS_DEBUG("Hello world");
-    std::cout << "Hello world" << std::endl;
+    // std::cout << "Hello world" << std::endl;
 
 
 

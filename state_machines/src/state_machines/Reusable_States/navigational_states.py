@@ -119,8 +119,6 @@ class SimpleNavigateState(smach.State):
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
 
-        userdata.number_of_failures = 0;
-
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
@@ -147,6 +145,7 @@ class SimpleNavigateState(smach.State):
             distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
 
             rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
+            rospy.loginfo('status = ' + str(navigate_action_client.get_state()))
             return self.repeat_failure_infrastructure(userdata);
 
         navigate_action_client.wait_for_result();
