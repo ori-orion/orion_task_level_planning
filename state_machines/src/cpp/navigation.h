@@ -114,7 +114,7 @@ private:
 
 public:
     OccupancyMap(const double& pixel_size, const double& origin_x, const double& origin_y) 
-        : Array2D<byteImageType, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y) {};
+        : Array2D<byteImageType, dim0, dim1>(), origin_x(origin_x), origin_y(origin_y), pixel_size(pixel_size) {};
     ~OccupancyMap() {};
 
 public:
@@ -163,13 +163,17 @@ public:
             for (int j = 0; j < dim1; j += cells_per_print) {
                 
                 bool print_space = true;
+                bool print_question = false;
                 for (int k = 0; k < cells_per_print; k++) {
                     for (int l = 0; l < cells_per_print; l++) {
                         if (this->get(i+k, j+l) == OCCUPIED)
                             print_space = false;
+                        else if (this->get(i+k, j+l) != NOT_OCCUPIED)
+                            print_question = true;
                     }
                 }
-                if (print_space == true) std::cout << " ";
+                if (print_question == true) std::cout << "?";
+                else if (print_space == true) std::cout << " ";
                 else std::cout << "X";
 
             }
@@ -188,11 +192,24 @@ public:
         // current_location.z = 0; navigating_to.z = 0;
 
         geometry_msgs::Point nav_delta = current_location - navigating_to;
-        geometry_msgs::Point starting_query_point = navigating_to + distance_from_target/
-            std::sqrt(sq_distance_2D(current_location, navigating_to)) * nav_delta;
+        nav_delta.z = 0;
+        geometry_msgs::Point starting_query_point = navigating_to + (distance_from_target/length(nav_delta)) * nav_delta;
+
+        std::cout 
+            << "findNavGoal(...)" << std::endl
+            << "\tStarting point:   (" << starting_query_point.x << ", " << starting_query_point.y << ")" << std::endl
+            << "\tOrigin:           (" << this->origin_x << ", " << this->origin_y << ")" << std::endl
+            << "\tCurrent location: (" << current_location.x << ", " << current_location.y << ")" << std::endl
+            << "\tTarget location:  (" << navigating_to.x << ", " << navigating_to.y << ")" << std::endl
+            << "\tnav_delta         (" << nav_delta.x << ", " << nav_delta.y << ")" << std::endl
+            << "\tstarting_query_point"
+            << std::endl;
+
 
         IndexType x_index = spaceToIndex(starting_query_point.x, this->origin_x);
         IndexType y_index = spaceToIndex(starting_query_point.y, this->origin_y);
+
+        std::cout << "Starting indices: (" << x_index << ", " << y_index << ")" << std::endl;
 
         std::queue<IndexType> x_index_queue;
         std::queue<IndexType> y_index_queue;
@@ -218,9 +235,18 @@ public:
             x = x_coord_queue.front(); x_coord_queue.pop();
             y = y_coord_queue.front(); y_coord_queue.pop();
 
+            // std::cout 
+                // << "\tIntrospecting (" 
+                // << x_index 
+                // << ", " 
+                // << y_index 
+                // << ")" 
+                // << std::endl;
+
             if (this->getAtCoordinate(x_index, y_index) & OCCUPIED == 0) {
                 output.x = x;
                 output.y = y;
+                // std::cout << "\t\tUnoccupied pixel." << std::endl;
                 return output;
             }
             else {
@@ -229,12 +255,23 @@ public:
                     IndexType trial_x_index = x_index + deltas[i];
                     IndexType trial_y_index = y_index + deltas[(i+1)%LEN_DELTAS];
 
+                    // std::cout << "\t\ttrialling(" << trial_x_index << ", " << trial_y_index << "), val=" 
+                    //     << (int)(this->getAtCoordinate(trial_x_index, trial_y_index)) << std::endl;
+
                     trial_point.x = this->indexToSpace(trial_x_index, this->origin_x);
                     trial_point.y = this->indexToSpace(trial_y_index, this->origin_y);
 
-                    if (length(trial_point-navigating_to) < distance_from_target+allowed_error && 
-                        length(trial_point-navigating_to) > distance_from_target-allowed_error &&
-                        this->getAtCoordinate(trial_x_index, trial_y_index) & PIXEL_IN_QUEUE == 0) {
+                    double length_delta = length(trial_point-navigating_to);
+                    // std::cout 
+                        // << "\t\t\tdistance_from_target: " << distance_from_target 
+                        // << "  allowed_error: " << allowed_error
+                        // << "  length_delta: " << length_delta << std::endl;
+
+                    if (length_delta < distance_from_target+allowed_error && 
+                        length_delta > distance_from_target-allowed_error &&
+                        (this->getAtCoordinate(trial_x_index, trial_y_index) & PIXEL_IN_QUEUE) == 0) {
+
+                        // std::cout << "\t\t\tAdding pixel trialed" << std::endl; 
 
                         x_index_queue.push(trial_x_index);
                         y_index_queue.push(trial_y_index);
@@ -247,11 +284,16 @@ public:
             }
         }
 
+        std::cout 
+            << "Falling through the entire loop." 
+            << std::endl;
+
         return output;
     }
 
 private:
     IndexType spaceToIndex(const double& coordinate, const double& starting_coord) {
+        // std::cout << "\t\tdelta=" << coordinate-starting_coord << " pixel_size=" << pixel_size << std::endl;
         return (IndexType)((coordinate-starting_coord)/pixel_size);
     }
     double indexToSpace(const IndexType& index, const double& starting_coord) {

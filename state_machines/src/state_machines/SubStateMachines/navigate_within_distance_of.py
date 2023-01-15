@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import smach; 
 from state_machines.Reusable_States.include_all import *;
 
@@ -10,8 +12,15 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
     sub_sm.userdata.failure_threshold =3;
 
     with sub_sm:
-        # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
-        #   TODO - fix and test the check door state for future competitions
+        smach.StateMachine.add(
+            "LookAtObject",
+            LookAtPoint(z_looking_at=None),
+            transitions={
+                SUCCESS:'FindNavGoal'},
+            remapping={
+                'pose':'target_pose'});
+
+
         smach.StateMachine.add(
             'FindNavGoal',
             NavigateDistanceFromGoalSafely(),

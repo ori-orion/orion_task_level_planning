@@ -21,7 +21,7 @@ void GettingSuitableNavGoal::transformPointCloud(
     const std::string source_frame = "head_rgbd_sensor_rgb_frame";
 
     geometry_msgs::TransformStamped transform = this->tf_buffer.lookupTransform(
-        target_frame, source_frame, ros::Time(0));
+        target_frame, source_frame, ros::Time(0), ros::Duration(5));
     Eigen::Isometry3d matrix_transform = tf2::transformToEigen(transform);
     Eigen::Affine3d affine_transformation(matrix_transform);
 
@@ -70,30 +70,45 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
 
     GettingSuitableNavGoal getting_suitable_nav_goal(*node_handle);
 
-    ros::Time time_message_received = ros::Time::now(); 
-    const std::string target = "map";
-    const std::string source = "head_rgbd_sensor_rgb_frame";
+    // ros::Time time_message_received = ros::Time::now(); 
+    // const std::string target = "map";
+    // const std::string source = "head_rgbd_sensor_rgb_frame";
 
     getting_suitable_nav_goal.location_of_interest = req.navigating_within_reach_of;  
     getting_suitable_nav_goal.current_location = req.current_pose;
     getting_suitable_nav_goal.distance_away = req.distance_from_obj;
 
+    getting_suitable_nav_goal.location_of_interest.z = 0;
+    getting_suitable_nav_goal.current_location.z = 0;
+
     PointCloud cloud;
     pcl::fromROSMsg(*msg, cloud);
     getting_suitable_nav_goal.transformPointCloud(cloud, *(getting_suitable_nav_goal.shared_cloud.get()));
 
-    std::cout << "Received cloud with " << getting_suitable_nav_goal.shared_cloud->points.size() << " points.";
+    std::cout 
+        << "Received cloud with " 
+        << getting_suitable_nav_goal.shared_cloud->points.size() 
+        << " points." 
+        << std::endl;
     
     pcl::PointIndices indices;
     getting_suitable_nav_goal.filterOutFloor_FarObjs(indices);
 
+    std::cout 
+        << "Filtered down to a point cloud with " 
+        << indices.indices.size() 
+        << " points." 
+        << std::endl;
+
     OccupancyMap<OCCUPANCY_MAP_PIXEL_WIDTH, OCCUPANCY_MAP_PIXEL_WIDTH> occupancy_map(
         PIXEL_SIZE, 
-        getting_suitable_nav_goal.location_of_interest.x-OCCUPANCY_MAP_WIDTH/2,
-        getting_suitable_nav_goal.location_of_interest.x-OCCUPANCY_MAP_WIDTH/2);
+        getting_suitable_nav_goal.location_of_interest.x - OCCUPANCY_MAP_WIDTH/2,
+        getting_suitable_nav_goal.location_of_interest.y - OCCUPANCY_MAP_WIDTH/2);
     getting_suitable_nav_goal.createOccupancyMap(occupancy_map, indices);
 
-    occupancy_map.findNavGoal(
+    occupancy_map.print();
+
+    resp.navigate_to.position = occupancy_map.findNavGoal(
         getting_suitable_nav_goal.current_location, 
         getting_suitable_nav_goal.location_of_interest, 
         getting_suitable_nav_goal.distance_away, 
@@ -110,12 +125,11 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     // {
     // }
 
-    geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - getting_suitable_nav_goal.navigate_to;
+    geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - resp.navigate_to.position;
     nav_delta = (1/length(nav_delta)) * nav_delta;
 
-    resp.navigate_to.position = getting_suitable_nav_goal.navigate_to;
-    resp.navigate_to.orientation.w = nav_delta.x;
-    resp.navigate_to.orientation.z = nav_delta.y;
+    resp.navigate_to.orientation.w = nav_delta.y;
+    resp.navigate_to.orientation.z = nav_delta.x;
 
     return true;
 }
@@ -127,7 +141,7 @@ int main(int argc, char **argv) {
 
 
 
-    ros::init(argc, argv, "tlp/nav_goal_getter");
+    ros::init(argc, argv, "nav_goal_getter");
     ros::NodeHandle n;
     node_handle = &n;
 
