@@ -55,7 +55,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
             'PerformQuery',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'FindMyMatesOperatorDetection',
+                SUCCESS:'GetLocation',
                 FAILURE:FAILURE},
             remapping={});
 
@@ -63,10 +63,10 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
         # the position out of that as a node to navigate to. We can then navigate to that location. 
 
         smach.StateMachine.add(
-            'PerformQuery',
+            'GetLocation',
             GetPropertyAtIndex(property_getting='obj_position', index=0),
             transitions={
-                SUCCESS:'FindMyMatesOperatorDetection',
+                SUCCESS:'NavToLoc',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
@@ -81,6 +81,80 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
 
     return sub_sm;
 
+def search_for_entity():
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE],
+        input_keys=['obj_type'],
+        output_keys=['som_query_results']);
+    
+    with sub_sm:
+        smach.StateMachine.add(
+            'CreateObjQuery',
+            CreateSOMQuery(
+                CreateSOMQuery.OBJECT_QUERY, 
+                save_time=True),
+            transitions={
+                SUCCESS: 'SpinOnSpot'},
+            remapping={'class_':'obj_type'});
+
+        smach.StateMachine.add(
+            'SpinOnSpot',
+            SpinState(),
+            transitions={
+                SUCCESS:'PerformQuery'},
+            remapping={});
+
+        smach.StateMachine.add(
+            'PerformQuery',
+            PerformSOMQuery(),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE},
+            remapping={});
+
+    return sub_sm;
+
+def nav_and_pick_up(execute_nav_commands):
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        input_keys=['obj_type'],
+        output_keys=[]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'search_for_entity',
+            search_for_entity(),
+            transitions={
+                SUCCESS:'GetLocation',
+                FAILURE:FAILURE});
+
+        smach.StateMachine.add(
+            'GetLocation',
+            GetPropertyAtIndex(property_getting='obj_position', index=0),
+            transitions={
+                SUCCESS:'NavToLoc',
+                'index_out_of_range':'query_empty'},
+            remapping={
+                'input_list':'som_query_results',
+                'output_param':'target_pose'});
+
+        smach.StateMachine.add(
+            'NavToLoc',
+            navigate_within_distance_of_pose_input(execute_nav_commands),
+            transitions={
+                SUCCESS:'PickUpObject',
+                FAILURE:FAILURE});
+
+        smach.StateMachine.add(
+            'PickUpObject',
+            PickUpObjectState(),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:'PickUpObject',
+                REPEAT_FAILURE:FAILURE},
+            remapping={
+                'object_name':'obj_type'});
+
 if __name__ == '__main__':
     # This is set up for the simulation environment we commonly use.
     # roslaunch hsrb_gazebo_launch hsrb_megaweb2015_launch
@@ -91,11 +165,15 @@ if __name__ == '__main__':
     # sub_sm.userdata.approximate_operator_pose = Pose();
     # sub_sm.execute();
 
-    sub_sm = navigate_within_distance_of_pose_input(True);
-    sub_sm.userdata.target_pose = Pose();
-    sub_sm.userdata.target_pose.position.x = -0.3;
-    sub_sm.userdata.target_pose.position.y = -7.3;
-    sub_sm.userdata.target_pose.position.z = 1.107;
+    # For simulation environment:
+    # sub_sm = navigate_within_distance_of_pose_input(True);
+    # sub_sm.userdata.target_pose = Pose();
+    # sub_sm.userdata.target_pose.position.x = -0.3;
+    # sub_sm.userdata.target_pose.position.y = -7.3;
+    # sub_sm.userdata.target_pose.position.z = 1.107;
+
+    sub_sm = nav_and_pick_up(True);
+    sub_sm.userdata.obj_type = 'potted plant';
     
     sub_sm.execute();
 

@@ -20,6 +20,14 @@ Overall interface into SOM:
 
 
 class CreateSOMQuery(smach.State):
+    """
+    Creates a query for the SOM system.
+
+    inputs:
+        class_:str      : Optional attribute. If defined, this will be set within a potential object query.
+    outputs:
+        som_query:str   : The output query.
+    """
 
     HUMAN_QUERY = 1;
     OBJECT_QUERY = 2;
@@ -27,7 +35,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=[],
+            input_keys=['class_'],
             output_keys=['som_query'])
 
         self.query_type = query_type;
@@ -39,6 +47,8 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryHumansRequest();
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
+            if hasattr(userdata, "class_"):
+                output.query.class_ = userdata.class_;
 
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
