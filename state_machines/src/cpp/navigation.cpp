@@ -20,15 +20,21 @@ void GettingSuitableNavGoal::transformPointCloud(
     const std::string target_frame = "map";
     const std::string source_frame = "head_rgbd_sensor_rgb_frame";
 
-    
+    std::cout << "\tLooking up transformation" << std::endl;    
 
     const geometry_msgs::TransformStamped transform = this->tf_buffer.lookupTransform(
         target_frame, source_frame, ros::Time(0), ros::Duration(5));
 
+    std::cout << "\tGetting the eigen Affine3d transformation." << std::endl;
+
     Eigen::Isometry3d matrix_transform = tf2::transformToEigen(transform);
     Eigen::Affine3d affine_transformation(matrix_transform);
 
+    std::cout << "\tTransforming the point cloud." << std::endl;
+
     pcl::transformPointCloud(original, output, affine_transformation);
+
+    std::cout << "\tPoint cloud transformed" << std::endl;
 
     // pcl_ros::transformPointCloud( 
     //     original,
@@ -44,7 +50,7 @@ void GettingSuitableNavGoal::filterOutFloor_FarObjs(pcl::PointIndices& output) {
     const double max_radius_of_interest_sq = max_radius_of_interest*max_radius_of_interest; 
 
     // std::cout 
-    //     << "(" << this->location_of_interest.x 
+    //     << "(" << this->location_of_interest.x  
     //     << ", " << this->location_of_interest.y 
     //     << ", " << this->location_of_interest.z << ")" << std::endl;
 
@@ -113,9 +119,14 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     getting_suitable_nav_goal.location_of_interest.z = 0;
     getting_suitable_nav_goal.current_location.z = 0;
 
+    std::cout << "Variables from the service call have been stored." << std::endl;
+
     PointCloud cloud;
     pcl::fromROSMsg(*msg, cloud);
+    std::cout << "Converted to pcl point cloud." << std::endl;
     getting_suitable_nav_goal.transformPointCloud(cloud, *(getting_suitable_nav_goal.shared_cloud.get()));
+
+    std::cout << "Transformed point cloud" << std::endl;
 
     std::cout 
         << "Received cloud with " 
