@@ -186,6 +186,8 @@ int main(int argc, char **argv) {
 
     // ros::Subscriber sub = n.subscribe("/hsrb/head_rgbd_sensor/depth_registered/points", 2, chatterCallback);
 
+    std::cout << "Services started" << std::endl;
+
     ros::spin();
 
     return 0;

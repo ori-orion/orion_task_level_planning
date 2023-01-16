@@ -339,11 +339,11 @@ location. This class will work out the suitable navigation goal
 involved.
 */
 constexpr double OCCUPANCY_MAP_WIDTH = 3;   //m
-constexpr double PIXEL_SIZE = 0.01;         //m
+constexpr double PIXEL_SIZE = 0.05;         //m
 constexpr IndexType OCCUPANCY_MAP_PIXEL_WIDTH = OCCUPANCY_MAP_WIDTH/PIXEL_SIZE;
 // When we have a point that has a pixel above it, we need to fill the occupancy map up to a 
 // certain radius around. This is the radius around which we fill.
-constexpr double FILL_RADIUS = 0.15;        //m
+constexpr double FILL_RADIUS = 0.35;        //m
 class GettingSuitableNavGoal {
 public:
     // The point we want to get close to.
