@@ -275,7 +275,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     DISTANCE_FROM_POSE gives the distance we want to sit from the target pose 'pose'.
     """
 
-    DISTANCE_FROM_POSE = 1;
+    DISTANCE_FROM_POSE = 0.6;
 
     def __init__(self):
         smach.State.__init__(
