@@ -101,7 +101,7 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     std::cout << "serviceCallback(...)" << std::endl;
 
     boost::shared_ptr<const sensor_msgs::PointCloud2> msg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(
-        "/hsrb/head_rgbd_sensor/depth_registered/points",
+        "/hsrb/head_rgbd_sensor/depth_registered/rectified_points",
         ros::Duration(20));
 
     std::cout << "Is msg nullptr: " << (msg == nullptr) << std::endl;
