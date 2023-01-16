@@ -119,8 +119,6 @@ class SimpleNavigateState(smach.State):
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
 
-        userdata.number_of_failures = 0;
-
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
@@ -147,6 +145,7 @@ class SimpleNavigateState(smach.State):
             distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
 
             rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
+            rospy.loginfo('status = ' + str(navigate_action_client.get_state()))
             return self.repeat_failure_infrastructure(userdata);
 
         navigate_action_client.wait_for_result();
@@ -292,21 +291,23 @@ class NavigateDistanceFromGoalSafely(smach.State):
         return robot_pose.pose;
 
     def execute(self, userdata):
-        if self.execute_nav_commands == False:
-            return SUCCESS;
-
         rospy.wait_for_service("tlp/get_nav_goal");
         nav_goal_getter = rospy.ServiceProxy('tlp/get_nav_goal', NavigationalQuery);
 
+        print(userdata.pose);
         nav_goal_getter_req = NavigationalQueryRequest();
         nav_goal_getter_req.navigating_within_reach_of = userdata.pose.position;
         nav_goal_getter_req.distance_from_obj = self.DISTANCE_FROM_POSE;
-        nav_goal_getter_req.current_pose = get_current_pose();
+        nav_goal_getter_req.current_pose = get_current_pose().position;
+        print(nav_goal_getter_req);
 
-        nav_goal_getter_resp = nav_goal_getter(nav_goal_getter_req);
+        nav_goal_getter_resp:NavigationalQueryResponse = nav_goal_getter(nav_goal_getter_req);
         nav_goal_getter_resp.navigate_to.position.z = 0;
 
         userdata.nav_target = nav_goal_getter_resp.navigate_to;
+
+        print("Positing a nav goal of", nav_goal_getter_resp.navigate_to);
+
         return SUCCESS;
 
         self._mb_client.wait_for_server();

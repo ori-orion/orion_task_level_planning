@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import smach; 
 from state_machines.Reusable_States.include_all import *;
 
@@ -10,8 +12,15 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
     sub_sm.userdata.failure_threshold =3;
 
     with sub_sm:
-        # wait for the start signal - this has been replaced by the WAIT_FOR_HOTWORD state
-        #   TODO - fix and test the check door state for future competitions
+        smach.StateMachine.add(
+            "LookAtObject",
+            LookAtPoint(z_looking_at=None),
+            transitions={
+                SUCCESS:'FindNavGoal'},
+            remapping={
+                'pose':'target_pose'});
+
+
         smach.StateMachine.add(
             'FindNavGoal',
             NavigateDistanceFromGoalSafely(),
@@ -27,7 +36,7 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
             SimpleNavigateState(execute_nav_commands),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:'NavToGoal',
+                FAILURE:'LookAtObject',
                 REPEAT_FAILURE: FAILURE},
             remapping={
                 'pose':'nav_target'
@@ -174,6 +183,13 @@ if __name__ == '__main__':
 
     sub_sm = nav_and_pick_up(True);
     sub_sm.userdata.obj_type = 'potted plant';
+
+    
+    # sub_sm = navigate_within_distance_of_pose_input(True);
+    # sub_sm.userdata.target_pose = Pose();
+    # sub_sm.userdata.target_pose.position.x = 4.9;#-0.3;
+    # sub_sm.userdata.target_pose.position.y = 0.7;#-1.3;
+    # sub_sm.userdata.target_pose.position.z = 1.107;
     
     sub_sm.execute();
 
