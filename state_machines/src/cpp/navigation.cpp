@@ -92,9 +92,13 @@ static ros::NodeHandle* node_handle;
 
 bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actions::NavigationalQuery::Response& resp) {
 
+    std::cout << "serviceCallback(...)" << std::endl;
+
     boost::shared_ptr<const sensor_msgs::PointCloud2> msg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(
         "/hsrb/head_rgbd_sensor/depth_registered/points",
         ros::Duration(1));
+
+    std::cout << "Post the construction of msg" << std::endl;
 
     GettingSuitableNavGoal getting_suitable_nav_goal(*node_handle);
 

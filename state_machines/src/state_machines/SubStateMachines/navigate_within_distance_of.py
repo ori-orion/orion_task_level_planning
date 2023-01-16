@@ -101,9 +101,9 @@ def search_for_entity():
             'CreateObjQuery',
             CreateSOMQuery(
                 CreateSOMQuery.OBJECT_QUERY, 
-                save_time=True),
+                save_time=False),
             transitions={
-                SUCCESS: 'SpinOnSpot'},
+                SUCCESS: 'PerformQuery'},
             remapping={'class_':'obj_type'});
 
         smach.StateMachine.add(
@@ -164,6 +164,8 @@ def nav_and_pick_up(execute_nav_commands):
             remapping={
                 'object_name':'obj_type'});
 
+    return sub_sm;
+
 if __name__ == '__main__':
     # This is set up for the simulation environment we commonly use.
     # roslaunch hsrb_gazebo_launch hsrb_megaweb2015_launch
@@ -182,7 +184,7 @@ if __name__ == '__main__':
     # sub_sm.userdata.target_pose.position.z = 1.107;
 
     sub_sm = nav_and_pick_up(True);
-    sub_sm.userdata.obj_type = 'potted plant';
+    sub_sm.userdata.obj_type = 'potted_plant';
 
     
     # sub_sm = navigate_within_distance_of_pose_input(True);
