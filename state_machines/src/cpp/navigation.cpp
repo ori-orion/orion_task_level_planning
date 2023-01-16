@@ -104,6 +104,8 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
         "/hsrb/head_rgbd_sensor/depth_registered/points",
         ros::Duration(1));
 
+    std::cout << "Is msg nullptr: " << *msg == nullptr << std::endl;
+
     std::cout << "Post the construction of msg" << std::endl;
 
     GettingSuitableNavGoal getting_suitable_nav_goal(*node_handle);
