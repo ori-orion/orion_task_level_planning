@@ -611,6 +611,22 @@ class SearchForGuestNavToNextNode(smach.State):
 if __name__ == '__main__':
     rospy.init_node('listening_to_nav');
 
-    NavigationalListener();
+    # NavigationalListener();
+
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "OrientTowards",
+            OrientRobot(),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE});
+        pass;
+    
+    sub_sm.userdata.orient_towards = Pose();
+    sub_sm.userdata.orient_towards.x = -0.7;
+    sub_sm.userdata.orient_towards.y = -1;
+    sub_sm.execute();
 
     rospy.spin();
