@@ -173,11 +173,13 @@ bool serviceCallback(orion_actions::NavigationalQuery::Request& req, orion_actio
     getting_suitable_nav_goal.shared_cloud.reset(new PointCloud());
 
 
-    geometry_msgs::Point nav_delta = getting_suitable_nav_goal.current_location - resp.navigate_to.position;
+    geometry_msgs::Point nav_delta = resp.navigate_to.position - getting_suitable_nav_goal.current_location;
     nav_delta = (1/length(nav_delta)) * nav_delta;
 
-    resp.navigate_to.orientation.w = nav_delta.y;
-    resp.navigate_to.orientation.z = nav_delta.x;
+    double angle = atan2(nav_delta.y, nav_delta.x);
+
+    resp.navigate_to.orientation.w = cos(angle/2);
+    resp.navigate_to.orientation.z = sin(angle/2);
 
     return true;
 }

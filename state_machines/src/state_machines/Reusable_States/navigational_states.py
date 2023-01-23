@@ -354,14 +354,25 @@ class OrientRobot(smach.State):
         print(type(current_position));
         position_delta.x = orient_towards.position.x - current_position.x;
         position_delta.y = orient_towards.position.y - current_position.y;
+        print("Position delta: ({0},{1})".format(position_delta.x, position_delta.y));
         length = get_point_magnitude(position_delta);
         position_delta.x /= length;
         position_delta.y /= length;
         print("Position delta length: {0}".format(get_point_magnitude(position_delta)));
+        print("Normalised position delta: ({0},{1})".format(position_delta.x, position_delta.y));
         nav_to:Pose = Pose();
         nav_to.position = current_position;
-        nav_to.orientation.w = position_delta.x;
-        nav_to.orientation.z = position_delta.y;
+
+        angle = math.atan2(position_delta.y, position_delta.x);
+        print("Angle:", angle);
+        nav_to.orientation.z = math.sin(angle/2);
+        nav_to.orientation.w = math.cos(angle/2);
+
+
+        # nav_to.orientation.z = 0;
+        # nav_to.orientation.w = 1;
+
+        print("nav_to", nav_to);
 
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
@@ -632,8 +643,8 @@ if __name__ == '__main__':
         pass;
     
     sub_sm.userdata.orient_towards = Pose();
-    sub_sm.userdata.orient_towards.position.x = -0.7;
-    sub_sm.userdata.orient_towards.position.y = -1;
+    sub_sm.userdata.orient_towards.position.x = 4;
+    sub_sm.userdata.orient_towards.position.y = 0;
     sub_sm.execute();
 
     rospy.spin();
