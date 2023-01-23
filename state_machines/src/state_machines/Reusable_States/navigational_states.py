@@ -625,8 +625,8 @@ if __name__ == '__main__':
         pass;
     
     sub_sm.userdata.orient_towards = Pose();
-    sub_sm.userdata.orient_towards.x = -0.7;
-    sub_sm.userdata.orient_towards.y = -1;
+    sub_sm.userdata.orient_towards.orientation.x = -0.7;
+    sub_sm.userdata.orient_towards.orientation.y = -1;
     sub_sm.execute();
 
     rospy.spin();
