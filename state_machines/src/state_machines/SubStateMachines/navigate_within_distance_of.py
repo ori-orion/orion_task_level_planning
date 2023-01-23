@@ -149,10 +149,12 @@ def nav_and_pick_up(execute_nav_commands):
 
         smach.StateMachine.add(
             'NavToLoc',
-            navigate_within_distance_of_pose_input(execute_nav_commands),
+            OrientRobot(),
+            # navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
-                SUCCESS:'PickUpObject',
-                FAILURE:FAILURE});
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE},
+            remapping={'orient_towards':'target_pose'});
 
         smach.StateMachine.add(
             'PickUpObject',
@@ -185,7 +187,6 @@ if __name__ == '__main__':
 
     sub_sm = nav_and_pick_up(True);
     sub_sm.userdata.obj_type = 'potted_plant';
-
     
     # sub_sm = navigate_within_distance_of_pose_input(True);
     # sub_sm.userdata.target_pose = Pose();
