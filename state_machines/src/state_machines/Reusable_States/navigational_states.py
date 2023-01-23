@@ -347,7 +347,7 @@ class OrientRobot(smach.State):
 
     def execute(self, userdata):
         orient_towards:Pose = userdata.orient_towards;
-        current_position:Point = self.get_robot_pose();
+        current_position:Point = self.get_robot_pose().position;
 
         position_delta:Point = Point();
         print(type(orient_towards));
