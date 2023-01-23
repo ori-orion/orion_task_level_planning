@@ -350,6 +350,8 @@ class OrientRobot(smach.State):
         current_position:Point = self.get_robot_pose();
 
         position_delta:Point = Point();
+        print(type(orient_towards));
+        print(type(current_position));
         position_delta.x = orient_towards.position.x - current_position.x;
         position_delta.y = orient_towards.position.y - current_position.y;
         length = get_point_magnitude(position_delta);
