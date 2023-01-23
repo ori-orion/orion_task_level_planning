@@ -331,6 +331,9 @@ class NavigateDistanceFromGoalSafely(smach.State):
 class OrientRobot(smach.State):
     """
     Orients the robot towards a goal point.
+
+    Inputs:
+        userdata.orient_towards:Pose
     """
     def __init__(self):
         smach.State.__init__(
@@ -344,7 +347,7 @@ class OrientRobot(smach.State):
 
     def execute(self, userdata):
         orient_towards:Pose = userdata.orient_towards;
-        current_position:Point = self.get_robot_pose().position;
+        current_position:Point = self.get_robot_pose();
 
         position_delta:Point = Point();
         position_delta.x = orient_towards.position.x - current_position.x;
@@ -353,13 +356,15 @@ class OrientRobot(smach.State):
         position_delta.x /= length;
         position_delta.y /= length;
         print("Position delta length: {0}".format(get_point_magnitude(position_delta)));
-        current_position.orientation.w = position_delta.x;
-        current_position.orientation.z = position_delta.y;
+        nav_to:Pose = Pose();
+        nav_to.position = current_position;
+        nav_to.orientation.w = position_delta.x;
+        nav_to.orientation.z = position_delta.y;
 
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose = current_position;
+        goal.target_pose.pose = nav_to;
         # rospy.loginfo(goal.target_pose.pose)
 
         navigate_action_client = actionlib.SimpleActionClient('move_base/move',  MoveBaseAction)
@@ -625,8 +630,10 @@ if __name__ == '__main__':
         pass;
     
     sub_sm.userdata.orient_towards = Pose();
-    sub_sm.userdata.orient_towards.orientation.x = -0.7;
-    sub_sm.userdata.orient_towards.orientation.y = -1;
+    sub_sm.userdata.orient_towards.x = -0.7;
+    sub_sm.userdata.orient_towards.y = -1;
     sub_sm.execute();
+
+    rospy.spin();
 
     rospy.spin();
