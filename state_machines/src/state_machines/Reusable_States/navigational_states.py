@@ -145,6 +145,7 @@ class SimpleNavigateState(smach.State):
             distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
 
             rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
+            rospy.loginfo('status = ' + str(navigate_action_client.get_state()))
             return self.repeat_failure_infrastructure(userdata);
 
         navigate_action_client.wait_for_result();
@@ -152,7 +153,7 @@ class SimpleNavigateState(smach.State):
         navigate_action_client.cancel_all_goals()
         rospy.loginfo('status = ' + str(status))
         if status == GoalStatus.SUCCEEDED:
-            userdata.number_of_failures = 0
+            userdata.number_of_failures = 0;
             return SUCCESS
         else:
             return self.repeat_failure_infrastructure(userdata);
@@ -272,62 +273,128 @@ class NavigateDistanceFromGoalSafely(smach.State):
     We want to be able to navigate to a human and sit 1m away from them without colliding into anything.
 
     DISTANCE_FROM_POSE gives the distance we want to sit from the target pose 'pose'.
+
+    Uses the node defined within state_machines/src/cpp/navigation.cpp
     """
 
-    DISTANCE_FROM_POSE = 1;
+    DISTANCE_FROM_POSE = 0.6;
 
-    def __init__(self, execute_nav_commands):
+    def __init__(self):
         smach.State.__init__(
             self, 
             outcomes=[SUCCESS],
-            input_keys=['pose']);
+            input_keys=['pose'],
+            output_keys=['nav_target']);
 
-        self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
-
-        self.execute_nav_commands = execute_nav_commands;
+        # self._mb_client = actionlib.SimpleActionClient('move_base/move', MoveBaseAction)
 
     def get_robot_pose(self) -> Pose:
         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
         return robot_pose.pose;
 
     def execute(self, userdata):
-        if self.execute_nav_commands == False:
-            return SUCCESS;
+        rospy.wait_for_service("tlp/get_nav_goal");
+        nav_goal_getter = rospy.ServiceProxy('tlp/get_nav_goal', NavigationalQuery);
+
+        print(userdata.pose);
+        nav_goal_getter_req = NavigationalQueryRequest();
+        nav_goal_getter_req.navigating_within_reach_of = userdata.pose.position;
+        nav_goal_getter_req.distance_from_obj = self.DISTANCE_FROM_POSE;
+        nav_goal_getter_req.current_pose = get_current_pose().position;
+        print(nav_goal_getter_req);
+
+        nav_goal_getter_resp:NavigationalQueryResponse = nav_goal_getter(nav_goal_getter_req);
+        nav_goal_getter_resp.navigate_to.position.z = 0;
+
+        userdata.nav_target = nav_goal_getter_resp.navigate_to;
+
+        print("Positing a nav goal of", nav_goal_getter_resp.navigate_to);
+
+        return SUCCESS;
 
         self._mb_client.wait_for_server();
-
-        target_pose:Pose = userdata.pose;
-        target_pose.position.z = 0;
 
         rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose = target_pose;
-        rospy.loginfo(goal.target_pose.pose)
+        goal.target_pose.pose = nav_goal_getter_resp.navigate_to;
+        rospy.loginfo(goal.target_pose.pose);
         
         self._mb_client.send_goal(goal);
-        print(self._mb_client.get_state());
-        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.PENDING:
-            rospy.sleep(0.1);
-
-        while self._mb_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
-            rospy.sleep(0.1);
-            # rospy.loginfo("Checking location");
-            robot_pose = self.get_robot_pose();
-            robot_pose.position.z = 0;
-            dist_between_poses = distance_between_poses(robot_pose, target_pose);
-            if dist_between_poses < NavigateDistanceFromGoalSafely.DISTANCE_FROM_POSE:
-                rospy.loginfo("Preempting move_base action because we are the distance we want to be from the goal.");
-                self._mb_client.cancel_all_goals();
-                break;
-            pass;
         
         # Waiting for the result as a backup.
         self._mb_client.wait_for_result();
 
         return SUCCESS;
 
+class OrientRobot(smach.State):
+    """
+    Orients the robot towards a goal point.
+
+    Inputs:
+        userdata.orient_towards:Pose
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['orient_towards']);
+    
+    def get_robot_pose(self) -> Pose:
+        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+        return robot_pose.pose;
+
+    def execute(self, userdata):
+        orient_towards:Pose = userdata.orient_towards;
+        current_position:Point = self.get_robot_pose().position;
+
+        position_delta:Point = Point();
+        print(type(orient_towards));
+        print(type(current_position));
+        position_delta.x = orient_towards.position.x - current_position.x;
+        position_delta.y = orient_towards.position.y - current_position.y;
+        print("Position delta: ({0},{1})".format(position_delta.x, position_delta.y));
+        length = get_point_magnitude(position_delta);
+        position_delta.x /= length;
+        position_delta.y /= length;
+        print("Position delta length: {0}".format(get_point_magnitude(position_delta)));
+        print("Normalised position delta: ({0},{1})".format(position_delta.x, position_delta.y));
+        nav_to:Pose = Pose();
+        nav_to.position = current_position;
+
+        angle = math.atan2(position_delta.y, position_delta.x);
+        print("Angle:", angle);
+        nav_to.orientation.z = math.sin(angle/2);
+        nav_to.orientation.w = math.cos(angle/2);
+
+
+        # nav_to.orientation.z = 0;
+        # nav_to.orientation.w = 1;
+
+        print("nav_to", nav_to);
+
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = nav_to;
+        # rospy.loginfo(goal.target_pose.pose)
+
+        navigate_action_client = actionlib.SimpleActionClient('move_base/move',  MoveBaseAction)
+        rospy.loginfo('\t\tWaiting for move_base/move.');
+        navigate_action_client.wait_for_server();
+        rospy.loginfo('\t\tSending nav goal.');
+        navigate_action_client.send_goal(goal);
+        
+        navigate_action_client.wait_for_result();
+        status = navigate_action_client.get_state();
+        navigate_action_client.cancel_all_goals()
+        rospy.loginfo('status = ' + str(status))
+        if status == GoalStatus.SUCCEEDED:
+            # userdata.number_of_failures = 0;
+            return SUCCESS;
+        else:
+            return FAILURE;
 #endregion
 
 class GetNextNavLoc(smach.State):
@@ -562,6 +629,24 @@ class SearchForGuestNavToNextNode(smach.State):
 if __name__ == '__main__':
     rospy.init_node('listening_to_nav');
 
-    NavigationalListener();
+    # NavigationalListener();
+
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "OrientTowards",
+            OrientRobot(),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE});
+        pass;
+    
+    sub_sm.userdata.orient_towards = Pose();
+    sub_sm.userdata.orient_towards.position.x = 4;
+    sub_sm.userdata.orient_towards.position.y = 0;
+    sub_sm.execute();
+
+    rospy.spin();
 
     rospy.spin();

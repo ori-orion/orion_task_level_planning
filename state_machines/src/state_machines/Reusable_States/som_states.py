@@ -22,13 +22,12 @@ Overall interface into SOM:
 
 class CreateSOMQuery(smach.State):
     """
-    Creates a SOM query for an object.
-    input_keys:
-        object_class    - an optional parameter for adding object class information.
-    output_keys:
-        som_query       - the output query
-    results:
-        SUCCESS 
+    Creates a query for the SOM system.
+
+    inputs:
+        class_:str      : Optional attribute. If defined, this will be set within a potential object query.
+    outputs:
+        som_query:str   : The output query.
     """
 
     HUMAN_QUERY = 1;
@@ -37,7 +36,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['object_class'],
+            input_keys=['class_'],
             output_keys=['som_query'])
 
         self.query_type = query_type;
@@ -49,6 +48,8 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryHumansRequest();
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
+            if hasattr(userdata, "class_"):
+                output.query.class_ = userdata.class_;
 
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
@@ -68,14 +69,11 @@ class CreateSOMQuery(smach.State):
 
 class PerformSOMQuery(smach.State):
     """
-    Performs a SOM query given an input query.
-    input_keys:
-        som_query                - A query to be executed
-    output_keys:    
-        som_query_results:list   - The results of the query
-    results:
-        SUCCESS                  - If the query succeeded.
-        FAILURE                  - If query is not of an expected type.
+    Performs a SOM query.
+    Inputs:
+        som_query:<query_type>                  : The query we will give the SOM system. This does type checking for the correct query.
+    Outputs:
+        som_query_results:List[<response_type>] : The response in the form of a raw array.
     """
     def __init__(self):
         smach.State.__init__(self, 
