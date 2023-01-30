@@ -115,7 +115,7 @@ def search_for_entity():
 
         smach.StateMachine.add(
             'PerformQuery',
-            PerformSOMQuery(),
+            PerformSOMQuery(distance_filter=4),
             transitions={
                 SUCCESS:SUCCESS,
                 FAILURE:FAILURE},

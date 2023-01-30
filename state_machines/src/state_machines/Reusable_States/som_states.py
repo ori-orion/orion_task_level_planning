@@ -12,6 +12,8 @@ import math;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
+from typing import List;
+
 """
 Overall interface into SOM:
     - First you make a query.
@@ -70,16 +72,21 @@ class CreateSOMQuery(smach.State):
 class PerformSOMQuery(smach.State):
     """
     Performs a SOM query.
+    distance_filter - We may want to filter observations by distance from the robot. 
+        If this is non-zero, this will do that filtering.
+
     Inputs:
         som_query:<query_type>                  : The query we will give the SOM system. This does type checking for the correct query.
     Outputs:
         som_query_results:List[<response_type>] : The response in the form of a raw array.
     """
-    def __init__(self):
+    def __init__(self, distance_filter:float=0):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE],
             input_keys=['som_query'],
             output_keys=['som_query_results']);
+            
+        self.distance_filter = distance_filter;
 
     def execute(self, userdata):
 
@@ -88,20 +95,33 @@ class PerformSOMQuery(smach.State):
         print(query);
         print(rospy.Time.now());
 
+        output:List[SOMObject] = [];
+
         if type(query) == SOMQueryHumansRequest:
             rospy.wait_for_service('/som/humans/basic_query');
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
             result:SOMQueryHumansResponse = human_query_srv(query);
+            output = result.returns;
         elif type(query) == SOMQueryObjectsRequest:
             rospy.wait_for_service('/som/objects/basic_query');
             object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
             result:SOMQueryObjectsResponse = object_query_srv(query);
+            output = result.returns;
         else:
             return FAILURE;
 
-        userdata.som_query_results = result.returns;
-        rospy.loginfo('\t\t' + str(len(result.returns)) + " entities found matching the query.")
-        print(result);
+        if self.distance_filter != 0:
+            current_pose = get_current_pose();
+            output_carry = [];
+            for element in output:
+                if distance_between_poses(current_pose, element.obj_position) < self.distance_filter:
+                    output_carry.append(element);
+            output = output_carry
+            pass;
+
+        userdata.som_query_results = output;
+        rospy.loginfo('\t\t' + str(len(output)) + " entities found matching the query.")
+        print(output);
         return SUCCESS;
 
 class FindMyMates_IdentifyOperatorGuests(smach.State):

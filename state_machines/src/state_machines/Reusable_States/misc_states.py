@@ -199,7 +199,7 @@ class SpinState(smach.State):
             the horizontal plane. This parameter gives the vertical height off the 
             ground for the robot to look at.
     """
-    def __init__(self, spin_height=1):
+    def __init__(self, spin_height:float=1):
         smach.State.__init__(self, 
                                 outcomes = [SUCCESS],
                                 input_keys=[], output_keys=[]);
