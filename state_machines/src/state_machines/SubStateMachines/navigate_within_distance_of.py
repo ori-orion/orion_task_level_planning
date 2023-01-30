@@ -151,10 +151,10 @@ def nav_and_pick_up(execute_nav_commands):
 
         smach.StateMachine.add(
             'NavToLoc',
-            OrientRobot(),
-            # navigate_within_distance_of_pose_input(execute_nav_commands),
+            # OrientRobot(),
+            navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
-                SUCCESS:SUCCESS,
+                SUCCESS:'PickUpObject',
                 FAILURE:FAILURE},
             remapping={'orient_towards':'target_pose'});
 
@@ -208,4 +208,5 @@ def test_pipeline():
     sub_sm.execute();
 
 if __name__ == '__main__':
-    test_search_for_entity();
+    # test_search_for_entity();
+    test_pipeline();
