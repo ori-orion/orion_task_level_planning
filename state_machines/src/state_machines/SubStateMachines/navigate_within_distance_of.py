@@ -155,7 +155,7 @@ def nav_and_pick_up(execute_nav_commands):
             navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
                 SUCCESS:'PickUpObject',
-                FAILURE:FAILURE},
+                FAILURE:'PickUpObject'},
             remapping={'orient_towards':'target_pose'});
 
         smach.StateMachine.add(
