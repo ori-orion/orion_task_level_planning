@@ -103,7 +103,7 @@ def search_for_entity():
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=False),
             transitions={
-                SUCCESS: 'PerformQuery'},
+                SUCCESS: 'SpinOnSpot'},
             remapping={'class_':'obj_type'});
 
         smach.StateMachine.add(
