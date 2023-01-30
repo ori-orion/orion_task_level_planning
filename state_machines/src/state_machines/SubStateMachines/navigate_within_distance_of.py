@@ -108,7 +108,7 @@ def search_for_entity():
 
         smach.StateMachine.add(
             'SpinOnSpot',
-            SpinState(),
+            SpinState(spin_height=0.7),
             transitions={
                 SUCCESS:'PerformQuery'},
             remapping={});
@@ -122,6 +122,8 @@ def search_for_entity():
             remapping={});
 
     return sub_sm;
+
+
 
 def nav_and_pick_up(execute_nav_commands):
     sub_sm = smach.StateMachine(
@@ -168,7 +170,16 @@ def nav_and_pick_up(execute_nav_commands):
 
     return sub_sm;
 
-if __name__ == '__main__':
+
+def test_search_for_entity():
+    rospy.init_node('search_for_entity_test');
+
+    sub_sm = search_for_entity();
+    sub_sm.userdata.obj_type = 'potted_plant';
+
+    sub_sm.execute();
+    pass;
+def test_pipeline():
     # This is set up for the simulation environment we commonly use.
     # roslaunch hsrb_gazebo_launch hsrb_megaweb2015_launch
 
@@ -196,4 +207,5 @@ if __name__ == '__main__':
     
     sub_sm.execute();
 
-    rospy.spin();
+if __name__ == '__main__':
+    test_search_for_entity();
