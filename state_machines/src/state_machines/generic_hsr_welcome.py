@@ -56,7 +56,9 @@ def create_state_machine():
                     ("name", "Hi, I'm Bam Bam. I hope you're enjoying the day. What's your name?", NAMES)
                 ],
                 append_result_to_array=False),
-            transitions={SUCCESS:'GiveInformation'});
+            transitions={
+                SUCCESS:'GiveInformation',
+                "no_response":'GiveInformation'});
 
         smach.StateMachine.add(
             'GiveInformation',
