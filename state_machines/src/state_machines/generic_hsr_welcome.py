@@ -47,7 +47,7 @@ def create_state_machine():
         smach.StateMachine.add(
             'LookAtOperator',
             LookUpState(height=1.7),
-            transitions={SUCCESS: 'IntroToOperator'});
+            transitions={SUCCESS: 'SpeakToOperator'});
         
         smach.StateMachine.add(
             'SpeakToOperator',
