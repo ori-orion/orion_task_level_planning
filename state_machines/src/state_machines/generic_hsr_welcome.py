@@ -56,7 +56,15 @@ def create_state_machine():
                     ("name", "Hi, I'm Bam Bam. I hope you're enjoying the day. What's your name?", NAMES)
                 ],
                 append_result_to_array=False),
-            transitions={SUCCESS:'AskOperatorName'});
+            transitions={SUCCESS:'GiveInformation'});
+
+        smach.StateMachine.add(
+            'GiveInformation',
+            SpeakState(phrase="I am a Toyota Human Support Robot, designed to help people with everyday tasks around the house. \
+                I can do lots of things: recognise human speech, detect objects with my camera, fetch things with my gripper,\
+                take out the trash, and even act as a host for your next party! I am used for research by PhD students, as well\
+                as for a care home projcet. I am also used by team Orion, to compete at the annual RoboCup at Home competition."),
+            transitions={SUCCESS:TASK_SUCCESS});
     
         sm = setupErrorStates(sm);
         
