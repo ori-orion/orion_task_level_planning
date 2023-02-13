@@ -14,7 +14,7 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
     with sub_sm:
         smach.StateMachine.add(
             "LookAtObject",
-            LookAtPoint(z_looking_at=None),
+            LookAtPoint(z_looking_at=0.9),
             transitions={
                 SUCCESS:'FindNavGoal'},
             remapping={
