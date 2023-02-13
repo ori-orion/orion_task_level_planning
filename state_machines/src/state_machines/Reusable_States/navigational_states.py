@@ -277,7 +277,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     Uses the node defined within state_machines/src/cpp/navigation.cpp
     """
 
-    DISTANCE_FROM_POSE = 0.6;
+    DISTANCE_FROM_POSE = 0.9;
 
     def __init__(self):
         smach.State.__init__(
