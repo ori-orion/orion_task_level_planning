@@ -33,9 +33,66 @@ FRUITS = ['apple', 'banana', 'orange', 'mango', 'strawberry', 'kiwi', 'plum',
 
 DRINKS = ['Coke', 'Beer', 'Water', 'Orange Juice', 'Champagne', 'Absinthe']
 
-COUNTRIES = ["United Kingdom", "America"];
+COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola",
+            "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
+            "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
+            "Barbados", "Belarus", "Belgium", "Belize", "Ben in", "Bhutan",
+            "Bolivia", "Bosnia", "Botswana", "Brazil", "Brunei", "Bulgaria",
+            "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon",
+            "Canada", "Central African Republic", "Chad", "Chile", "China",
+            "Columbia", "Comoros", "Congo", "Costa Rica", "Ivory Coast",
+            "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti",
+            "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+            "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+            "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia",
+            "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea",
+            "Guinea Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+            "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland",
+            "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan",
+            "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos",
+            "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya",
+            "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar",
+            "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+            "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova",
+            "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique",
+            "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+            "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea",
+            "North Macedonia", "Norway", "Oman", "Pakistan", "Palau",
+            "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru",
+            "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia",
+            "Rwanda", "St Kitts and Nevis", "St Lucia",
+            "St Vincent and the Grenadines", "Samoa", "San Marino",
+            "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia",
+            "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia",
+            "Solomon Islands", "Somalia", "South Africa", "Korea", "South Sudan",
+            "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland",
+            "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor Leste",
+            "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey",
+            "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates",
+            "United Kingdom", "United States of America", "Uruguay", "Uzbekistan",
+            "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia",
+            "Zimbabwe"];
+            # problems with a few of the countries:
+            # Benin, Eswatini, "Ghana, Guinea Bissau, Guyana, Maldives, Mali, Nauru,
+            # Oman, Sao Tome and Principe, Seychelles, Uzbekistan
 
-AGE_STRS = [""];
+AGE_STRS = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+            "seventeen", "eighteen", "nineteen", "twenty", "twenty one", "twenty two",
+            "twenty three", "twenty four", "twenty five", "twenty six", "twenty seven",
+            "twenty eight", "twenty nine", "thirty", "thirty one", "thirty two",
+            "thirty three", "thirty four", "thirty five", "thirty six", "thirty seven",
+            "thirty eight", "thirty nine", "forty", "forty one", "forty two", "forty three",
+            "forty four", "forty five", "forty six", "forty seven", "forty eight",
+            "forty nine", "fifty", "fifty one", "fifty two", "fifty three", "fifty four",
+            "fifty five", "fifty six", "fifty seven", "fifty eight", "fifty nine", "sixty",
+            "sixty one", "sixty two", "sixty three", "sixty four", "sixty five", "sixty six",
+            "sixty seven", "sixty eight", "sixty nine", "seventy", "seventy one", "seventy two",
+            "seventy three", "seventy four", "seventy five", "seventy six", "seventy seven",
+            "seventy eight", "seventy nine", "eighty", "eighty one", "eighty two", "eighty three",
+            "eighty four", "eighty five", "eighty six", "eighty seven", "eighty eight",
+            "eighty nine", "ninety", "ninety one", "ninety two", "ninety three", "ninety four",
+            "ninety five", "ninety six", "ninety seven", "ninety eight", "ninety nine", "hundred"];
 
 SPEAK_THROUGH_CONSOLE = False;
 
