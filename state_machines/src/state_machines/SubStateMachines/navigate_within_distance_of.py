@@ -101,7 +101,7 @@ def search_for_entity():
             'CreateObjQuery',
             CreateSOMQuery(
                 CreateSOMQuery.OBJECT_QUERY, 
-                save_time=False),
+                save_time=True),
             transitions={
                 SUCCESS: 'SpinOnSpot'},
             remapping={'class_':'obj_type'});
@@ -115,6 +115,34 @@ def search_for_entity():
 
         smach.StateMachine.add(
             'PerformQuery',
+            PerformSOMQuery(distance_filter=4),
+            transitions={
+                SUCCESS:'CheckSeenObject',
+                FAILURE:FAILURE},
+            remapping={});
+        
+        smach.StateMachine.add(
+            'CheckSeenObject',
+            GetListEmpty(),
+            transitions={
+                'list_not_empty': SUCCESS,
+                'list_empty': 'CreateAllTimeQuery'
+            },
+            remapping={
+                'input_list':'som_query_results'
+            });
+        
+        smach.StateMachine.add(
+            'CreateAllTimeQuery',
+            CreateSOMQuery(
+                CreateSOMQuery.OBJECT_QUERY, 
+                save_time=False),
+            transitions={
+                SUCCESS: 'PerformAllTimeQuery'},
+            remapping={'class_':'obj_type'});
+        
+        smach.StateMachine.add(
+            'PerformAllTimeQuery',
             PerformSOMQuery(distance_filter=4),
             transitions={
                 SUCCESS:SUCCESS,
