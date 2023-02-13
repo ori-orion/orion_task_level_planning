@@ -99,7 +99,7 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('ASK_PICK_UP_OBJ',
                                SpeakAndListenState(),
-                                transitions={SUCCESS: 'NAV_TO_PICKUP',
+                                transitions={SUCCESS: 'NavAndPickup',
                                             FAILURE:'ASK_PICK_UP_OBJ',
                                             REPEAT_FAILURE:TASK_FAILURE},
                                 remapping={'question':'object_pickup_question',
