@@ -51,20 +51,20 @@ class CreateSOMQuery(smach.State):
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
             if hasattr(userdata, "class_"):
-                output.query.class_ = userdata.class_;
+                output.query.class_ = userdata.class_.replace(' ', '_');
 
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
 
-        print("Checking to see if 'object_class' is within the userdata field.")
-        print(dir(userdata));
-        print(type(userdata));
-        print(userdata.keys());
-        if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
-            print("setting class");
-            class_:str = userdata.object_class;
-            class_ = class_.replace(' ', '_');
-            output.query.class_ = class_;
+        # print("Checking to see if 'object_class' is within the userdata field.")
+        # print(dir(userdata));
+        # print(type(userdata));
+        # print(userdata.keys());
+        # if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
+        #     print("setting class");
+        #     class_:str = userdata.object_class;
+        #     class_ = class_.replace(' ', '_');
+        #     output.query.class_ = class_;
 
         userdata.som_query = output;
         return SUCCESS;
