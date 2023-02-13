@@ -9,6 +9,8 @@ Owner: Matthew Munks
 
 """
 
+print("generic_hsr_welcome_1");
+
 from ast import operator
 import os
 from time import sleep
@@ -26,7 +28,7 @@ from geometry_msgs.msg import Pose
 
 # import time  # TODO - replace calls to rospy.time library
 
-
+print("generic_hsr_welcome_2");
 
 def create_state_machine():
     """ This function creates and returns the state machine for the task. """
@@ -35,8 +37,10 @@ def create_state_machine():
     sm = smach.StateMachine(outcomes=[TASK_SUCCESS, TASK_FAILURE]);
 
     # Wait for the prameters to be loaded.
-    while (not rospy.has_param('params_loaded')):
-        rospy.sleep(0.5);
+    #while (not rospy.has_param('params_loaded')):
+    #    rospy.sleep(0.5);
+
+    print("create_state_machine");
 
     # Create state machine userdata dictionary elements
     
