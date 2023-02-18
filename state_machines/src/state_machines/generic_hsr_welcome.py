@@ -90,5 +90,5 @@ sis.start()
 sm.execute()
 
 # Run until ctl+c command is received
-rospy.spin()
+#rospy.spin()
 # sis.stop()
