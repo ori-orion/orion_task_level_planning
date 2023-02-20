@@ -48,7 +48,7 @@ class GetPropertyAtIndex(smach.State):
         output_param:Any    - Returns the desired parameter. 
     The state of 'index_out_of_range' will be returned if the index is not within the bounds.
     """
-    def __init__(self, property_getting:str):
+    def __init__(self, property_getting:str, index:int=None):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, 'index_out_of_range'],
@@ -56,12 +56,19 @@ class GetPropertyAtIndex(smach.State):
             output_keys=['output_param']);
     
         self.property_getting = property_getting;
+        self.index = index;
 
     def execute(self, userdata):
+        if self.index == None:
+            index_looking_in:int = userdata.index
+        else:
+            index_looking_in = self.index;
+
         list_looking_at:list = userdata.input_list;
-        index_looking_in:int = userdata.index;
+
         if index_looking_in < 0 or index_looking_in >= len(list_looking_at):
             return 'index_out_of_range';
+        
         entry = list_looking_at[index_looking_in];
         userdata.output_param = getattr(entry, self.property_getting);
         return SUCCESS;

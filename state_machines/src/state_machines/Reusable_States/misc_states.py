@@ -148,6 +148,10 @@ class LookAtPoint(smach.State):
         pose:Pose   The point to look at in 3D space.
     """
     def __init__(self, z_looking_at = 1.3):
+        """
+        Inputs:
+            z_looking_at: Gives the z-parameter. If None, then it will take it from userdata.pose.
+        """
         smach.State.__init__(
             self, 
             outcomes=[SUCCESS],
@@ -160,6 +164,9 @@ class LookAtPoint(smach.State):
     
     def execute(self, userdata):
         pose:Pose = userdata.pose;
+
+        if self.z_looking_at != None:
+            self.z_looking_at = pose.position.z;
         point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, self.z_looking_at);
         
         # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
@@ -183,10 +190,21 @@ class LookAtPoint(smach.State):
 #endregion
 
 class SpinState(smach.State):
-    def __init__(self):
+    """
+    Gets the robots head to spin around, probably in an attempt to find something.
+
+    Inputs:
+        spin_height:float=1 - So the overall spin action is basically a sequence of
+            `look at point` commands in sequence. Each point is 1m from the robot in 
+            the horizontal plane. This parameter gives the vertical height off the 
+            ground for the robot to look at.
+    """
+    def __init__(self, spin_height:float=1):
         smach.State.__init__(self, 
                                 outcomes = [SUCCESS],
                                 input_keys=[], output_keys=[]);
+
+        self.spin_height = spin_height;
 
     def execute(self, userdata):
         client = actionlib.SimpleActionClient('spin', SpinAction);

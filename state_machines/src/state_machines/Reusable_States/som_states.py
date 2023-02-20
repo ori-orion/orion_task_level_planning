@@ -12,6 +12,8 @@ import math;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
+from typing import List;
+
 """
 Overall interface into SOM:
     - First you make a query.
@@ -22,13 +24,12 @@ Overall interface into SOM:
 
 class CreateSOMQuery(smach.State):
     """
-    Creates a SOM query for an object.
-    input_keys:
-        object_class    - an optional parameter for adding object class information.
-    output_keys:
-        som_query       - the output query
-    results:
-        SUCCESS 
+    Creates a query for the SOM system.
+
+    inputs:
+        class_:str      : Optional attribute. If defined, this will be set within a potential object query.
+    outputs:
+        som_query:str   : The output query.
     """
 
     HUMAN_QUERY = 1;
@@ -37,7 +38,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['object_class'],
+            input_keys=['class_'],
             output_keys=['som_query'])
 
         self.query_type = query_type;
@@ -49,39 +50,43 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryHumansRequest();
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
+            if hasattr(userdata, "class_"):
+                output.query.class_ = userdata.class_.replace(' ', '_');
 
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
 
-        print("Checking to see if 'object_class' is within the userdata field.")
-        print(dir(userdata));
-        print(type(userdata));
-        print(userdata.keys());
-        if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
-            print("setting class");
-            class_:str = userdata.object_class;
-            class_ = class_.replace(' ', '_');
-            output.query.class_ = class_;
+        # print("Checking to see if 'object_class' is within the userdata field.")
+        # print(dir(userdata));
+        # print(type(userdata));
+        # print(userdata.keys());
+        # if 'object_class' in userdata.keys() and hasattr(output.query, 'class_'):
+        #     print("setting class");
+        #     class_:str = userdata.object_class;
+        #     class_ = class_.replace(' ', '_');
+        #     output.query.class_ = class_;
 
         userdata.som_query = output;
         return SUCCESS;
 
 class PerformSOMQuery(smach.State):
     """
-    Performs a SOM query given an input query.
-    input_keys:
-        som_query                - A query to be executed
-    output_keys:    
-        som_query_results:list   - The results of the query
-    results:
-        SUCCESS                  - If the query succeeded.
-        FAILURE                  - If query is not of an expected type.
+    Performs a SOM query.
+    distance_filter - We may want to filter observations by distance from the robot. 
+        If this is non-zero, this will do that filtering.
+
+    Inputs:
+        som_query:<query_type>                  : The query we will give the SOM system. This does type checking for the correct query.
+    Outputs:
+        som_query_results:List[<response_type>] : The response in the form of a raw array.
     """
-    def __init__(self):
+    def __init__(self, distance_filter:float=0):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE],
             input_keys=['som_query'],
             output_keys=['som_query_results']);
+            
+        self.distance_filter = distance_filter;
 
     def execute(self, userdata):
 
@@ -90,20 +95,33 @@ class PerformSOMQuery(smach.State):
         print(query);
         print(rospy.Time.now());
 
+        output:List[SOMObject] = [];
+
         if type(query) == SOMQueryHumansRequest:
             rospy.wait_for_service('/som/humans/basic_query');
             human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
             result:SOMQueryHumansResponse = human_query_srv(query);
+            output = result.returns;
         elif type(query) == SOMQueryObjectsRequest:
             rospy.wait_for_service('/som/objects/basic_query');
             object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
             result:SOMQueryObjectsResponse = object_query_srv(query);
+            output = result.returns;
         else:
             return FAILURE;
 
-        userdata.som_query_results = result.returns;
-        rospy.loginfo('\t\t' + str(len(result.returns)) + " entities found matching the query.")
-        print(result);
+        if self.distance_filter != 0:
+            current_pose = get_current_pose();
+            output_carry = [];
+            for element in output:
+                if distance_between_poses(current_pose, element.obj_position) < self.distance_filter:
+                    output_carry.append(element);
+            output = output_carry
+            pass;
+
+        userdata.som_query_results = output;
+        rospy.loginfo('\t\t' + str(len(output)) + " entities found matching the query.")
+        print(output);
         return SUCCESS;
 
 class FindMyMates_IdentifyOperatorGuests(smach.State):
