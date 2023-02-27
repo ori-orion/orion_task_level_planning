@@ -44,6 +44,7 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
 
     return sub_sm;
 
+# Not currently in use.
 def navigate_within_distance_of_som_input(execute_nav_commands):
     """
     Navigates to a close distance from the first element that comes up from the query.
@@ -90,47 +91,54 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
 
     return sub_sm;
 
-def search_for_entity():
+def search_for_entity(spin_first=True):
+    """
+    Spins on the spot in the persuit of seeing an object. 
+    It will then query for said object. 
+    If an object matching `userdata.obj_type` is seen, then a list of all items matching the query will be returned.
+    Otherwise, an empty array will be returned.
+    """
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE],
+        outcomes=[SUCCESS, FAILURE, "item_not_seen"],
         input_keys=['obj_type'],
         output_keys=['som_query_results']);
     
     with sub_sm:
-        smach.StateMachine.add(
-            'CreateObjQuery',
-            CreateSOMQuery(
-                CreateSOMQuery.OBJECT_QUERY, 
-                save_time=True),
-            transitions={
-                SUCCESS: 'SpinOnSpot'},
-            remapping={'class_':'obj_type'});
+        if spin_first:
+            smach.StateMachine.add(
+                'CreateObjQuery',
+                CreateSOMQuery(
+                    CreateSOMQuery.OBJECT_QUERY, 
+                    save_time=True),
+                transitions={
+                    SUCCESS: 'SpinOnSpot'},
+                remapping={'class_':'obj_type'});
 
-        smach.StateMachine.add(
-            'SpinOnSpot',
-            SpinState(spin_height=0.7),
-            transitions={
-                SUCCESS:'PerformQuery'},
-            remapping={});
+            smach.StateMachine.add(
+                'SpinOnSpot',
+                SpinState(spin_height=0.7),
+                transitions={
+                    SUCCESS:'PerformQuery'},
+                remapping={});
 
-        smach.StateMachine.add(
-            'PerformQuery',
-            PerformSOMQuery(distance_filter=4),
-            transitions={
-                SUCCESS:'CheckSeenObject',
-                FAILURE:FAILURE},
-            remapping={});
-        
-        smach.StateMachine.add(
-            'CheckSeenObject',
-            GetListEmpty(),
-            transitions={
-                'list_not_empty': SUCCESS,
-                'list_empty': 'CreateAllTimeQuery'
-            },
-            remapping={
-                'input_list':'som_query_results'
-            });
+            smach.StateMachine.add(
+                'PerformQuery',
+                PerformSOMQuery(distance_filter=4),
+                transitions={
+                    SUCCESS:'CheckSeenObject',
+                    FAILURE:FAILURE},
+                remapping={});
+            
+            smach.StateMachine.add(
+                'CheckSeenObject',
+                GetListEmpty(),
+                transitions={
+                    'list_not_empty': SUCCESS,
+                    'list_empty': 'CreateAllTimeQuery'
+                },
+                remapping={
+                    'input_list':'som_query_results'
+                });
         
         smach.StateMachine.add(
             'CreateAllTimeQuery',
@@ -145,15 +153,27 @@ def search_for_entity():
             'PerformAllTimeQuery',
             PerformSOMQuery(distance_filter=4),
             transitions={
-                SUCCESS:SUCCESS,
+                SUCCESS:'CheckSeenObjectAllTime',
                 FAILURE:FAILURE},
             remapping={});
+    
+
+        smach.StateMachine.add(
+            'CheckSeenObjectAllTime',
+            GetListEmpty(),
+            transitions={
+                'list_not_empty': SUCCESS,
+                'list_empty': 'item_not_seen'
+            },
+            remapping={
+                'input_list':'som_query_results'
+            });
 
     return sub_sm;
 
 
+def nav_within_reaching_distance_of(execute_nav_commands):
 
-def nav_and_pick_up(execute_nav_commands):
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
         input_keys=['obj_type'],
@@ -162,10 +182,11 @@ def nav_and_pick_up(execute_nav_commands):
     with sub_sm:
         smach.StateMachine.add(
             'search_for_entity',
-            search_for_entity(),
+            search_for_entity(spin_first=True),
             transitions={
                 SUCCESS:'GetLocation',
-                FAILURE:FAILURE});
+                FAILURE:FAILURE,
+                'item_not_seen':'query_empty'});
 
         smach.StateMachine.add(
             'GetLocation',
@@ -185,7 +206,25 @@ def nav_and_pick_up(execute_nav_commands):
                 SUCCESS:'PickUpObject',
                 FAILURE:'PickUpObject'},
             remapping={'orient_towards':'target_pose'});
+    return sub_sm;
 
+
+
+def nav_and_pick_up(execute_nav_commands):
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        input_keys=['obj_type'],
+        output_keys=[]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'nav_to_object',
+            nav_within_reaching_distance_of(execute_nav_commands),
+            transitions={
+                SUCCESS:'PickUpObject',
+                FAILURE:'PickUpObject',
+                'query_empty':'query_empty'});
+        
         smach.StateMachine.add(
             'PickUpObject',
             PickUpObjectState(),
