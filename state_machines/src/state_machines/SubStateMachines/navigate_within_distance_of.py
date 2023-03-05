@@ -104,7 +104,7 @@ def search_for_entity(spin_first=True):
         output_keys=['som_query_results']);
     
     with sub_sm:
-        if spin_first:
+        def createSpinAndQuery():
             smach.StateMachine.add(
                 'CreateObjQuery',
                 CreateSOMQuery(
@@ -140,34 +140,42 @@ def search_for_entity(spin_first=True):
                     'input_list':'som_query_results'
                 });
         
-        smach.StateMachine.add(
-            'CreateAllTimeQuery',
-            CreateSOMQuery(
-                CreateSOMQuery.OBJECT_QUERY, 
-                save_time=False),
-            transitions={
-                SUCCESS: 'PerformAllTimeQuery'},
-            remapping={'class_':'obj_type'});
+        def createAllTimeQuery():
+            smach.StateMachine.add(
+                'CreateAllTimeQuery',
+                CreateSOMQuery(
+                    CreateSOMQuery.OBJECT_QUERY, 
+                    save_time=False),
+                transitions={
+                    SUCCESS: 'PerformAllTimeQuery'},
+                remapping={'class_':'obj_type'});
+            
+            smach.StateMachine.add(
+                'PerformAllTimeQuery',
+                PerformSOMQuery(distance_filter=4),
+                transitions={
+                    SUCCESS:'CheckSeenObjectAllTime',
+                    FAILURE:FAILURE},
+                remapping={});
         
-        smach.StateMachine.add(
-            'PerformAllTimeQuery',
-            PerformSOMQuery(distance_filter=4),
-            transitions={
-                SUCCESS:'CheckSeenObjectAllTime',
-                FAILURE:FAILURE},
-            remapping={});
-    
 
-        smach.StateMachine.add(
-            'CheckSeenObjectAllTime',
-            GetListEmpty(),
-            transitions={
-                'list_not_empty': SUCCESS,
-                'list_empty': 'item_not_seen'
-            },
-            remapping={
-                'input_list':'som_query_results'
-            });
+            smach.StateMachine.add(
+                'CheckSeenObjectAllTime',
+                GetListEmpty(),
+                transitions={
+                    'list_not_empty': SUCCESS,
+                    'list_empty': 'item_not_seen'
+                },
+                remapping={
+                    'input_list':'som_query_results'
+                });
+
+        if spin_first:
+            createSpinAndQuery();
+            createAllTimeQuery();
+        else:
+            createAllTimeQuery();
+            createSpinAndQuery();
 
     return sub_sm;
 
