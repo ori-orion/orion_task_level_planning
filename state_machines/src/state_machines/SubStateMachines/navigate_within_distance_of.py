@@ -91,6 +91,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
 
     return sub_sm;
 
+
 def search_for_entity(spin_first=True):
     """
     Spins on the spot in the persuit of seeing an object. 
