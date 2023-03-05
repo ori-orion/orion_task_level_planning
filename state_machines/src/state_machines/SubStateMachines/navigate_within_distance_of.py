@@ -196,7 +196,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'target_pose'});
+                'output_param':'obj_position'});
 
         smach.StateMachine.add(
             'NavToLoc',
@@ -211,6 +211,34 @@ def nav_within_reaching_distance_of(execute_nav_commands):
 
 
 def nav_and_pick_up(execute_nav_commands):
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        input_keys=['obj_type'],
+        output_keys=[]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            'nav_to_object',
+            nav_within_reaching_distance_of(execute_nav_commands),
+            transitions={
+                SUCCESS:'PickUpObject',
+                FAILURE:'PickUpObject',
+                'query_empty':'query_empty'});
+        
+        smach.StateMachine.add(
+            'PickUpObject',
+            PickUpObjectState(),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:'PickUpObject',
+                REPEAT_FAILURE:FAILURE},
+            remapping={
+                'object_name':'obj_type'});
+
+    return sub_sm;
+
+
+def nav_and_place_next_to(execute_nav_commands):
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
         input_keys=['obj_type'],
