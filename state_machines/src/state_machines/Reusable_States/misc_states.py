@@ -37,6 +37,18 @@ class GetTime(smach.State):
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
         return SUCCESS
 
+class SetVariable(smach.State):
+    """
+    Sets a variable `var` to a desired value.
+    """
+    def __init__(self, set_to:str):
+        smach.State.__init__(self, outcomes=[SUCCESS], output_keys=['var']);
+        self.set_to = set_to
+
+    def execute(self, userdata):
+        userdata.var = self.set_to;
+        return SUCCESS; 
+
 class WaitForSecs(smach.State):
     def __init__(self, num_secs):
         smach.State.__init__(

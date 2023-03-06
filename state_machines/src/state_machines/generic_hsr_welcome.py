@@ -52,21 +52,24 @@ def create_state_machine():
         #    'LookAtOperator',
         #    LookUpState(height=1.7),
         #    transitions={SUCCESS: 'SpeakToOperator'});
-        
-        smach.StateMachine.add(
-            'SpeakToOperator',
-            AskFromSelection(
-                questions=[
-                    ("name", "Hi, I'm Bam Bam. I hope you're enjoying the day. What's your name?", NAMES)
-                ],
-                append_result_to_array=False),
-            transitions={
-                SUCCESS:'GiveInformation',
-                "no_response":'GiveInformation'});
+
+        #smach.StateMachine.add(
+        #    'Introdu
+
+        #smach.StateMachine.add(
+        #    'SpeakToOperator',
+        #    AskFromSelection(
+        #        questions=[
+        #            ("name", "Hi, I'm Bam Bam. I hope you're enjoying the day. What's your name?", NAMES)
+        #        ],
+        #        append_result_to_array=False),
+        #    transitions={
+        #        SUCCESS:'GiveInformation',
+        #        "no_response":'GiveInformation'});
 
         smach.StateMachine.add(
             'GiveInformation',
-            SpeakState(phrase="I am a Toyota Human Support Robot, designed to help people with everyday tasks around the house. \
+            SpeakState(phrase="Hi, I'm Bam Bam. I am a Toyota Human Support Robot, designed to help people with everyday tasks around the house. \
                 I can do lots of things: recognise human speech, detect objects with my camera, fetch things with my gripper,\
                 take out the trash, and even act as a host for your next party! I am used for research by PhD students, as well\
                 as for a care home project. I am also used by team Orion, to compete at the annual RoboCup at Home competition."),

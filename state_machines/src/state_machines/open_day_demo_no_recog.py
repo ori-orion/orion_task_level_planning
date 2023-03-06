@@ -81,26 +81,26 @@ def create_state_machine(userdata=None):
 
         smach.StateMachine.add('INTRO',
                                 SpeakState("Hi, my name is Bam Bam, and `today we're going to show you what I can do!"),
-                                transitions={SUCCESS:'ASK_OPERATOR_NAME'})#,
+                                transitions={SUCCESS:'ASK_PICK_UP_OBJ'})#,
                                 #remapping={'phrase':'intro_phrase'})
 
-        smach.StateMachine.add('ASK_OPERATOR_NAME',
-                               SpeakAndListenState(),
-                                transitions={SUCCESS: 'ASK_PICK_UP_OBJ',
-                                            FAILURE:'ASK_OPERATOR_NAME',
-                                            REPEAT_FAILURE:TASK_FAILURE},
-                                remapping={'question':'operator_question',
-                                            'operator_response': 'operator_name',
-                                            'candidates':'operator_names',
-                                            'params':'speak_and_listen_params_empty',
-                                            'timeout':'speak_and_listen_timeout',
-                                            'number_of_failures': 'speak_listen_failures',
-                                            'failure_threshold': 'speak_listen_failure_threshold'})
+        #smach.StateMachine.add('ASK_OPERATOR_NAME',
+        #                       SpeakAndListenState(),
+        #                        transitions={SUCCESS: 'ASK_PICK_UP_OBJ',
+        #                                    FAILURE:'ASK_OPERATOR_NAME',
+        #                                    REPEAT_FAILURE:TASK_FAILURE},
+        #                        remapping={'question':'operator_question',
+        #                                    'operator_response': 'operator_name',
+        #                                    'candidates':'operator_names',
+        #                                    'params':'speak_and_listen_params_empty',
+        #                                    'timeout':'speak_and_listen_timeout',
+        #                                    'number_of_failures': 'speak_listen_failures',
+        #                                    'failure_threshold': 'speak_listen_failure_threshold'})
 
         smach.StateMachine.add('ASK_PICK_UP_OBJ',
                                SpeakAndListenState(),
                                 transitions={SUCCESS: 'CREATE_ASK_FOR_HELP_PHRASE',
-                                            FAILURE:'CREATE_ASK_FOR_HELP_PHRASE',
+                                            FAILURE:'setPickUp',
                                             REPEAT_FAILURE:TASK_FAILURE},
                                 remapping={'question':'object_pickup_question',
                                             'operator_response': 'pickup_object_name',
@@ -109,6 +109,12 @@ def create_state_machine(userdata=None):
                                             'timeout':'speak_and_listen_timeout',
                                             'number_of_failures': 'speak_listen_failures',
                                             'failure_threshold': 'speak_listen_failure_threshold'})
+
+        smach.StateMachine.add(
+            'setPickUp',
+            SetVariable('potted_plant'),
+            transitions={SUCCESS:'CREATE_ASK_FOR_HELP_PHRASE'},
+            remapping={'var':'pickup_object_name'});
 
         #smach.StateMachine.add(
         #    'NavAndPickup',
