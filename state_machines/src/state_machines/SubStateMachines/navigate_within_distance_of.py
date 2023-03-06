@@ -205,7 +205,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'obj_position'});
+                'output_param':'target_pose'});
 
         smach.StateMachine.add(
             'NavToLoc',
@@ -214,8 +214,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
             transitions={
                 SUCCESS:SUCCESS,
                 FAILURE:FAILURE
-            },
-            remapping={'orient_towards':'target_pose'});
+            });
     return sub_sm;
 
 
