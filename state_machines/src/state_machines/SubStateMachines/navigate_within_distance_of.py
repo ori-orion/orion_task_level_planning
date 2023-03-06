@@ -268,8 +268,7 @@ def nav_and_place_next_to(execute_nav_commands):
             PutObjectOnSurfaceState(),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:'PutObjectDown',
-                REPEAT_FAILURE:FAILURE},
+                FAILURE:FAILURE},
             remapping={
                 'object_name':'obj_type'});
 
