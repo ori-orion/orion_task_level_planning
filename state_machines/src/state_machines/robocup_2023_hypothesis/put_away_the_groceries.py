@@ -29,10 +29,10 @@ def create_state_machine():
     sm.userdata.place_next_to_class = "cup";
 
     with sm:
-        smach.StateMachine.add(
-            'Startup',
-            create_wait_for_startup(),
-            transitions={SUCCESS:'PickUpObj'});
+        # smach.StateMachine.add(
+        #    'Startup',
+        #    create_wait_for_startup(),
+        #    transitions={SUCCESS:'PickUpObj'});
     
         smach.StateMachine.add(
             'PickUpObj',
@@ -53,3 +53,8 @@ def create_state_machine():
             remapping={'obj_type':'place_next_to_class'});
 
     return sm;
+
+if __name__ == '__main__':
+    sm = create_state_machine();
+    sm.execute();
+

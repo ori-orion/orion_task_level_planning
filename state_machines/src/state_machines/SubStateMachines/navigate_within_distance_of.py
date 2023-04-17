@@ -105,7 +105,7 @@ def search_for_entity(spin_first=True):
         output_keys=['som_query_results']);
     
     with sub_sm:
-        def createSpinAndQuery():
+        def createSpinAndQuery(subsequent_state:SUCCESS):
             smach.StateMachine.add(
                 'CreateObjQuery',
                 CreateSOMQuery(
@@ -135,13 +135,13 @@ def search_for_entity(spin_first=True):
                 GetListEmpty(),
                 transitions={
                     'list_not_empty': SUCCESS,
-                    'list_empty': 'CreateAllTimeQuery'
+                    'list_empty': subsequent_state
                 },
                 remapping={
                     'input_list':'som_query_results'
                 });
         
-        def createAllTimeQuery():
+        def createAllTimeQuery(subsequent_state:SUCCESS):
             smach.StateMachine.add(
                 'CreateAllTimeQuery',
                 CreateSOMQuery(
@@ -165,18 +165,18 @@ def search_for_entity(spin_first=True):
                 GetListEmpty(),
                 transitions={
                     'list_not_empty': SUCCESS,
-                    'list_empty': 'item_not_seen'
+                    'list_empty': subsequent_state
                 },
                 remapping={
                     'input_list':'som_query_results'
                 });
 
         if spin_first:
-            createSpinAndQuery();
-            createAllTimeQuery();
+            createSpinAndQuery('CreateAllTimeQuery');
+            createAllTimeQuery('item_not_seen');
         else:
-            createAllTimeQuery();
-            createSpinAndQuery();
+            createAllTimeQuery('CreateObjQuery');
+            createSpinAndQuery('item_not_seen');
 
     return sub_sm;
 
@@ -205,16 +205,16 @@ def nav_within_reaching_distance_of(execute_nav_commands):
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'obj_position'});
+                'output_param':'target_pose'});
 
         smach.StateMachine.add(
             'NavToLoc',
             # OrientRobot(),
             navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
-                SUCCESS:'PickUpObject',
-                FAILURE:'PickUpObject'},
-            remapping={'orient_towards':'target_pose'});
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE
+            });
     return sub_sm;
 
 
@@ -258,17 +258,16 @@ def nav_and_place_next_to(execute_nav_commands):
             'nav_to_object',
             nav_within_reaching_distance_of(execute_nav_commands),
             transitions={
-                SUCCESS:'PickUpObject',
-                FAILURE:'PickUpObject',
+                SUCCESS:'PutObjectDown',
+                FAILURE:'PutObjectDown',
                 'query_empty':'query_empty'});
         
         smach.StateMachine.add(
-            'PickUpObject',
-            PickUpObjectState(),
+            'PutObjectDown',
+            PutObjectOnSurfaceState(),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:'PickUpObject',
-                REPEAT_FAILURE:FAILURE},
+                FAILURE:FAILURE},
             remapping={
                 'object_name':'obj_type'});
 
