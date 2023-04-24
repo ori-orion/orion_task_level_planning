@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 import rospy
 
 
@@ -30,8 +31,8 @@ def create_state_machine():
     sm = smach.StateMachine(outcomes=[TASK_SUCCESS, TASK_FAILURE]);
 
     # Wait for the prameters to be loaded.
-    while (not rospy.has_param('params_loaded')):
-        rospy.sleep(0.5);
+    # while (not rospy.has_param('params_loaded')):
+    #     rospy.sleep(0.5);
 
     # Create state machine userdata dictionary elements
 
@@ -39,9 +40,9 @@ def create_state_machine():
     sm.userdata.obj_class = 'bottle'
     sm.userdata.failure_prahse = 'Failed finding placement'
 
-    dims = (0, 1, 0.1, 0.1)
-    height = 0.2
-    radius = 0.02
+    dims = (0.05, 0.05, 0.2) 
+    height = 1
+    radius = 0.2
 
 
     with sm:
@@ -61,7 +62,7 @@ def create_state_machine():
             'FIND_OBJECT',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'MANIPULATION',
+                SUCCESS:'FIND_PLACEMENT',
                 FAILURE:TASK_FAILURE},
             remapping={})
 
@@ -77,10 +78,11 @@ def create_state_machine():
 
 
         smach.StateMachine.add(
-            'PRINT_SUCCESS',
+            'PRINT_FAILURE',
             PrintToConsole(),
             transitions = {
-                SUCCESS: TASK_FAILURE
+                SUCCESS: TASK_FAILURE,
+                FAILURE: TASK_FAILURE
             },
             remapping = {
                 'var' : 'failure_phrase'
@@ -94,6 +96,7 @@ def create_state_machine():
     return sm
     
 
+rospy.init_node('manipulation_test')
 
 # Create the state machine
 sm = create_state_machine()

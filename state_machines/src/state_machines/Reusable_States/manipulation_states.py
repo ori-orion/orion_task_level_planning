@@ -226,13 +226,14 @@ def getPlacementOptions(
     try:
         find_placement = rospy.ServiceProxy('find_placement_around', FindPlacement)
         resp = find_placement(goal_tf, dims, max_height, radius, num_candidates)
+        print("Loc found");
         return resp.position
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
     pass;
 
 class PlaceNextTo(smach.State):
-    def __init__(self, dims, max_height, radius, num_candidates=3):
+    def __init__(self, dims, max_height, radius, num_candidates=8):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
@@ -247,15 +248,16 @@ class PlaceNextTo(smach.State):
     def execute(self, userdata):
         som_query_results:List[dict] = userdata.som_query_results;
 
-        first_response:dict = som_query_results[0];
+        first_response:SOMObject = som_query_results[0];
 
         place_locations = getPlacementOptions(
-            first_response["class_"] + "_0",
+            first_response.class_ + "_0",
             self.dims,
             self.max_height,
             self.radius,
             self.num_candidates);
         pass;
+        return SUCCESS;
 
 
 point_at_uid_ref = 0;
