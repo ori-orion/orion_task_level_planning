@@ -250,7 +250,7 @@ class PlaceNextTo(smach.State):
         first_response:dict = som_query_results[0];
 
         place_locations = getPlacementOptions(
-            first_response["class_"],
+            first_response["class_"] + "_0",
             self.dims,
             self.max_height,
             self.radius,
