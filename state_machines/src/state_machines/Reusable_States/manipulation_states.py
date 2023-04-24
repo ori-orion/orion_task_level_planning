@@ -13,6 +13,8 @@ import actionlib
 
 import tf
 import tf2_ros;
+from manipulation.srv import FindPlacement
+from typing import List;
 
 GLOBAL_FRAME = "map";
 
@@ -206,6 +208,55 @@ class PutObjectOnSurfaceState(smach.State):
             return SUCCESS
         else:
             return FAILURE
+
+
+def getPlacementOptions(
+        goal_tf:str, 
+        dims:tuple, 
+        max_height:float,
+        radius:float,
+        num_candidates:int) -> List[float]:
+    """
+    Uses the FindPlacement server within manipulation to get the best grasp pose.
+        dims is a 3-tuple giving the rough dimensions of the object.
+        radius is the distance away we want to look for.
+        num_candidates is the number of candidates we want to find. 
+        Returns a float64[3] giving xyz of the best pose.  
+    """
+    try:
+        find_placement = rospy.ServiceProxy('find_placement_around', FindPlacement)
+        resp = find_placement(goal_tf, dims, max_height, radius, num_candidates)
+        return resp.position
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+    pass;
+
+class PlaceNextTo(smach.State):
+    def __init__(self, dims, max_height, radius, num_candidates=3):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['som_query_results'],
+            output_keys=[]);
+
+        self.dims = dims;
+        self.max_height = max_height;
+        self.radius = radius;
+        self.num_candidates = num_candidates;
+
+    def execute(self, userdata):
+        som_query_results:List[dict] = userdata.som_query_results;
+
+        first_response:dict = som_query_results[0];
+
+        place_locations = getPlacementOptions(
+            first_response["class_"],
+            self.dims,
+            self.max_height,
+            self.radius,
+            self.num_candidates);
+        pass;
+
 
 point_at_uid_ref = 0;
 class PointAtEntity(smach.State):
