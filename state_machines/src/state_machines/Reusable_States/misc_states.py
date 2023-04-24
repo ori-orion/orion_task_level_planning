@@ -199,17 +199,21 @@ class SpinState(smach.State):
             the horizontal plane. This parameter gives the vertical height off the 
             ground for the robot to look at.
     """
-    def __init__(self, spin_height:float=1):
+    def __init__(self, spin_height:float=1, only_look_forwards:bool=False):
         smach.State.__init__(self, 
                                 outcomes = [SUCCESS],
                                 input_keys=[], output_keys=[]);
 
         self.spin_height = spin_height;
+        self.only_look_forwards:bool = only_look_forwards;
 
     def execute(self, userdata):
         client = actionlib.SimpleActionClient('spin', SpinAction);
         client.wait_for_server();
-        client.send_goal(SpinGoal());
+        goal = SpinGoal();
+        goal.only_look_forwards = self.only_look_forwards;
+        goal.height_to_look_at = self.spin_height;
+        client.send_goal(goal);
         client.wait_for_result();
 
         return SUCCESS;
