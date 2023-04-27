@@ -184,6 +184,16 @@ class ReceiveObjectFromOperatorState(smach.State):
             return FAILURE
 
 
+def putObjOnSurfaceAction(goal:PutObjectOnSurfaceGoal=None):
+    if goal == None:
+        goal = PutObjectOnSurfaceGoal();
+
+    put_on_surface_action = actionlib.SimpleActionClient('put_object_on_surface', PutObjectOnSurfaceAction);
+    put_on_surface_action.send_goal(goal)
+    put_on_surface_action.wait_for_result()
+
+    return put_on_surface_action.get_result().result;
+
 class PutObjectOnSurfaceState(smach.State):
     """ Smach state for putting object on a surface in front of the robot.
 
@@ -197,13 +207,7 @@ class PutObjectOnSurfaceState(smach.State):
             output_keys=[]);
 
     def execute(self, userdata):
-        put_on_surface_goal = PutObjectOnSurfaceGoal()
-
-        put_on_surface_action = actionlib.SimpleActionClient('put_object_on_surface', PutObjectOnSurfaceAction);
-        put_on_surface_action.send_goal(put_on_surface_goal)
-        put_on_surface_action.wait_for_result()
-
-        success = put_on_surface_action.get_result().result
+        success = putObjOnSurfaceAction();
         if success:
             return SUCCESS
         else:
@@ -211,26 +215,36 @@ class PutObjectOnSurfaceState(smach.State):
 
 
 def getPlacementOptions(
-        goal_tf:str, 
+        goal_pos:List[float],
         dims:tuple, 
         max_height:float,
         radius:float,
-        num_candidates:int) -> List[float]:
+        num_candidates:int,
+        goal_tf:str="") -> List[float]:
     """
     Uses the FindPlacement server within manipulation to get the best grasp pose.
+        goal_tf/goal_pos are mutually distinct input options.
+            If goal_tf=="", then goal_pos is what is fed in, this being the location of the object we want to avoid.
+            Else, goal_tf is fed in, this being the tf of the object we want to avoid.
         dims is a 3-tuple giving the rough dimensions of the object.
         radius is the distance away we want to look for.
         num_candidates is the number of candidates we want to find. 
         Returns a float64[3] giving xyz of the best pose.  
     """
     try:
-        find_placement = rospy.ServiceProxy('find_placement_around', FindPlacement)
-        resp = find_placement(goal_tf, dims, max_height, radius, num_candidates)
+        find_placement = rospy.ServiceProxy('find_placement_around', FindPlacement);
+        request:FindPlacementRequest = FindPlacementRequest();
+        request.goal_tf = goal_tf;
+        request.goal_pos = goal_pos;
+        request.dims = dims;
+        request.maxHeight = max_height;
+        request.radius = radius;
+        request.candidateNum = num_candidates;
+        resp = find_placement(request);
         print("Loc found");
         return resp.position
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
-    pass;
 
 class PlaceNextTo(smach.State):
     def __init__(self, dims, max_height, radius, num_candidates=8):
@@ -251,12 +265,17 @@ class PlaceNextTo(smach.State):
         first_response:SOMObject = som_query_results[0];
 
         place_locations = getPlacementOptions(
-            first_response.class_ + "_0",
-            self.dims,
-            self.max_height,
-            self.radius,
-            self.num_candidates);
-        pass;
+            goal_pos=[
+                first_response.position.x, 
+                first_response.position.y, 
+                first_response.position.z],
+            dims=self.dims,
+            max_height=self.max_height,
+            radius=self.radius,
+            num_candidates=self.num_candidates);
+        
+        print(place_locations);
+        
         return SUCCESS;
 
 
