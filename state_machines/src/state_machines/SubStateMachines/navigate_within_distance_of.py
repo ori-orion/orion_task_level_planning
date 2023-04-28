@@ -4,6 +4,13 @@ import smach;
 from state_machines.Reusable_States.include_all import *;
 
 def navigate_within_distance_of_pose_input(execute_nav_commands):
+    """
+    Basically the core of this set of sub-state machines.
+    Looks at userdata.target_pose, works out the position of the nav goal and navigates there.
+    Dependancies (28/4/2023):
+        navigate_within_distance_of_som_input   - Not in use.
+        nav_within_reaching_distance_of         - Used by anything using this functionality.
+    """
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=['target_pose']);
@@ -45,6 +52,7 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
     return sub_sm;
 
 # Not currently in use.
+# Deprecated
 def navigate_within_distance_of_som_input(execute_nav_commands):
     """
     Navigates to a close distance from the first element that comes up from the query.
@@ -55,6 +63,9 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
         'query_empty'   : If the query has nothing in it, then this is the response.
     inputs:
         som_query       : The query we will give the SOM system.
+    Dependencies (28/4/2023):
+        None - Deprecated. There are no current plans to use this. 
+               nav_within_reaching_distance_of covers this functionality.
     """
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
@@ -98,6 +109,8 @@ def search_for_entity(spin_first=True):
     It will then query for said object. 
     If an object matching `userdata.obj_type` is seen, then a list of all items matching the query will be returned.
     Otherwise, an empty array will be returned.
+    Dependencies (28/4/2023):
+        nav_within_reaching_distance_of   
     """
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, "item_not_seen"],
@@ -187,6 +200,8 @@ def nav_within_reaching_distance_of(execute_nav_commands):
         obj_type            - The class of object we are looking to navigate to.
     Output keys:
         som_query_results   - The output from the query performed in getting the object of interest.
+    Dependencies (28/4/2023):
+        nav_and_pick_up_or_place_next_to
     """
 
     sub_sm = smach.StateMachine(
@@ -224,13 +239,15 @@ def nav_within_reaching_distance_of(execute_nav_commands):
     return sub_sm;
 
 
-
 def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
     Input keys:
         obj_type    - The class of object we want to pick up/put the object we're holding next to.
+    Dependencies (28/4/2023):
+        put_away_the_groceries.py
+        open_day_demo_autonav.py
     """
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
