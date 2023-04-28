@@ -258,6 +258,12 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     PUT_DOWN_STATE = "PutObjectDown";
     SECOND_STATE = PICK_UP_STATE if pick_up else PUT_DOWN_STATE;
 
+    # Required fields for PlaceNextTo
+    # Place in a YAML file?
+    dims = (0.05, 0.05, 0.2) 
+    height = 0.3
+    radius = 0.2
+
     with sub_sm:
         # Outputs som_query_results to userdata.
         smach.StateMachine.add(
@@ -281,13 +287,12 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
         else:
             smach.StateMachine.add(
                 PUT_DOWN_STATE,
-                PlaceNextTo(),
+                PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,
                     FAILURE:FAILURE});
 
     return sub_sm;
-    pass;
 
 
 def test_search_for_entity():
