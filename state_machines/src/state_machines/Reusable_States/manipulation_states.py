@@ -14,7 +14,7 @@ import actionlib
 import tf
 import tf2_ros;
 from manipulation.srv import FindPlacement
-from typing import List;
+from typing import List, Tuple;
 
 GLOBAL_FRAME = "map";
 
@@ -220,7 +220,7 @@ def getPlacementOptions(
         max_height:float,
         radius:float,
         num_candidates:int,
-        goal_tf:str="") -> List[float]:
+        goal_tf:str="") -> Tuple[List[float], str]:
     """
     Uses the FindPlacement server within manipulation to get the best grasp pose.
         goal_tf/goal_pos are mutually distinct input options.
@@ -229,7 +229,9 @@ def getPlacementOptions(
         dims is a 3-tuple giving the rough dimensions of the object.
         radius is the distance away we want to look for.
         num_candidates is the number of candidates we want to find. 
-        Returns a float64[3] giving xyz of the best pose.  
+        Returns a tuple.
+            out[0] - float64[3] giving xyz of the best pose.  
+            out[1] - str giving the best tf for picking up the object.
     """
     try:
         find_placement = rospy.ServiceProxy('find_placement_around', FindPlacement);
@@ -242,7 +244,7 @@ def getPlacementOptions(
         request.candidateNum = num_candidates;
         resp = find_placement(request);
         print("Loc found");
-        return resp.position
+        return resp.position, resp.best_tf 
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
@@ -264,7 +266,8 @@ class PlaceNextTo(smach.State):
 
         first_response:SOMObject = som_query_results[0];
 
-        place_locations = getPlacementOptions(
+        # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
+        place_locations, best_tf = getPlacementOptions(
             goal_pos=[
                 first_response.position.x, 
                 first_response.position.y, 
@@ -275,6 +278,16 @@ class PlaceNextTo(smach.State):
             num_candidates=self.num_candidates);
         
         print(place_locations);
+        print(best_tf);
+
+        if False:
+            goal = PutObjectOnSurfaceGoal();
+            goal.goal_tf = best_tf;
+            success = putObjOnSurfaceAction(goal);
+            if success:
+                return SUCCESS
+            else:
+                return FAILURE
         
         return SUCCESS;
 
