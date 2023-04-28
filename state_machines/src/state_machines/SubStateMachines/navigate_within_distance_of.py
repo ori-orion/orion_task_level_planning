@@ -182,11 +182,17 @@ def search_for_entity(spin_first=True):
 
 
 def nav_within_reaching_distance_of(execute_nav_commands):
+    """
+    Input keys:
+        obj_type            - The class of object we are looking to navigate to.
+    Output keys:
+        som_query_results   - The output from the query performed in getting the object of interest.
+    """
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
         input_keys=['obj_type'],
-        output_keys=[]);
+        output_keys=['som_query_results']);
 
     with sub_sm:
         smach.StateMachine.add(
@@ -226,6 +232,7 @@ def nav_and_pick_up(execute_nav_commands):
         output_keys=[]);
 
     with sub_sm:
+        # Outputs som_query_results to userdata.
         smach.StateMachine.add(
             'nav_to_object',
             nav_within_reaching_distance_of(execute_nav_commands),
@@ -248,12 +255,17 @@ def nav_and_pick_up(execute_nav_commands):
 
 
 def nav_and_place_next_to(execute_nav_commands):
+    """
+    Input keys:
+        obj_type    - The class of object we want to put the object next to.
+    """
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
         input_keys=['obj_type'],
         output_keys=[]);
 
     with sub_sm:
+        # Outputs som_query_results to userdata.
         smach.StateMachine.add(
             'nav_to_object',
             nav_within_reaching_distance_of(execute_nav_commands),
@@ -264,14 +276,60 @@ def nav_and_place_next_to(execute_nav_commands):
         
         smach.StateMachine.add(
             'PutObjectDown',
-            PutObjectOnSurfaceState(),
+            PlaceNextTo(),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:FAILURE},
-            remapping={
-                'object_name':'obj_type'});
+                FAILURE:FAILURE});
 
     return sub_sm;
+
+
+def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
+    """
+    Creates the state machine for either navigating and picking stuff up (pick_up==True)
+        or navigating and putting stuff down (pick_up==False).
+    Input keys:
+        obj_type    - The class of object we want to pick up/put the object we're holding next to.
+    """
+    sub_sm = smach.StateMachine(
+        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        input_keys=['obj_type'],
+        output_keys=[]);
+    
+    PICK_UP_STATE = "PickUpObject";
+    PUT_DOWN_STATE = "PutObjectDown";
+    SECOND_STATE = PICK_UP_STATE if pick_up else PUT_DOWN_STATE;
+
+    with sub_sm:
+        # Outputs som_query_results to userdata.
+        smach.StateMachine.add(
+            'nav_to_object',
+            nav_within_reaching_distance_of(execute_nav_commands),
+            transitions={
+                SUCCESS:SECOND_STATE,
+                FAILURE:SECOND_STATE,
+                'query_empty':'query_empty'});
+
+        if pick_up: 
+            smach.StateMachine.add(
+                PICK_UP_STATE,
+                PickUpObjectState(),
+                transitions={
+                    SUCCESS:SUCCESS,
+                    FAILURE:PICK_UP_STATE,
+                    REPEAT_FAILURE:FAILURE},
+                remapping={
+                    'object_name':'obj_type'});
+        else:
+            smach.StateMachine.add(
+                PUT_DOWN_STATE,
+                PlaceNextTo(),
+                transitions={
+                    SUCCESS:SUCCESS,
+                    FAILURE:FAILURE});
+
+    return sub_sm;
+    pass;
 
 
 def test_search_for_entity():
