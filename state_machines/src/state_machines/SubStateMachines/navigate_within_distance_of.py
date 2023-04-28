@@ -225,65 +225,6 @@ def nav_within_reaching_distance_of(execute_nav_commands):
 
 
 
-def nav_and_pick_up(execute_nav_commands):
-    sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, 'query_empty'],
-        input_keys=['obj_type'],
-        output_keys=[]);
-
-    with sub_sm:
-        # Outputs som_query_results to userdata.
-        smach.StateMachine.add(
-            'nav_to_object',
-            nav_within_reaching_distance_of(execute_nav_commands),
-            transitions={
-                SUCCESS:'PickUpObject',
-                FAILURE:'PickUpObject',
-                'query_empty':'query_empty'});
-        
-        smach.StateMachine.add(
-            'PickUpObject',
-            PickUpObjectState(),
-            transitions={
-                SUCCESS:SUCCESS,
-                FAILURE:'PickUpObject',
-                REPEAT_FAILURE:FAILURE},
-            remapping={
-                'object_name':'obj_type'});
-
-    return sub_sm;
-
-
-def nav_and_place_next_to(execute_nav_commands):
-    """
-    Input keys:
-        obj_type    - The class of object we want to put the object next to.
-    """
-    sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, 'query_empty'],
-        input_keys=['obj_type'],
-        output_keys=[]);
-
-    with sub_sm:
-        # Outputs som_query_results to userdata.
-        smach.StateMachine.add(
-            'nav_to_object',
-            nav_within_reaching_distance_of(execute_nav_commands),
-            transitions={
-                SUCCESS:'PutObjectDown',
-                FAILURE:'PutObjectDown',
-                'query_empty':'query_empty'});
-        
-        smach.StateMachine.add(
-            'PutObjectDown',
-            PlaceNextTo(),
-            transitions={
-                SUCCESS:SUCCESS,
-                FAILURE:FAILURE});
-
-    return sub_sm;
-
-
 def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
@@ -357,7 +298,7 @@ def test_pipeline():
     # sub_sm.userdata.target_pose.position.y = -7.3;
     # sub_sm.userdata.target_pose.position.z = 1.107;
 
-    sub_sm = nav_and_pick_up(True);
+    sub_sm = nav_and_pick_up_or_place_next_to(True, pick_up=True);
     sub_sm.userdata.obj_type = 'potted_plant';
     
     # sub_sm = navigate_within_distance_of_pose_input(True);

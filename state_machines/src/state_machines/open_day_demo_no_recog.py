@@ -112,7 +112,7 @@ def create_state_machine(userdata=None):
 
         # smach.StateMachine.add(
         #     'NavAndPickup',
-        #     navigate_within_distance_of.nav_and_pick_up(True),
+        #     navigate_within_distance_of.nav_and_pick_up_or_place_next_to(True, pick_up=True),
         #     transitions={
         #         SUCCESS: 'NAV_BACK_TO_OPERATOR',
         #         FAILURE: 'CREATE_ASK_FOR_HELP_PHRASE',

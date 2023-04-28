@@ -36,7 +36,7 @@ def create_state_machine():
     
         smach.StateMachine.add(
             'PickUpObj',
-            nav_and_pick_up(execute_nav_commands),
+            nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=True),
             transitions={
                 SUCCESS:'PlaceObjNextTo',
                 FAILURE:TASK_FAILURE,
@@ -45,7 +45,7 @@ def create_state_machine():
     
         smach.StateMachine.add(
             'PlaceObjNextTo',
-            nav_and_place_next_to(execute_nav_commands),
+            nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=False),
             transitions={
                 SUCCESS:TASK_SUCCESS,
                 FAILURE:TASK_FAILURE,
