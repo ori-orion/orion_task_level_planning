@@ -261,9 +261,15 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     # Required fields for PlaceNextTo
     # Place in a YAML file?
     # if rospy.has_param('place_next_to_params'):
-    dims = (0.05, 0.05, 0.2) 
-    height = 0.3
-    radius = 0.2
+    if rospy.has_param('find_placement_options'):
+        find_placement_options:dict = rospy.get_param('find_placement_options');
+        dims = find_placement_options['dims'];
+        height = find_placement_options['height'];
+        radius = find_placement_options['radius'];
+    else:
+        dims = (0.05, 0.05, 0.2);
+        height = 0.3;
+        radius = 0.2;
 
     with sub_sm:
         # Outputs som_query_results to userdata.
