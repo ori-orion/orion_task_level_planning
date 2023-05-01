@@ -13,7 +13,7 @@ import actionlib
 
 import tf
 import tf2_ros;
-from manipulation.srv import FindPlacement
+from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
 from typing import List, Tuple;
 
 GLOBAL_FRAME = "map";
@@ -242,9 +242,9 @@ def getPlacementOptions(
         request.maxHeight = max_height;
         request.radius = radius;
         request.candidateNum = num_candidates;
-        resp = find_placement(request);
+        resp:FindPlacementResponse = find_placement(request);
         print("Loc found");
-        return resp.position, resp.best_tf 
+        return resp.position, resp.best_tf
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
