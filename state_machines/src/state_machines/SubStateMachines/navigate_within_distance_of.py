@@ -130,7 +130,7 @@ def search_for_entity(spin_first=True):
 
             smach.StateMachine.add(
                 'SpinOnSpot',
-                SpinState(spin_height=0.7),
+                SpinState(spin_height=0.7, only_look_forwards=True),
                 transitions={
                     SUCCESS:'PerformQuery'},
                 remapping={});

@@ -280,7 +280,7 @@ class PlaceNextTo(smach.State):
         print(place_locations);
         print(best_tf);
 
-        if False:
+        if True:
             goal = PutObjectOnSurfaceGoal();
             goal.goal_tf = best_tf;
             success = putObjOnSurfaceAction(goal);
