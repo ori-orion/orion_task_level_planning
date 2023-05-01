@@ -42,12 +42,20 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
             'NavToGoal',
             SimpleNavigateState(execute_nav_commands),
             transitions={
-                SUCCESS:SUCCESS,
-                FAILURE:'LookAtObject',
+                SUCCESS:'LookAtObject_AGAIN',
+                FAILURE:'NavToGoal',
                 REPEAT_FAILURE: FAILURE},
             remapping={
                 'pose':'nav_target'
             });
+
+        smach.StateMachine.add(
+            "LookAtObject_AGAIN",
+            LookAtPoint(z_looking_at=0.9),
+            transitions={
+                SUCCESS:SUCCESS},
+            remapping={
+                'pose':'target_pose'});
 
     return sub_sm;
 
