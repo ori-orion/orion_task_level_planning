@@ -269,9 +269,9 @@ class PlaceNextTo(smach.State):
         # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
         place_locations, best_tf = getPlacementOptions(
             goal_pos=[
-                first_response.position.x, 
-                first_response.position.y, 
-                first_response.position.z],
+                first_response.obj_position.position.x, 
+                first_response.obj_position.position.y, 
+                first_response.obj_position.position.z],
             dims=self.dims,
             max_height=self.max_height,
             radius=self.radius,
