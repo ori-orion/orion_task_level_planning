@@ -266,6 +266,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
         dims = find_placement_options['dims'];
         height = find_placement_options['height'];
         radius = find_placement_options['radius'];
+        print(find_placement_options);
     else:
         dims = (0.05, 0.05, 0.2);
         height = 0.3;
