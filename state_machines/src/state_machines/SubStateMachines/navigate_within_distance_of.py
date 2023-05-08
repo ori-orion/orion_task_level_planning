@@ -302,8 +302,46 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
                 remapping={
                     'object_name':'obj_type'});
         else:
+            # The motion of the head as it looks round makes for a slight offset in the position
+            # between the actual location and the proposed one. This fixes that issue.
+            # We can assume that it's in view however.
             smach.StateMachine.add(
                 PUT_DOWN_STATE,
+                CreateSOMQuery(
+                    CreateSOMQuery.OBJECT_QUERY, 
+                    save_time=True),
+                transitions={
+                    SUCCESS: 'WaitALittle'},
+                remapping={'class_':'obj_type'});
+
+            smach.StateMachine.add(
+                'WaitALittle',
+                WaitForSecs(2),
+                transitions={
+                    SUCCESS:'PerformQuery'},
+                remapping={});
+
+            smach.StateMachine.add(
+                'PerformQuery',
+                PerformSOMQuery(distance_filter=4),
+                transitions={
+                    SUCCESS:'CheckSeenObject',
+                    FAILURE:FAILURE},
+                remapping={});
+
+            smach.StateMachine.add(
+                'CheckSeenObject',
+                GetListEmpty(),
+                transitions={
+                    'list_not_empty': "place_obj",
+                    'list_empty': FAILURE
+                },
+                remapping={
+                    'input_list':'som_query_results'
+                });
+
+            smach.StateMachine.add(
+                "place_obj",
                 PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,
