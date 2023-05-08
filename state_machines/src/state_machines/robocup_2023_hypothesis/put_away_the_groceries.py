@@ -2,7 +2,10 @@
 """
 Code for putting away the groceries.
 
-Will observe items and transfer them from one domain to another.
+Will observe items and transfer them from one area to another.
+
+Notes:
+    - We don't need to look around each time. 
 """
 
 import rospy;
