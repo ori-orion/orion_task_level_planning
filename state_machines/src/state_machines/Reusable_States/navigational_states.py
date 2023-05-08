@@ -282,7 +282,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, 
-            outcomes=[SUCCESS],
+            outcomes=[SUCCESS, "skip_navigation"],
             input_keys=['pose'],
             output_keys=['nav_target']);
 
@@ -300,7 +300,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
         target_pos:geometry_msgs.msg.Point = userdata.pose.position
         distance_from_object = math.sqrt( (robot_pos.x-target_pos.x)**2 + (robot_pos.y-target_pos.y)**2 );
         if distance_from_object < 1.3:
-            return SUCCESS;
+            return "skip_navigation";
 
         print("Userdata.pose");
         print(userdata.pose);

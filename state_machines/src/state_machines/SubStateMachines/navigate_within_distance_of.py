@@ -32,7 +32,8 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
             'FindNavGoal',
             NavigateDistanceFromGoalSafely(),
             transitions={
-                SUCCESS:'NavToGoal'},
+                SUCCESS:'NavToGoal',
+                "skip_navigation":SUCCESS},
             remapping={
                 'pose':'target_pose',
                 'nav_target':'nav_target'
