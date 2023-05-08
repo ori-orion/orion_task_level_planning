@@ -99,3 +99,4 @@ class GetListEmpty(smach.State):
         else:
             userdata.list_empty = False;
             return 'list_not_empty';
+

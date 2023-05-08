@@ -13,7 +13,7 @@ import actionlib
 
 import tf
 import tf2_ros;
-from manipulation.srv import FindPlacement
+from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
 from typing import List, Tuple;
 
 GLOBAL_FRAME = "map";
@@ -242,9 +242,9 @@ def getPlacementOptions(
         request.maxHeight = max_height;
         request.radius = radius;
         request.candidateNum = num_candidates;
-        resp = find_placement(request);
+        resp:FindPlacementResponse = find_placement(request);
         print("Loc found");
-        return resp.position, resp.best_tf 
+        return resp.position, resp.best_tf
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
@@ -269,18 +269,20 @@ class PlaceNextTo(smach.State):
         # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
         place_locations, best_tf = getPlacementOptions(
             goal_pos=[
-                first_response.position.x, 
-                first_response.position.y, 
-                first_response.position.z],
+                first_response.obj_position.position.x, 
+                first_response.obj_position.position.y, 
+                first_response.obj_position.position.z],
             dims=self.dims,
             max_height=self.max_height,
             radius=self.radius,
-            num_candidates=self.num_candidates);
+            num_candidates=self.num_candidates,
+            goal_tf=first_response.class_ + '_0'
+            );
         
         print(place_locations);
         print(best_tf);
 
-        if False:
+        if True:
             goal = PutObjectOnSurfaceGoal();
             goal.goal_tf = best_tf;
             success = putObjOnSurfaceAction(goal);

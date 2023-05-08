@@ -59,5 +59,9 @@ def create_state_machine():
 
 if __name__ == '__main__':
     sm = create_state_machine();
+
+    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+    sis.start()
+
     sm.execute();
 

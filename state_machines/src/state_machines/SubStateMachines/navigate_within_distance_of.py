@@ -32,7 +32,8 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
             'FindNavGoal',
             NavigateDistanceFromGoalSafely(),
             transitions={
-                SUCCESS:'NavToGoal'},
+                SUCCESS:'NavToGoal',
+                "skip_navigation":SUCCESS},
             remapping={
                 'pose':'target_pose',
                 'nav_target':'nav_target'
@@ -42,12 +43,20 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
             'NavToGoal',
             SimpleNavigateState(execute_nav_commands),
             transitions={
-                SUCCESS:SUCCESS,
-                FAILURE:'LookAtObject',
+                SUCCESS:'LookAtObject_AGAIN',
+                FAILURE:'NavToGoal',
                 REPEAT_FAILURE: FAILURE},
             remapping={
                 'pose':'nav_target'
             });
+
+        smach.StateMachine.add(
+            "LookAtObject_AGAIN",
+            LookAtPoint(z_looking_at=0.9),
+            transitions={
+                SUCCESS:SUCCESS},
+            remapping={
+                'pose':'target_pose'});
 
     return sub_sm;
 
@@ -130,7 +139,7 @@ def search_for_entity(spin_first=True):
 
             smach.StateMachine.add(
                 'SpinOnSpot',
-                SpinState(spin_height=0.7),
+                SpinState(spin_height=0.7, only_look_forwards=True),
                 transitions={
                     SUCCESS:'PerformQuery'},
                 remapping={});
@@ -266,6 +275,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
         dims = find_placement_options['dims'];
         height = find_placement_options['height'];
         radius = find_placement_options['radius'];
+        print(find_placement_options);
     else:
         dims = (0.05, 0.05, 0.2);
         height = 0.3;
@@ -292,8 +302,53 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
                 remapping={
                     'object_name':'obj_type'});
         else:
+            # The motion of the head as it looks round makes for a slight offset in the position
+            # between the actual location and the proposed one. This fixes that issue.
+            # We can assume that it's in view however.
             smach.StateMachine.add(
                 PUT_DOWN_STATE,
+                CreateSOMQuery(
+                    CreateSOMQuery.OBJECT_QUERY, 
+                    save_time=True),
+                transitions={
+                    SUCCESS: 'WaitALittle'},
+                remapping={'class_':'obj_type'});
+
+            smach.StateMachine.add(
+                'WaitALittle',
+                WaitForSecs(2),
+                transitions={
+                    SUCCESS:'PerformQuery'},
+                remapping={});
+
+            smach.StateMachine.add(
+                'PerformQuery',
+                PerformSOMQuery(distance_filter=4),
+                transitions={
+                    SUCCESS:'GetLocation',
+                    FAILURE:FAILURE},
+                remapping={});
+            
+            smach.StateMachine.add(
+                'GetLocation',
+                GetPropertyAtIndex(property_getting='obj_position', index=0),
+                transitions={
+                    SUCCESS:'LookAtObject',
+                    'index_out_of_range':FAILURE},
+                remapping={
+                    'input_list':'som_query_results',
+                    'output_param':'target_pose'});
+                
+            smach.StateMachine.add(
+                "LookAtObject",
+                LookAtPoint(z_looking_at=0.9),
+                transitions={
+                    SUCCESS:'PlaceObj'},
+                remapping={
+                    'pose':'target_pose'});
+
+            smach.StateMachine.add(
+                "PlaceObj",
                 PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,

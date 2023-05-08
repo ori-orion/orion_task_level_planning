@@ -282,7 +282,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     def __init__(self):
         smach.State.__init__(
             self, 
-            outcomes=[SUCCESS],
+            outcomes=[SUCCESS, "skip_navigation"],
             input_keys=['pose'],
             output_keys=['nav_target']);
 
@@ -296,12 +296,21 @@ class NavigateDistanceFromGoalSafely(smach.State):
         rospy.wait_for_service("tlp/get_nav_goal");
         nav_goal_getter = rospy.ServiceProxy('tlp/get_nav_goal', NavigationalQuery);
 
+        robot_pos = self.get_robot_pose().position;
+        target_pos:geometry_msgs.msg.Point = userdata.pose.position
+        distance_from_object = math.sqrt( (robot_pos.x-target_pos.x)**2 + (robot_pos.y-target_pos.y)**2 );
+        if distance_from_object < 1.3:
+            return "skip_navigation";
+
+        print("Userdata.pose");
         print(userdata.pose);
         nav_goal_getter_req = NavigationalQueryRequest();
         nav_goal_getter_req.navigating_within_reach_of = userdata.pose.position;
         nav_goal_getter_req.distance_from_obj = self.DISTANCE_FROM_POSE;
         nav_goal_getter_req.current_pose = get_current_pose().position;
+        print();
         print(nav_goal_getter_req);
+        print();
 
         nav_goal_getter_resp:NavigationalQueryResponse = nav_goal_getter(nav_goal_getter_req);
         nav_goal_getter_resp.navigate_to.position.z = 0;
