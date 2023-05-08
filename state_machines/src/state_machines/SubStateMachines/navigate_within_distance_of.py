@@ -325,23 +325,30 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
                 'PerformQuery',
                 PerformSOMQuery(distance_filter=4),
                 transitions={
-                    SUCCESS:'CheckSeenObject',
+                    SUCCESS:'GetLocation',
                     FAILURE:FAILURE},
                 remapping={});
-
+            
             smach.StateMachine.add(
-                'CheckSeenObject',
-                GetListEmpty(),
+                'GetLocation',
+                GetPropertyAtIndex(property_getting='obj_position', index=0),
                 transitions={
-                    'list_not_empty': "place_obj",
-                    'list_empty': FAILURE
-                },
+                    SUCCESS:'LookAtObject',
+                    'index_out_of_range':FAILURE},
                 remapping={
-                    'input_list':'som_query_results'
-                });
+                    'input_list':'som_query_results',
+                    'output_param':'target_pose'});
+                
+            smach.StateMachine.add(
+                "LookAtObject",
+                LookAtPoint(z_looking_at=0.9),
+                transitions={
+                    SUCCESS:'PlaceObj'},
+                remapping={
+                    'pose':'target_pose'});
 
             smach.StateMachine.add(
-                "place_obj",
+                "PlaceObj",
                 PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,
