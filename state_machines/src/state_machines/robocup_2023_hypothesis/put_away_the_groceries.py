@@ -78,30 +78,19 @@ def create_state_machine():
 
     sm.userdata.objects_placed = 0
 
-    sm.userdata.cabinet_pose = Pose()
-    sm.userdata.cabinet_pose.position.x = 0.0
-    sm.userdata.cabinet_pose.position.y = 0.0
-    sm.userdata.cabinet_pose.position.z = 0.0
-    sm.userdata.cabinet_pose.orientation.x = 0.0
-    sm.userdata.cabinet_pose.orientation.y = 0.0
-    sm.userdata.cabinet_pose.orientation.z = 0.0
-    sm.userdata.cabinet_pose.orientation.w = 1.0
-
-    sm.userdata.table_pose = Pose()
-    sm.userdata.table_pose.position.x = 0.0
-    sm.userdata.table_pose.position.y = 0.0
-    sm.userdata.table_pose.position.z = 0.0
-    sm.userdata.table_pose.orientation.x = 0.0
-    sm.userdata.table_pose.orientation.y = 0.0
-    sm.userdata.table_pose.orientation.z = 0.0
-    sm.userdata.table_pose.orientation.w = 1.0
+    if rospy.has_param('cabinet_pose') and rospy.has_param('table_pose'):
+        sm.userdata.cabinet_pose = utils.dict_to_obj(rospy.get_param('cabinet_pose'), Pose());
+        sm.userdata.table_pose = utils.dict_to_obj(rospy.get_param('table_pose'), Pose());
+    else:
+        print("Cabinet pose and Table pose not found. Ros params not fully loaded.");
+        raise Exception("Cabinet pose and Table pose not found. Ros params not fully loaded");
 
 
     with sm:
 
         smach.StateMachine.add(
             'NavToTable',
-            navigate_within_distance_of_pose_input(execute_nav_commmands),
+            navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
                 SUCCESS: 'CreateTableQuery',
                 FAILURE: TASK_FAILURE
@@ -122,11 +111,11 @@ def create_state_machine():
         )
 
         smach.StateMachine.add(
-                'LookAtTable',
-                SpinState(spin_height=0.7, only_look_forwards=True),
-                transitions={
-                    SUCCESS:'PerformQuery'},
-                remapping={});
+            'LookAtTable',
+            SpinState(spin_height=0.7, only_look_forwards=True),
+            transitions={
+                SUCCESS:'PerformQuery'},
+            remapping={});
 
         smach.StateMachine.add(
             'PerformQuery',
@@ -160,7 +149,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NavToCabinet',
-            navigate_within_distance_of_pose_input(execute_nav_commmands),
+            navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
                 SUCCESS: 'GetObjectCategory',
                 FAILURE: TASK_FAILURE
@@ -204,7 +193,7 @@ def create_state_machine():
             'CheckIfShouldContinue',
             LessThanState(right=num_objects_to_put_away),
             transitions={
-                TRUE_STR: 'NavToTable'
+                TRUE_STR: 'NavToTable',
                 FALSE_STR: TASK_SUCCESS
             },
             remapping={

@@ -12,3 +12,20 @@ find_placement_options : {
     # Assumes the object is dims in dimension.
     dims : [0.05, 0.05, 0.2]
 }
+
+cabinet_pose : {
+    position : {
+        x : 0, y : 0, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : 0, w : 0
+    }
+}
+table_pose : {
+    position : {
+        x : 0, y : 0, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : 0, w : 0
+    }
+}
