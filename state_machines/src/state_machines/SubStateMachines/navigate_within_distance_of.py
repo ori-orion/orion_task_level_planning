@@ -314,7 +314,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                     save_time=True),
                 transitions={
                     SUCCESS: 'WaitALittle'},
-                remapping={'put_down_query_type':'obj_type'});
+                remapping={put_down_query_type:'obj_type'});
 
             smach.StateMachine.add(
                 'WaitALittle',

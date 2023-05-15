@@ -74,7 +74,7 @@ def create_state_machine():
         if rospy.get_param('execute_navigation_commands') == False:
             execute_nav_commands = False;
     
-    num_object_to_put_away = 5
+    num_objects_to_put_away = 5
 
     sm.userdata.objects_placed = 0
 
@@ -117,15 +117,22 @@ def create_state_machine():
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=True),
             transitions={
-                SUCCESS: 'PerformQuery'},
-            remapping={'class_':'obj_type'}
+                SUCCESS: 'LookAtTable'},
+            remapping={}
         )
+
+        smach.StateMachine.add(
+                'LookAtTable',
+                SpinState(spin_height=0.7, only_look_forwards=True),
+                transitions={
+                    SUCCESS:'PerformQuery'},
+                remapping={});
 
         smach.StateMachine.add(
             'PerformQuery',
             PerformSOMQuery(distance_filter=4),
             transitions={
-                SUCCESS: 'NavToCabinet',
+                SUCCESS: 'GetObjectToPickUp',
                 FAILURE: TASK_FAILURE},
             remapping={}
         )
@@ -162,6 +169,7 @@ def create_state_machine():
                 'target_pose': 'cabinet_pose'
             }
         )
+        # use category
 
         smach.StateMachine.add(
             'PutAwayObject',
@@ -184,7 +192,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'CheckIfShouldContinue',
-            LessThanState(right=num_object_to_put_away),
+            LessThanState(right=num_objects_to_put_away),
             transitions={
                 TRUE_STR: 'NavToTable'
                 FALSE_STR: TASK_SUCCESS

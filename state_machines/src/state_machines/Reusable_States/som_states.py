@@ -52,6 +52,9 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryObjectsRequest();
             if hasattr(userdata, "class_"):
                 output.query.class_ = userdata.class_.replace(' ', '_');
+            if hasattr(userdata, "category"):
+                output.query.category = userdata.category
+
 
         if self.save_time:
             output.query.last_observed_at = rospy.Time.now();
