@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+"""
+Author: Matthew Munks
+Maintainer: Matthew Munks
+
+This is the set of sub-state machines surrounding picking things up and putting them down next to other things.
+
+Sub state machines and their purposes:
+ - navigate_within_distance_of_pose_input   - Navigate to a point within a given distance of a point so that you might
+                                            hypothetically be able to pick up or put something down at that location.
+ - navigate_within_distance_of_som_input    - Navigate to the location given by a SOM query, in way that you might
+                                            hypothetically be able to pick up or put something down at that location.
+ - search_for_entity                        - Searches for a given 
+ - nav_within_reaching_distance_of          - 
+ - nav_and_pick_up_or_place_next_to         - 
+"""
 
 import smach; 
 from state_machines.Reusable_States.include_all import *;
@@ -112,7 +127,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
     return sub_sm;
 
 
-def search_for_entity(spin_first=True):
+def search_for_entity(spin_first=True, find_same_category=False):
     """
     Spins on the spot in the persuit of seeing an object. 
     It will then query for said object. 
@@ -125,6 +140,8 @@ def search_for_entity(spin_first=True):
         outcomes=[SUCCESS, FAILURE, "item_not_seen"],
         input_keys=['obj_type'],
         output_keys=['som_query_results']);
+
+    search_for_query_type = 'category' if find_same_category else 'class_'
     
     with sub_sm:
         def createSpinAndQuery(subsequent_state:SUCCESS):
@@ -135,7 +152,7 @@ def search_for_entity(spin_first=True):
                     save_time=True),
                 transitions={
                     SUCCESS: 'SpinOnSpot'},
-                remapping={'class_':'obj_type'});
+                remapping={search_for_query_type :'obj_type'});
 
             smach.StateMachine.add(
                 'SpinOnSpot',
@@ -171,7 +188,7 @@ def search_for_entity(spin_first=True):
                     save_time=False),
                 transitions={
                     SUCCESS: 'PerformAllTimeQuery'},
-                remapping={'class_':'obj_type'});
+                remapping={search_for_query_type:'obj_type'});
             
             smach.StateMachine.add(
                 'PerformAllTimeQuery',
@@ -203,7 +220,7 @@ def search_for_entity(spin_first=True):
     return sub_sm;
 
 
-def nav_within_reaching_distance_of(execute_nav_commands):
+def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=False):
     """
     Input keys:
         obj_type            - The class of object we are looking to navigate to.
@@ -221,7 +238,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
     with sub_sm:
         smach.StateMachine.add(
             'search_for_entity',
-            search_for_entity(spin_first=True),
+            search_for_entity(spin_first=True, find_same_category=find_same_category),
             transitions={
                 SUCCESS:'GetLocation',
                 FAILURE:FAILURE,
@@ -300,7 +317,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         # Outputs som_query_results to userdata.
         smach.StateMachine.add(
             'nav_to_object',
-            nav_within_reaching_distance_of(execute_nav_commands),
+            nav_within_reaching_distance_of(execute_nav_commands, find_same_category=find_same_category),
             transitions={
                 SUCCESS:SECOND_STATE,
                 FAILURE:SECOND_STATE,
