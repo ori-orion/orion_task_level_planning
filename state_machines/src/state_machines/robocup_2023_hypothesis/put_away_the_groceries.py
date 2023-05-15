@@ -162,7 +162,7 @@ def create_state_machine():
             'NavToCabinet',
             navigate_within_distance_of_pose_input(execute_nav_commmands),
             transitions={
-                SUCCESS: 'PutAwayObject',
+                SUCCESS: 'GetObjectCategory',
                 FAILURE: TASK_FAILURE
             },
             remapping={
@@ -170,6 +170,16 @@ def create_state_machine():
             }
         )
         # use category
+        smach.StateMachine.add(
+            'GetObjectCategory',
+            GetPropertyAtIndex(property_getting='obj_class', index=0),
+            transitions={
+                SUCCESS:'PutAwayObject',
+                'index_out_of_range':TASK_FAILURE},
+            remapping={
+                'input_list':'som_query_results',
+                'output_param':'put_down_category'}
+        )
 
         smach.StateMachine.add(
             'PutAwayObject',
@@ -178,7 +188,7 @@ def create_state_machine():
                 SUCCESS: 'IncreaseNumber',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE},
-            remapping={'obj_type':'pick_up_object_class'}
+            remapping={'obj_type':'put_down_category'}
         )
         
         smach.StateMachine.add(
