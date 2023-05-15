@@ -248,7 +248,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
     return sub_sm;
 
 
-def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
+def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_same_category = False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
@@ -266,6 +266,8 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     PICK_UP_STATE = "PickUpObject";
     PUT_DOWN_STATE = "PutObjectDown";
     SECOND_STATE = PICK_UP_STATE if pick_up else PUT_DOWN_STATE;
+
+    put_down_query_type = 'category' if find_same_category else 'class_'
 
     # Required fields for PlaceNextTo
     # Place in a YAML file?
@@ -312,7 +314,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
                     save_time=True),
                 transitions={
                     SUCCESS: 'WaitALittle'},
-                remapping={'class_':'obj_type'});
+                remapping={'put_down_query_type':'obj_type'});
 
             smach.StateMachine.add(
                 'WaitALittle',
