@@ -38,7 +38,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['class_'],
+            input_keys=['class_', 'category'],
             output_keys=['som_query'])
 
         self.query_type = query_type;

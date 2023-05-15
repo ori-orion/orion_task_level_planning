@@ -252,8 +252,21 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
+    Input arguments:
+        execute_nav_commands    - Required argument for whether navigation will be allowed. Manipulation 
+                                can navigate by itself, but apart from that, this stops the robot from 
+                                navigating around while you're developing something that doesn't need it.
+        pick_up                 - Argument for whether we're picking an object up, or putting one down.
+                                This state machine does both, allowing for a reduction in the number of 
+                                sub-state machines required for the system as a whole. 
+        find_same_category      - Currently only applies to putting an object down. If we wish to put an 
+                                object down next to another of the same type, set this flag to true rather
+                                than false. TODO: Extend to picking up as well, though this is non-critical
+                                for storing groceries, and may well be an extension to write when required.
     Input keys:
-        obj_type    - The class of object we want to pick up/put the object we're holding next to.
+        obj_type                - The class of object we want to pick up/put the object we're holding next to. 
+                                If we are putting an object down, this can also refer to the category of the 
+                                object.
     Dependencies (28/4/2023):
         put_away_the_groceries.py
         open_day_demo_autonav.py
