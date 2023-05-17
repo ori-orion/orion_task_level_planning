@@ -276,7 +276,7 @@ class PlaceNextTo(smach.State):
             max_height=self.max_height,
             radius=self.radius,
             num_candidates=self.num_candidates,
-            goal_tf=first_response.class_ + '_0'
+            goal_tf=first_response.tf_name
             );
         
         print(place_locations);
