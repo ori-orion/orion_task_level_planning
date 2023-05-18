@@ -186,14 +186,17 @@ def has_seen_object(time_interval:rospy.Duration=None):
     If `time_interval != None` then it will query back an interval of time_interval in time. 
     Else, the query will be across all time.
     Inputs:
-        time_interval:rospy.Duration    - The duration back in time over which we are querying.
-        object_class:str                - A string giving the object class.
+        time_interval:rospy.Duration            - The duration back in time over which we are querying.
+        object_class:str                        - A string giving the object class.
+    Outputs:
+        item_not_found:bool                     - Whether the list returned is empty or not.
+        som_query_results:List[SOMObject|Human] - The results from the query. 
     """
 
     sub_sm = smach.StateMachine(
         outcomes=['object_seen', 'object_not_seen', FAILURE],
         input_keys=['object_class'],
-        output_keys=['item_not_found']);
+        output_keys=['item_not_found', 'som_query_results']);
 
     sub_sm.userdata.index = 0;
 
