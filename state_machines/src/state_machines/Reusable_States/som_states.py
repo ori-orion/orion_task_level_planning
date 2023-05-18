@@ -29,6 +29,7 @@ class CreateSOMQuery(smach.State):
 
     inputs:
         class_:str      : Optional attribute. If defined, this will be set within a potential object query.
+        category:str    : Optional attribute. If defined, this will be set within a potential object query.
     outputs:
         som_query:str   : The output query.
     """
@@ -190,7 +191,9 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
         time_interval:rospy.Duration            - The duration back in time over which we are querying.
         wait_before_querying:bool               - Should we do nothing over the course of time_interval before querying, 
                                                 or should we just query back immediately.
-        object_class:str                        - A string giving the object class.
+
+        class_:str                              - Optional attribute. A string giving the object class.
+        category:str                            - Optional attribute. A string giving the object category.
     Outputs:
         item_not_found:bool                     - Whether the list returned is empty or not.
         som_query_results:List[SOMObject|Human] - The results from the query. 
@@ -198,7 +201,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
 
     sub_sm = smach.StateMachine(
         outcomes=['object_seen', 'object_not_seen', FAILURE],
-        input_keys=['object_class'],
+        input_keys=['class_', 'category'],
         output_keys=['item_not_found', 'som_query_results']);
 
     sub_sm.userdata.index = 0;

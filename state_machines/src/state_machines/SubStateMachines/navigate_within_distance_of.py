@@ -339,27 +339,36 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             # We can assume that it's in view however.
             smach.StateMachine.add(
                 PUT_DOWN_STATE,
-                CreateSOMQuery(
-                    CreateSOMQuery.OBJECT_QUERY, 
-                    save_time=True),
+                has_seen_object(rospy.Duration(1),True),
                 transitions={
-                    SUCCESS: 'WaitALittle'},
+                    'object_seen':'GetLocation',
+                    'object_not_seen':FAILURE,
+                    FAILURE:FAILURE},
                 remapping={put_down_query_type:'obj_type'});
 
-            smach.StateMachine.add(
-                'WaitALittle',
-                WaitForSecs(2),
-                transitions={
-                    SUCCESS:'PerformQuery'},
-                remapping={});
+            # smach.StateMachine.add(
+            #     PUT_DOWN_STATE,
+            #     CreateSOMQuery(
+            #         CreateSOMQuery.OBJECT_QUERY, 
+            #         save_time=True),
+            #     transitions={
+            #         SUCCESS: 'WaitALittle'},
+            #     remapping={put_down_query_type:'obj_type'});
 
-            smach.StateMachine.add(
-                'PerformQuery',
-                PerformSOMQuery(distance_filter=4),
-                transitions={
-                    SUCCESS:'GetLocation',
-                    FAILURE:FAILURE},
-                remapping={});
+            # smach.StateMachine.add(
+            #     'WaitALittle',
+            #     WaitForSecs(2),
+            #     transitions={
+            #         SUCCESS:'PerformQuery'},
+            #     remapping={});
+
+            # smach.StateMachine.add(
+            #     'PerformQuery',
+            #     PerformSOMQuery(distance_filter=4),
+            #     transitions={
+            #         SUCCESS:'GetLocation',
+            #         FAILURE:FAILURE},
+            #     remapping={});
             
             smach.StateMachine.add(
                 'GetLocation',
