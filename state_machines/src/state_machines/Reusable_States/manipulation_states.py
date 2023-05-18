@@ -38,7 +38,7 @@ class PickUpObjectState(smach.State):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
-            input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
+            input_keys=['tf_name', 'object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
             output_keys=['number_of_failures']);
 
         self.object_name = object_name;

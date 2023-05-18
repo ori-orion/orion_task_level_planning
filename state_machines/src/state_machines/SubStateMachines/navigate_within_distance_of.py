@@ -219,6 +219,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
         output_keys=['som_query_results']);
 
     with sub_sm:
+        # Outputs som_query_results into userdata.
         smach.StateMachine.add(
             'search_for_entity',
             search_for_entity(spin_first=True),
@@ -231,11 +232,21 @@ def nav_within_reaching_distance_of(execute_nav_commands):
             'GetLocation',
             GetPropertyAtIndex(property_getting='obj_position', index=0),
             transitions={
-                SUCCESS:'NavToLoc',
+                SUCCESS:'GetTfName',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
                 'output_param':'target_pose'});
+        
+        smach.StateMachine.add(
+            'GetTfName',
+            GetPropertyAtIndex(property_getting='tf_name', index=0),
+            transitions={
+                SUCCESS:'NavToLoc',
+                'index_out_of_range':'query_empty'},
+            remapping={
+                'input_list':'som_query_results',
+                'output_param':'tf_name'});
 
         smach.StateMachine.add(
             'NavToLoc',
