@@ -105,6 +105,7 @@ class PickUpObjectState(smach.State):
             pick_up_goal.goal_tf = userdata.tf_name;
         else:
             print("Searching of the tf.");
+            rospy.logwarn("Searching for the tfs rather than using the tf names stored in SOM.")
             object_name = object_name.replace(" ", "_");
             pick_up_goal.goal_tf, tf_found, frames = self.getTfBySearchingTfTree(object_name.replace(" ", "_"));
 
