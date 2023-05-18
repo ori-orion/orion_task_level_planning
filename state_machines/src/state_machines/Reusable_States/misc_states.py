@@ -38,7 +38,11 @@ class GetTime(smach.State):
         return SUCCESS
 
 class WaitForSecs(smach.State):
-    def __init__(self, num_secs):
+    """
+    Waits for a given number of seconds, parameterised by an input argument.
+    num_secs can be either of type int/float or of rospy.Duration (given that rospy.sleep(.) supports both of those types). 
+    """
+    def __init__(self, num_secs:float):
         smach.State.__init__(
             self,
             outcomes = [SUCCESS]);

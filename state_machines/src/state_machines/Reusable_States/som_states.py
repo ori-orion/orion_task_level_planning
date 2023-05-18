@@ -1,5 +1,6 @@
 from state_machines.Reusable_States.utils import *;
 from state_machines.Reusable_States.procedural_states import *;
+from state_machines.Reusable_States.misc_states import *;
 
 import smach;
 
@@ -180,13 +181,15 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
 
 
 
-def has_seen_object(time_interval:rospy.Duration=None):
+def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool=False):
     """
     Checks whether the robot has seen a given object.
     If `time_interval != None` then it will query back an interval of time_interval in time. 
     Else, the query will be across all time.
     Inputs:
         time_interval:rospy.Duration            - The duration back in time over which we are querying.
+        wait_before_querying:bool               - Should we do nothing over the course of time_interval before querying, 
+                                                or should we just query back immediately.
         object_class:str                        - A string giving the object class.
     Outputs:
         item_not_found:bool                     - Whether the list returned is empty or not.
@@ -205,9 +208,18 @@ def has_seen_object(time_interval:rospy.Duration=None):
             'CreateQuery',
             CreateSOMQuery(
                 query_type=CreateSOMQuery.OBJECT_QUERY, 
-                duration_back=time_interval),
+                duration_back=None if wait_before_querying==True else time_interval,
+                save_time=wait_before_querying),
             transitions={
-                SUCCESS:'QuerySom'});
+                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'});
+        
+        if wait_before_querying:
+            smach.StateMachine.add(
+                'WaitALittle',
+                WaitForSecs(time_interval),
+                transitions={
+                    SUCCESS:'QuerySom'},
+                remapping={});
         
         smach.StateMachine.add(
             'QuerySom',
