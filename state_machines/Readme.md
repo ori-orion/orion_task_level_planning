@@ -1,3 +1,19 @@
+# Running the introspection server.
+
+Some of the state machines (but not all) are linked up to the introspection server. 
+Linking them up is easy:
+```
+sm = create_state_machine();
+sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+sis.start()
+sm.execute();
+```
+Viewing the state machine is then possible through the command.
+```
+rosrun smach_viewer smach_viewer
+```
+This then loads a real time visual display of the state machine and its current state.
+
 # State Machines for ORION.
 
 ## Stage I
