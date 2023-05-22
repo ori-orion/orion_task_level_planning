@@ -220,7 +220,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
 
     sub_sm = smach.StateMachine(
         outcomes=['object_seen', 'object_not_seen', FAILURE],
-        input_keys=['class_', 'category'],
+        input_keys=['class_'],
         output_keys=['item_not_found', 'som_query_results']);
 
     sub_sm.userdata.index = 0;
