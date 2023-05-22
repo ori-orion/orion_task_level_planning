@@ -40,7 +40,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False, duration_back:rospy.Duration=None):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['class_', 'category'],
+            input_keys=['class_'],
             output_keys=['som_query'])
 
         self.query_type = query_type;
