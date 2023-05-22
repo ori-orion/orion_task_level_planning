@@ -200,7 +200,7 @@ def create_search_for_human(execute_nav_commands:bool, start_with_nav:bool = Tru
             transitions={
                 SUCCESS: 'SpinOnSpot'},
             remapping={});
-        
+
         smach.StateMachine.add(
             'SpinOnSpot',
             SpinState(),
