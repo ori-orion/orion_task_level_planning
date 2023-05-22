@@ -89,7 +89,7 @@ class AddSOMEntry(smach.State):
     """
     def __init__(self, field_adding_default):
         smach.State.__init__(self, 
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS],
             input_keys=['som_query', 'value'],
             output_keys=['som_query']);
         
@@ -102,7 +102,7 @@ class AddSOMEntry(smach.State):
         elif self.field_adding_default == "category":
             query.query.category = userdata.value;
         userdata.som_query = query;
-    pass;
+        return SUCCESS;
 
 class PerformSOMQuery(smach.State):
     """
@@ -242,7 +242,16 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
                 duration_back=None if wait_before_querying==True else time_interval,
                 save_time=wait_before_querying),
             transitions={
-                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'});
+                SUCCESS:'AddEntryToSOMQuery'});
+        
+        smach.StateMachine.add(
+            'AddEntryToSOMQuery',
+            AddSOMEntry(
+                field_adding_default="class_"),
+            transitions={
+                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'
+            },
+            remapping={'value' :'class_'});
         
         if wait_before_querying:
             smach.StateMachine.add(
