@@ -153,6 +153,14 @@ def search_for_entity(spin_first=True, find_same_category=False):
                 transitions={
                     SUCCESS: 'SpinOnSpot'},
                 remapping={search_for_query_type :'obj_type'});
+            
+            smach.StateMachine.add(
+                'CreateObjQuery',
+                AddSOMEntry(
+                    field_adding_default=search_for_query_type),
+                transitions={
+                    SUCCESS: 'SpinOnSpot'},
+                remapping={search_for_query_type :'obj_type'});
 
             smach.StateMachine.add(
                 'SpinOnSpot',
