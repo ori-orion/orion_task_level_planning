@@ -8,14 +8,18 @@ TRUE_STR = 'true';
 FALSE_STR = 'false';
 
 class LessThanState(smach.State):
-    def __init__(self):
+    def __init__(self, left=None, right=None):
         smach.State.__init__(
             self,
             outcomes=[TRUE_STR, FALSE_STR],
             input_keys=['left', 'right']);
+        self.left = left
+        self.right = right
 
     def execute(self, userdata):
-        if (userdata.left < userdata.right):
+        left = userdata.left if userdata.left is not None else self.left
+        right = userdata.right if userdata.right is not None else self.right
+        if (left < right):
             return TRUE_STR;
         else:
             return FALSE_STR;

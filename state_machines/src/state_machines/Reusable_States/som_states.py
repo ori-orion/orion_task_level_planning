@@ -1,5 +1,6 @@
 from state_machines.Reusable_States.utils import *;
 from state_machines.Reusable_States.procedural_states import *;
+from state_machines.Reusable_States.misc_states import *;
 
 import smach;
 
@@ -27,22 +28,23 @@ class CreateSOMQuery(smach.State):
     Creates a query for the SOM system.
 
     inputs:
-        class_:str      : Optional attribute. If defined, this will be set within a potential object query.
     outputs:
-        som_query:str   : The output query.
+        som_query:SOMQueryHumansRequest|SOMQueryObjectsRequest
+                        : The output query.
     """
 
     HUMAN_QUERY = 1;
     OBJECT_QUERY = 2;
     
-    def __init__(self, query_type:int, save_time:bool=False):
+    def __init__(self, query_type:int, save_time:bool=False, duration_back:rospy.Duration=None):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['class_'],
+            input_keys=[],
             output_keys=['som_query'])
 
         self.query_type = query_type;
         self.save_time = save_time;
+        self.duration_back = duration_back;
 
 
     def execute(self, userdata):        
@@ -50,10 +52,14 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryHumansRequest();
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
-            if hasattr(userdata, "class_"):
-                output.query.class_ = userdata.class_.replace(' ', '_');
+            # if hasattr(userdata, "class_"):
+            #     output.query.class_ = userdata.class_.replace(' ', '_');
+            # if hasattr(userdata, "category"):
+            #     output.query.category = userdata.category
 
-        if self.save_time:
+        if self.duration_back != None:
+            output.query.last_observed_at = rospy.Time.now() - self.duration_back;
+        elif self.save_time:
             output.query.last_observed_at = rospy.Time.now();
 
         # print("Checking to see if 'object_class' is within the userdata field.")
@@ -67,6 +73,33 @@ class CreateSOMQuery(smach.State):
         #     output.query.class_ = class_;
 
         userdata.som_query = output;
+        return SUCCESS;
+
+
+class AddSOMEntry(smach.State):
+    """
+    Optional parameters are not a thing within smach. This will add 
+    parameters to the SOM query. 
+    It thus edits som_query.
+    Inputs:
+        field_adding_default:str    - The field we are adding. 
+        som_query:
+    """
+    def __init__(self, field_adding_default):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=['som_query', 'value'],
+            output_keys=['som_query']);
+        
+        self.field_adding_default:str = field_adding_default;
+    
+    def execute(self, userdata):
+        query = userdata.som_query;
+        if self.field_adding_default == "class_":
+            query.query.class_ = userdata.value;
+        elif self.field_adding_default == "category":
+            query.query.category = userdata.value;
+        userdata.som_query = query;
         return SUCCESS;
 
 class PerformSOMQuery(smach.State):
@@ -175,25 +208,55 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
 
 
 
-def has_seen_object():
+def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool=False):
     """
     Checks whether the robot has seen a given object.
+    If `time_interval != None` then it will query back an interval of time_interval in time. 
+    Else, the query will be across all time.
     Inputs:
-        object_class:str  - A string giving the object class.
+        time_interval:rospy.Duration            - The duration back in time over which we are querying.
+        wait_before_querying:bool               - Should we do nothing over the course of time_interval before querying, 
+                                                or should we just query back immediately.
+
+        class_:str                              - A string giving the object class.
+    Outputs:
+        item_not_found:bool                     - Whether the list returned is empty or not.
+        som_query_results:List[SOMObject|Human] - The results from the query. 
     """
 
     sub_sm = smach.StateMachine(
         outcomes=['object_seen', 'object_not_seen', FAILURE],
-        input_keys=['object_class'],
-        output_keys=['item_not_found']);
+        input_keys=['class_'],
+        output_keys=['item_not_found', 'som_query_results']);
 
     sub_sm.userdata.index = 0;
 
     with sub_sm:
         smach.StateMachine.add(
             'CreateQuery',
-            CreateSOMQuery(query_type=CreateSOMQuery.OBJECT_QUERY),
-            transitions={SUCCESS:'QuerySom'});
+            CreateSOMQuery(
+                query_type=CreateSOMQuery.OBJECT_QUERY, 
+                duration_back=None if wait_before_querying==True else time_interval,
+                save_time=wait_before_querying),
+            transitions={
+                SUCCESS:'AddEntryToSOMQuery'});
+        
+        smach.StateMachine.add(
+            'AddEntryToSOMQuery',
+            AddSOMEntry(
+                field_adding_default="class_"),
+            transitions={
+                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'
+            },
+            remapping={'value' :'class_'});
+        
+        if wait_before_querying:
+            smach.StateMachine.add(
+                'WaitALittle',
+                WaitForSecs(time_interval),
+                transitions={
+                    SUCCESS:'QuerySom'},
+                remapping={});
         
         smach.StateMachine.add(
             'QuerySom',
@@ -214,8 +277,6 @@ def has_seen_object():
             });
 
     return sub_sm;
-
-
 
 
 class SaveOperatorToSOM(smach.State):

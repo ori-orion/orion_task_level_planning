@@ -187,10 +187,14 @@ class ReceiveObjectFromOperatorState(smach.State):
 def putObjOnSurfaceAction(goal:PutObjectOnSurfaceGoal=None):
     if goal == None:
         goal = PutObjectOnSurfaceGoal();
-
+    print('Calling put object on surface server')
+    print(goal)
     put_on_surface_action = actionlib.SimpleActionClient('put_object_on_surface', PutObjectOnSurfaceAction);
+    print("Creating the action server");
     put_on_surface_action.send_goal(goal)
+    print("Goal sent");
     put_on_surface_action.wait_for_result()
+    print("Result received");
 
     return put_on_surface_action.get_result().result;
 
