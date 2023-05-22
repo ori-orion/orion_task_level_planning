@@ -28,8 +28,6 @@ class CreateSOMQuery(smach.State):
     Creates a query for the SOM system.
 
     inputs:
-        class_:str      : Optional attribute. If defined, this will be set within a potential object query.
-        category:str    : Optional attribute. If defined, this will be set within a potential object query.
     outputs:
         som_query:SOMQueryHumansRequest|SOMQueryObjectsRequest
                         : The output query.
@@ -220,8 +218,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
         wait_before_querying:bool               - Should we do nothing over the course of time_interval before querying, 
                                                 or should we just query back immediately.
 
-        class_:str                              - Optional attribute. A string giving the object class.
-        category:str                            - Optional attribute. A string giving the object category.
+        class_:str                              - A string giving the object class.
     Outputs:
         item_not_found:bool                     - Whether the list returned is empty or not.
         som_query_results:List[SOMObject|Human] - The results from the query. 
