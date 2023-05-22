@@ -55,8 +55,8 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryObjectsRequest();
             if hasattr(userdata, "class_"):
                 output.query.class_ = userdata.class_.replace(' ', '_');
-            if hasattr(userdata, "category"):
-                output.query.category = userdata.category
+            # if hasattr(userdata, "category"):
+            #     output.query.category = userdata.category
 
         if self.duration_back != None:
             output.query.last_observed_at = rospy.Time.now() - self.duration_back;
@@ -75,6 +75,12 @@ class CreateSOMQuery(smach.State):
 
         userdata.som_query = output;
         return SUCCESS;
+
+# class AddSOMEntry(smach.State):
+#     """
+#     Optional parameters are not a thing within smach. This will add 
+#     """
+#     pass;
 
 class PerformSOMQuery(smach.State):
     """
