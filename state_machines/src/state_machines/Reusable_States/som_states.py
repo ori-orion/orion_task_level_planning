@@ -76,10 +76,23 @@ class CreateSOMQuery(smach.State):
         userdata.som_query = output;
         return SUCCESS;
 
+
 # class AddSOMEntry(smach.State):
 #     """
 #     Optional parameters are not a thing within smach. This will add 
+#     parameters to the SOM query. 
+#     It thus edits som_query.
+#     Inputs:
+#         field_adding_default    - If this is None 
+#         field_adding    - If this is None, 
 #     """
+#     def __init__(self, field_adding_default=None):
+#         smach.State.__init__(self, 
+#             outcomes=[SUCCESS, FAILURE],
+#             input_keys=['som_query'],
+#             output_keys=['som_query']);
+        
+#         self.field_adding_default:str = field_adding_default;
 #     pass;
 
 class PerformSOMQuery(smach.State):
