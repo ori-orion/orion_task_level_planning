@@ -38,7 +38,11 @@ class GetTime(smach.State):
         return SUCCESS
 
 class WaitForSecs(smach.State):
-    def __init__(self, num_secs):
+    """
+    Waits for a given number of seconds, parameterised by an input argument.
+    num_secs can be either of type int/float or of rospy.Duration (given that rospy.sleep(.) supports both of those types). 
+    """
+    def __init__(self, num_secs:float):
         smach.State.__init__(
             self,
             outcomes = [SUCCESS]);
@@ -188,6 +192,36 @@ class LookAtPoint(smach.State):
         return SUCCESS;
 
 #endregion
+
+
+class RaiseMastState(smach.State):
+    """
+    Raises the mast to a given height.
+    """
+    MAST_JOINT_NAME = 'arm_lift_joint';
+    MAST_JOINT_MAX = 0.69;
+    MAST_JOINT_MIN = 0;
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS],
+            input_keys=['mast_height']);
+
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+    
+    def execute(self, userdata):
+        mast_height = userdata.mast_height;
+
+        if mast_height > self.MAST_JOINT_MAX:
+            mast_height = self.MAST_JOINT_MAX;
+        elif mast_height > self.MAST_JOINT_MIN:
+            mast_height = self.MAST_JOINT_MIN;
+
+        self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
+        return SUCCESS;
+    pass;
+
 
 class SpinState(smach.State):
     """
