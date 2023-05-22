@@ -151,8 +151,16 @@ def search_for_entity(spin_first=True, find_same_category=False):
                     CreateSOMQuery.OBJECT_QUERY, 
                     save_time=True),
                 transitions={
+                    SUCCESS: 'AddEntryToSOMQuery'},
+                remapping={});
+            
+            smach.StateMachine.add(
+                'AddEntryToSOMQuery',
+                AddSOMEntry(
+                    field_adding_default=search_for_query_type),
+                transitions={
                     SUCCESS: 'SpinOnSpot'},
-                remapping={search_for_query_type :'obj_type'});
+                remapping={'value' :'obj_type'});
 
             smach.StateMachine.add(
                 'SpinOnSpot',
@@ -187,8 +195,16 @@ def search_for_entity(spin_first=True, find_same_category=False):
                     CreateSOMQuery.OBJECT_QUERY, 
                     save_time=False),
                 transitions={
+                    SUCCESS: 'AddEntryToSOMQuery_AllTime'},
+                remapping={});
+
+            smach.StateMachine.add(
+                'AddEntryToSOMQuery_AllTime',
+                AddSOMEntry(
+                    field_adding_default=search_for_query_type),
+                transitions={
                     SUCCESS: 'PerformAllTimeQuery'},
-                remapping={search_for_query_type:'obj_type'});
+                remapping={'value' :'obj_type'});
             
             smach.StateMachine.add(
                 'PerformAllTimeQuery',

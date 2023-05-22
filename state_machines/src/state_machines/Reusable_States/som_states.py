@@ -31,7 +31,8 @@ class CreateSOMQuery(smach.State):
         class_:str      : Optional attribute. If defined, this will be set within a potential object query.
         category:str    : Optional attribute. If defined, this will be set within a potential object query.
     outputs:
-        som_query:str   : The output query.
+        som_query:SOMQueryHumansRequest|SOMQueryObjectsRequest
+                        : The output query.
     """
 
     HUMAN_QUERY = 1;
@@ -40,7 +41,7 @@ class CreateSOMQuery(smach.State):
     def __init__(self, query_type:int, save_time:bool=False, duration_back:rospy.Duration=None):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
-            input_keys=['class_'],
+            input_keys=[],
             output_keys=['som_query'])
 
         self.query_type = query_type;
@@ -53,8 +54,8 @@ class CreateSOMQuery(smach.State):
             output = SOMQueryHumansRequest();
         elif self.query_type == self.OBJECT_QUERY:
             output = SOMQueryObjectsRequest();
-            if hasattr(userdata, "class_"):
-                output.query.class_ = userdata.class_.replace(' ', '_');
+            # if hasattr(userdata, "class_"):
+            #     output.query.class_ = userdata.class_.replace(' ', '_');
             # if hasattr(userdata, "category"):
             #     output.query.category = userdata.category
 
@@ -77,23 +78,31 @@ class CreateSOMQuery(smach.State):
         return SUCCESS;
 
 
-# class AddSOMEntry(smach.State):
-#     """
-#     Optional parameters are not a thing within smach. This will add 
-#     parameters to the SOM query. 
-#     It thus edits som_query.
-#     Inputs:
-#         field_adding_default    - If this is None 
-#         field_adding    - If this is None, 
-#     """
-#     def __init__(self, field_adding_default=None):
-#         smach.State.__init__(self, 
-#             outcomes=[SUCCESS, FAILURE],
-#             input_keys=['som_query'],
-#             output_keys=['som_query']);
+class AddSOMEntry(smach.State):
+    """
+    Optional parameters are not a thing within smach. This will add 
+    parameters to the SOM query. 
+    It thus edits som_query.
+    Inputs:
+        field_adding_default:str    - The field we are adding. 
+        som_query:
+    """
+    def __init__(self, field_adding_default):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=['som_query', 'value'],
+            output_keys=['som_query']);
         
-#         self.field_adding_default:str = field_adding_default;
-#     pass;
+        self.field_adding_default:str = field_adding_default;
+    
+    def execute(self, userdata):
+        query = userdata.som_query;
+        if self.field_adding_default == "class_":
+            query.query.class_ = userdata.value;
+        elif self.field_adding_default == "category":
+            query.query.category = userdata.value;
+        userdata.som_query = query;
+        return SUCCESS;
 
 class PerformSOMQuery(smach.State):
     """
@@ -233,7 +242,16 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
                 duration_back=None if wait_before_querying==True else time_interval,
                 save_time=wait_before_querying),
             transitions={
-                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'});
+                SUCCESS:'AddEntryToSOMQuery'});
+        
+        smach.StateMachine.add(
+            'AddEntryToSOMQuery',
+            AddSOMEntry(
+                field_adding_default="class_"),
+            transitions={
+                SUCCESS:'WaitALittle' if wait_before_querying else 'QuerySom'
+            },
+            remapping={'value' :'class_'});
         
         if wait_before_querying:
             smach.StateMachine.add(
