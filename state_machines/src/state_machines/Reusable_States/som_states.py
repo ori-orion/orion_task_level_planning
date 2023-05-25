@@ -83,23 +83,28 @@ class AddSOMEntry(smach.State):
     It thus edits som_query.
     Inputs:
         field_adding_default:str    - The field we are adding. 
-        som_query:
+        set_to_default              - If this is not None, then the value will be set to this. Otherwise, it will be set to `userdata.value`.
+        som_query:                  - The field we are editing.
     """
-    def __init__(self, field_adding_default):
+    def __init__(self, field_adding_default:str, set_to_default=None):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query', 'value'],
             output_keys=['som_query']);
         
         self.field_adding_default:str = field_adding_default;
+        self.set_to_default = set_to_default;
     
     def execute(self, userdata):
         query = userdata.som_query;
-        if self.field_adding_default == "class_":
-            query.query.class_ = userdata.value;
-        elif self.field_adding_default == "category":
-            query.query.category = userdata.value;
-        userdata.som_query = query;
+
+        set_to = userdata.value if self.set_to_default==None else self.set_to_default;
+
+        query_inner = query.query;
+        if hasattr(query_inner, self.field_adding_default):
+            setattr(query_inner, self.field_adding_default, set_to);
+        # potentially redundant, but I'll do it anyway:
+        query.query = query_inner;
         return SUCCESS;
 
 

@@ -91,6 +91,10 @@ def create_state_machine():
         print("Categories to pick up are not in the ros parameter list. Ros params not fully loaded.");
         raise Exception("Categories to pick up are not in the ros parameter list. Ros params not fully loaded.");
 
+    min_num_observations = 0;
+    if rospy.has_param('min_number_of_observations'):
+        min_num_observations = rospy.get_param('min_number_of_observations');
+
 
     with sm:
 
@@ -112,9 +116,13 @@ def create_state_machine():
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=True),
             transitions={
-                SUCCESS: 'LookAtTable'},
-            remapping={}
-        )
+                SUCCESS: 'LookAtTable'});
+
+        smach.StateMachine.add(
+            'AddMinObservationsTable',
+            AddSOMEntry('num_observations', min_num_observations),
+            transitions={
+                SUCCESS:'LookAtTable'});
 
         smach.StateMachine.add(
             'LookAtTable',
@@ -148,8 +156,7 @@ def create_state_machine():
                 'index_out_of_range':TASK_FAILURE},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'pick_up_object_class'}
-        )
+                'output_param':'pick_up_object_class'})
 
         smach.StateMachine.add(
             'PickUpObj',
@@ -158,8 +165,7 @@ def create_state_machine():
                 SUCCESS:'NavToCabinet',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE},
-            remapping={'obj_type':'pick_up_object_class'}
-        )
+            remapping={'obj_type':'pick_up_object_class'})
 
         smach.StateMachine.add(
             'NavToCabinet',
