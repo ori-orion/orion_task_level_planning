@@ -323,6 +323,10 @@ class SortSOMResultsAsPer(smach.State):
                 "{0} entries out of {1} did not have the parameter in question.".format(
                 num_skipped, len(queries)));
 
+        if num_skipped + len(queries_output) < len(queries):
+            rospy.loginfo("{0} entries were ignored. They had the correct field, but their values were not found in order of preference".format(
+                len(queries) - len(queries_output) - num_skipped));
+
         userdata.som_query_results = queries_output;
         userdata.first_result = queries_output[0];
         return SUCCESS;
