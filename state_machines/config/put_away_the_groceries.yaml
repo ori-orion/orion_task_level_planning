@@ -29,3 +29,14 @@ table_pose : {
         x : 0, y : 0, z : 0, w : 0
     }
 }
+
+# This list is in order of priority. If it sees a drink, it will try 
+# to pick this up first. Then fruits. etc. "tableware" is hard, so 
+# that's close to the bottom. We will not attempt containers or cutlery.
+categories_to_pick_up : [
+    "drinks", 
+    "fruits", 
+    "food", 
+    "snacks", 
+    "tableware", 
+    "cleaning_stuff"]
