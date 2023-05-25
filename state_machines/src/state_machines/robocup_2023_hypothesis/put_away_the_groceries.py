@@ -84,6 +84,12 @@ def create_state_machine():
     else:
         print("Cabinet pose and Table pose not found. Ros params not fully loaded.");
         raise Exception("Cabinet pose and Table pose not found. Ros params not fully loaded");
+    
+    if rospy.has_param("categories_to_pick_up"):
+        categories_to_pick_up = rospy.get_param('categories_to_pick_up');
+    else:
+        print("Categories to pick up are not in the ros parameter list. Ros params not fully loaded.");
+        raise Exception("Categories to pick up are not in the ros parameter list. Ros params not fully loaded.");
 
 
     with sm:
@@ -121,10 +127,18 @@ def create_state_machine():
             'PerformQuery',
             PerformSOMQuery(distance_filter=4),
             transitions={
-                SUCCESS: 'GetObjectToPickUp',
+                SUCCESS: 'SortListInput',
                 FAILURE: TASK_FAILURE},
             remapping={}
         )
+
+        smach.StateMachine.add(
+            'SortListInput',
+            SortSOMResultsAsPer('category', categories_to_pick_up),
+            transitions={
+                SUCCESS:'GetObjectToPickUp',
+                'list_empty':TASK_FAILURE},
+            remapping={});
 
         smach.StateMachine.add(
             'GetObjectToPickUp',

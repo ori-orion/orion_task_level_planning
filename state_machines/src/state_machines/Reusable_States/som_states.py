@@ -292,15 +292,21 @@ class SortSOMResultsAsPer(smach.State):
     """
     def __init__(self, sort_by:str, order_of_preference:List[str]):
         smach.State.__init__(
-            self, outcomes=[SUCCESS],
+            self, outcomes=[SUCCESS, 'list_empty'],
             input_keys=['som_query_results'],
-            output_keys=['som_query_results']);
+            output_keys=['som_query_results', 'first_result']);
         self.sort_by:str = sort_by;
         self.order_of_preference:List[str] = order_of_preference;
 
     def execute(self, userdata):
         queries:List[object] = userdata.som_query_results;
         queries_output:List[object] = [];
+
+        if len(queries) == 0:
+            userdata.som_query_results = queries_output;
+            userdata.first_result = 0;
+            return 'list_empty';
+
 
         num_skipped = 0;
 
@@ -318,6 +324,7 @@ class SortSOMResultsAsPer(smach.State):
                 num_skipped, len(queries)));
 
         userdata.som_query_results = queries_output;
+        userdata.first_result = queries_output[0];
         return SUCCESS;
     pass;
 
