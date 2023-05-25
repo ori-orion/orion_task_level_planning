@@ -102,6 +102,7 @@ class AddSOMEntry(smach.State):
         userdata.som_query = query;
         return SUCCESS;
 
+
 class PerformSOMQuery(smach.State):
     """
     Performs a SOM query.
@@ -157,6 +158,7 @@ class PerformSOMQuery(smach.State):
         print(output);
         return SUCCESS;
 
+
 class FindMyMates_IdentifyOperatorGuests(smach.State):
     """
     Inputs:
@@ -205,7 +207,6 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
             userdata.operator_pose = closest_pose;
             
             return SUCCESS;
-
 
 
 def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool=False):
@@ -277,6 +278,48 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
             });
 
     return sub_sm;
+
+
+class SortSOMResultsAsPer(smach.State):
+    """
+    Take the put away my groceries task. We want to pick things 
+    up as per a priority list across category. This sorts the 
+    entries found by the field `sort_by`, in order of `order_of_preference`.
+
+    NOTE: Error safe, in that it checks that the parameter exists in the 
+    object first. This however does mean that this might cause a bug further 
+    down the pipeline. 
+    """
+    def __init__(self, sort_by:str, order_of_preference:List[str]):
+        smach.State.__init__(
+            self, outcomes=[SUCCESS],
+            input_keys=['som_query_results'],
+            output_keys=['som_query_results']);
+        self.sort_by:str = sort_by;
+        self.order_of_preference:List[str] = order_of_preference;
+
+    def execute(self, userdata):
+        queries:List[object] = userdata.som_query_results;
+        queries_output:List[object] = [];
+
+        num_skipped = 0;
+
+        for element in self.order_of_preference:
+            for query in queries:
+                if hasattr(query, self.sort_by):
+                    if getattr(query, self.sort_by) == element:
+                        queries_output.append(query);
+                else:
+                    num_skipped += 1;
+        
+        if num_skipped > 0:
+            rospy.logwarn(
+                "{0} entries out of {1} did not have the parameter in question.".format(
+                num_skipped, len(queries)));
+
+        userdata.som_query_results = queries_output;
+        return SUCCESS;
+    pass;
 
 
 class SaveOperatorToSOM(smach.State):
@@ -648,6 +691,3 @@ class CheckForNewGuestSeen(smach.State):
             else:
                 rospy.loginfo("No new guest not found yet")
                 rospy.sleep(2)
-
-
-
