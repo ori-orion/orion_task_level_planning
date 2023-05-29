@@ -398,7 +398,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 
             smach.StateMachine.add(
                 "LookAtObject",
-                LookAtPoint(z_looking_at=0.9),
+                LookAtPoint(z_looking_at=0.9, set_head_to_neutral=True),
                 transitions={
                     SUCCESS:'PlaceObj'},
                 remapping={

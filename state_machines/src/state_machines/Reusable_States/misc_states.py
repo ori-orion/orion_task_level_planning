@@ -151,7 +151,7 @@ class LookAtPoint(smach.State):
     Inputs:
         pose:Pose   The point to look at in 3D space.
     """
-    def __init__(self, z_looking_at = 1.3):
+    def __init__(self, z_looking_at = 1.3, set_head_to_neutral:bool=False):
         """
         Inputs:
             z_looking_at: Gives the z-parameter. If None, then it will take it from userdata.pose.
@@ -165,6 +165,7 @@ class LookAtPoint(smach.State):
         self.whole_body = self.robot.try_get('whole_body');7
 
         self.z_looking_at = z_looking_at;
+        self.set_head_to_neutral = set_head_to_neutral;
     
     def execute(self, userdata):
         pose:Pose = userdata.pose;
@@ -189,6 +190,10 @@ class LookAtPoint(smach.State):
                     point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
                     ref_frame_id="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
+
+        if self.set_head_to_neutral:
+            self.whole_body.move_to_joint_positions({'head_tilt_joint':0})
+        
         return SUCCESS;
 
 #endregion
