@@ -322,7 +322,7 @@ class SortSOMResultsAsPer(smach.State):
                         queries_output.append(query);
                 else:
                     num_skipped += 1;
-        
+        num_skipped = num_skipped // len(self.order_of_preference) 
         if num_skipped > 0:
             rospy.logwarn(
                 "{0} entries out of {1} did not have the parameter in question.".format(
