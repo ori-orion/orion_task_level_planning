@@ -4,6 +4,9 @@ Code for putting away the groceries.
 
 Will observe items and transfer them from one area to another.
 
+This makes EXTENSIVE use of the ros parameter server. Look within config/put_away_the_groceries.yaml to find
+a list of all the parameters with explanations.
+
 Notes:
     - We don't need to look around each time. 
 """
@@ -105,18 +108,14 @@ def create_state_machine():
                 SUCCESS: 'CreateTableQuery',
                 FAILURE: TASK_FAILURE
             },
-            remapping={
-                'target_pose': 'table_pose'
-            }
-        )
+            remapping={'target_pose': 'table_pose'})
 
         smach.StateMachine.add(
             'CreateTableQuery',
             CreateSOMQuery(
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=True),
-            transitions={
-                SUCCESS: 'LookAtTable'});
+            transitions={SUCCESS: 'LookAtTable'});
 
         smach.StateMachine.add(
             'AddMinObservationsTable',
@@ -187,8 +186,7 @@ def create_state_machine():
                 'index_out_of_range':TASK_FAILURE},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'put_down_category'}
-        )
+                'output_param':'put_down_category'})
 
         smach.StateMachine.add(
             'PutAwayObject',
