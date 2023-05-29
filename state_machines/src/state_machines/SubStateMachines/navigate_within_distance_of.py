@@ -315,6 +315,9 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
 
     put_down_query_type = 'category' if find_same_category else 'class_'
 
+    sub_sm.userdata.number_of_failures = 0;
+    sub_sm.userdata.failure_threshold = 3;
+
     # Required fields for PlaceNextTo
     # Place in a YAML file?
     # if rospy.has_param('place_next_to_params'):
