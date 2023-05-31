@@ -146,10 +146,16 @@ def test_finding_placement():
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=False),
             transitions={
+                SUCCESS: 'AddEntryToSOMQuery'},
+            remapping={})
+        
+        smach.StateMachine.add(
+            'AddEntryToSOMQuery',
+            AddSOMEntry(
+                field_adding_default='class_'),
+            transitions={
                 SUCCESS: 'FIND_OBJECT'},
-            remapping={
-                'class_': 'obj_class'
-            })
+            remapping={'value' :'obj_class'});
         
         smach.StateMachine.add(
             'FIND_OBJECT',

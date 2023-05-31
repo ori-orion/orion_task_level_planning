@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+"""
+Author: Matthew Munks
+Maintainer: Matthew Munks
+
+This is the set of sub-state machines surrounding picking things up and putting them down next to other things.
+
+Sub state machines and their purposes:
+ - navigate_within_distance_of_pose_input   - Navigate to a point within a given distance of a point so that you might
+                                            hypothetically be able to pick up or put something down at that location.
+ - navigate_within_distance_of_som_input    - Navigate to the location given by a SOM query, in way that you might
+                                            hypothetically be able to pick up or put something down at that location.
+ - search_for_entity                        - Searches for a given 
+ - nav_within_reaching_distance_of          - 
+ - nav_and_pick_up_or_place_next_to         - 
+"""
 
 import smach; 
 from state_machines.Reusable_States.include_all import *;
@@ -112,7 +127,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
     return sub_sm;
 
 
-def search_for_entity(spin_first=True):
+def search_for_entity(spin_first=True, find_same_category=False):
     """
     Spins on the spot in the persuit of seeing an object. 
     It will then query for said object. 
@@ -125,6 +140,8 @@ def search_for_entity(spin_first=True):
         outcomes=[SUCCESS, FAILURE, "item_not_seen"],
         input_keys=['obj_type'],
         output_keys=['som_query_results']);
+
+    search_for_query_type = 'category' if find_same_category else 'class_'
     
     with sub_sm:
         def createSpinAndQuery(subsequent_state:SUCCESS):
@@ -134,8 +151,16 @@ def search_for_entity(spin_first=True):
                     CreateSOMQuery.OBJECT_QUERY, 
                     save_time=True),
                 transitions={
+                    SUCCESS: 'AddEntryToSOMQuery'},
+                remapping={});
+            
+            smach.StateMachine.add(
+                'AddEntryToSOMQuery',
+                AddSOMEntry(
+                    field_adding_default=search_for_query_type),
+                transitions={
                     SUCCESS: 'SpinOnSpot'},
-                remapping={'class_':'obj_type'});
+                remapping={'value' :'obj_type'});
 
             smach.StateMachine.add(
                 'SpinOnSpot',
@@ -170,8 +195,16 @@ def search_for_entity(spin_first=True):
                     CreateSOMQuery.OBJECT_QUERY, 
                     save_time=False),
                 transitions={
+                    SUCCESS: 'AddEntryToSOMQuery_AllTime'},
+                remapping={});
+
+            smach.StateMachine.add(
+                'AddEntryToSOMQuery_AllTime',
+                AddSOMEntry(
+                    field_adding_default=search_for_query_type),
+                transitions={
                     SUCCESS: 'PerformAllTimeQuery'},
-                remapping={'class_':'obj_type'});
+                remapping={'value' :'obj_type'});
             
             smach.StateMachine.add(
                 'PerformAllTimeQuery',
@@ -203,7 +236,7 @@ def search_for_entity(spin_first=True):
     return sub_sm;
 
 
-def nav_within_reaching_distance_of(execute_nav_commands):
+def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=False):
     """
     Input keys:
         obj_type            - The class of object we are looking to navigate to.
@@ -222,7 +255,7 @@ def nav_within_reaching_distance_of(execute_nav_commands):
         # Outputs som_query_results into userdata.
         smach.StateMachine.add(
             'search_for_entity',
-            search_for_entity(spin_first=True),
+            search_for_entity(spin_first=True, find_same_category=find_same_category),
             transitions={
                 SUCCESS:'GetLocation',
                 FAILURE:FAILURE,
@@ -259,12 +292,25 @@ def nav_within_reaching_distance_of(execute_nav_commands):
     return sub_sm;
 
 
-def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
+def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_same_category = False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
+    Input arguments:
+        execute_nav_commands    - Required argument for whether navigation will be allowed. Manipulation 
+                                can navigate by itself, but apart from that, this stops the robot from 
+                                navigating around while you're developing something that doesn't need it.
+        pick_up                 - Argument for whether we're picking an object up, or putting one down.
+                                This state machine does both, allowing for a reduction in the number of 
+                                sub-state machines required for the system as a whole. 
+        find_same_category      - Currently only applies to putting an object down. If we wish to put an 
+                                object down next to another of the same type, set this flag to true rather
+                                than false. TODO: Extend to picking up as well, though this is non-critical
+                                for storing groceries, and may well be an extension to write when required.
     Input keys:
-        obj_type    - The class of object we want to pick up/put the object we're holding next to.
+        obj_type                - The class of object we want to pick up/put the object we're holding next to. 
+                                If we are putting an object down, this can also refer to the category of the 
+                                object.
     Dependencies (28/4/2023):
         put_away_the_groceries.py
         open_day_demo_autonav.py
@@ -277,6 +323,11 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
     PICK_UP_STATE = "PickUpObject";
     PUT_DOWN_STATE = "PutObjectDown";
     SECOND_STATE = PICK_UP_STATE if pick_up else PUT_DOWN_STATE;
+
+    put_down_query_type = 'category' if find_same_category else 'class_'
+
+    sub_sm.userdata.number_of_failures = 0;
+    sub_sm.userdata.failure_threshold = 3;
 
     # Required fields for PlaceNextTo
     # Place in a YAML file?
@@ -296,7 +347,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
         # Outputs som_query_results to userdata.
         smach.StateMachine.add(
             'nav_to_object',
-            nav_within_reaching_distance_of(execute_nav_commands),
+            nav_within_reaching_distance_of(execute_nav_commands, find_same_category=find_same_category),
             transitions={
                 SUCCESS:SECOND_STATE,
                 FAILURE:SECOND_STATE,
@@ -318,27 +369,36 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
             # We can assume that it's in view however.
             smach.StateMachine.add(
                 PUT_DOWN_STATE,
-                CreateSOMQuery(
-                    CreateSOMQuery.OBJECT_QUERY, 
-                    save_time=True),
+                has_seen_object(rospy.Duration(1),True),
                 transitions={
-                    SUCCESS: 'WaitALittle'},
-                remapping={'class_':'obj_type'});
-
-            smach.StateMachine.add(
-                'WaitALittle',
-                WaitForSecs(2),
-                transitions={
-                    SUCCESS:'PerformQuery'},
-                remapping={});
-
-            smach.StateMachine.add(
-                'PerformQuery',
-                PerformSOMQuery(distance_filter=4),
-                transitions={
-                    SUCCESS:'GetLocation',
+                    'object_seen':'GetLocation',
+                    'object_not_seen':FAILURE,
                     FAILURE:FAILURE},
-                remapping={});
+                remapping={put_down_query_type:'obj_type'});
+
+            # smach.StateMachine.add(
+            #     PUT_DOWN_STATE,
+            #     CreateSOMQuery(
+            #         CreateSOMQuery.OBJECT_QUERY, 
+            #         save_time=True),
+            #     transitions={
+            #         SUCCESS: 'WaitALittle'},
+            #     remapping={put_down_query_type:'obj_type'});
+
+            # smach.StateMachine.add(
+            #     'WaitALittle',
+            #     WaitForSecs(2),
+            #     transitions={
+            #         SUCCESS:'PerformQuery'},
+            #     remapping={});
+
+            # smach.StateMachine.add(
+            #     'PerformQuery',
+            #     PerformSOMQuery(distance_filter=4),
+            #     transitions={
+            #         SUCCESS:'GetLocation',
+            #         FAILURE:FAILURE},
+            #     remapping={});
             
             smach.StateMachine.add(
                 'GetLocation',
@@ -352,7 +412,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool):
                 
             smach.StateMachine.add(
                 "LookAtObject",
-                LookAtPoint(z_looking_at=0.9),
+                LookAtPoint(z_looking_at=0.9, set_head_to_neutral=True),
                 transitions={
                     SUCCESS:'PlaceObj'},
                 remapping={

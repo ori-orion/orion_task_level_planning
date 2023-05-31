@@ -184,7 +184,7 @@ def create_state_machine(userdata=None):
                 'object_seen':'PICKUP_OBJECT',
                 'object_not_seen':'LookRound',
                 FAILURE:TASK_FAILURE},
-            remapping={'object_class':'pickup_object_name'});
+            remapping={'class_':'pickup_object_name'});
 
         smach.StateMachine.add(
             'LookRound',

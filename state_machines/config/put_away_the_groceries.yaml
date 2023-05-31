@@ -5,10 +5,44 @@ execute_navigation_commands: true
 
 # For putting down objects next to others
 find_placement_options : {
-    # Looks for a space height m
-    height : 1,
+    # Looks for a plane height meters below the point given. This should thus probably be like 20cm max.
+    height : 0.2,
     # Looks for placement options radius away
     radius : 0.1,
     # Assumes the object is dims in dimension.
-    dims : [0.05, 0.05, 0.2]
+    dims : [0.05, 0.05, 0.02]
 }
+
+cabinet_pose : {
+    position : {
+        x : 0, y : 0, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : 0, w : 0
+    }
+}
+table_pose : {
+    position : {
+        x : 0, y : 0, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : 0, w : 0
+    }
+}
+
+# This list is in order of priority. If it sees a drink, it will try 
+# to pick this up first. Then fruits. etc. "tableware" is hard, so 
+# that's close to the bottom. We will not attempt containers or cutlery.
+categories_to_pick_up : [
+    "drinks", 
+    "fruits", 
+    "food", 
+    "snacks", 
+    "tableware", 
+    "cleaning_stuff"]
+
+# There will be false positives within the vision system. However, we will count ourselves very unlucky if
+# we get multiple false positives of the same field. Thus, when we query into the SOM system, we will be 
+# looking for a minimum number of observations, given below. On the SOM side, this is input by simply setting
+# the `num_observations` parameter within the query.
+min_number_of_observations : 3
