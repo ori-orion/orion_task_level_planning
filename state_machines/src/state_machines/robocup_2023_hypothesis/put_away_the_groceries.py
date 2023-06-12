@@ -31,8 +31,8 @@ def sub_state_machine_pick_up_and_put_away():
         if rospy.get_param('execute_navigation_commands') == False:
             execute_nav_commands = False;
     
-    sm.userdata.pick_up_class = "bottle";
-    sm.userdata.place_next_to_class = "cup";
+    sm.userdata.pick_up_class = "cup";
+    sm.userdata.place_next_to_class = "bottle";
 
     with sm:
         # smach.StateMachine.add(
