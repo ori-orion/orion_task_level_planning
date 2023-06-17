@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from state_machines.Reusable_States.utils import *;
 
 import smach;
@@ -55,6 +56,7 @@ class PickUpObjectState(smach.State):
 
         # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
         tf_listener = tf.TransformListener()
+        buffer = tf_listener._buffer;
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
         frames = tf_listener.getFrameStrings()
 
