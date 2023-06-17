@@ -263,14 +263,14 @@ def create_talk_to_guests():
     with sub_sm:
         smach.StateMachine.add(
             'GetGuestPosition',
-            GetPropertyAtIndex('obj_position'),
+            GetPropertyAtIndex(['obj_position']),
             transitions={
                 SUCCESS:'LookAtGuest',         
                 'index_out_of_range':SUCCESS},
             remapping={
                 "index":"index",
                 'input_list':'guest_list',
-                'output_param':'ith_guest_pose'});
+                'obj_position':'ith_guest_pose'});
         
         smach.StateMachine.add(
             'LookAtGuest',

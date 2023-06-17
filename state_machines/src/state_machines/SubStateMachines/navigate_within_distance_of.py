@@ -108,13 +108,13 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
 
         smach.StateMachine.add(
             'GetLocation',
-            GetPropertyAtIndex(property_getting='obj_position', index=0),
+            GetPropertyAtIndex(properties_getting=['obj_position'], index=0),
             transitions={
                 SUCCESS:'NavToLoc',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'target_pose'});
+                'obj_position':'target_pose'});
 
         smach.StateMachine.add(
             'NavToLoc',
@@ -268,23 +268,23 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
 
         smach.StateMachine.add(
             'GetLocation',
-            GetPropertyAtIndex(property_getting='obj_position', index=0),
+            GetPropertyAtIndex(properties_getting=['obj_position'], index=0),
             transitions={
                 SUCCESS:'GetTfName',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'target_pose'});
+                'obj_position':'target_pose'});
         
         smach.StateMachine.add(
             'GetTfName',
-            GetPropertyAtIndex(property_getting='tf_name', index=0),
+            GetPropertyAtIndex(properties_getting=['tf_name'], index=0),
             transitions={
                 SUCCESS:'NavToLoc',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
-                'output_param':'tf_name'});
+                'tf_name':'tf_name'});
 
         smach.StateMachine.add(
             'NavToLoc',
@@ -418,13 +418,13 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             
             smach.StateMachine.add(
                 'GetLocation',
-                GetPropertyAtIndex(property_getting='obj_position', index=0),
+                GetPropertyAtIndex(properties_getting=['obj_position'], index=0),
                 transitions={
                     SUCCESS:'LookAtObject',
                     'index_out_of_range':FAILURE},
                 remapping={
                     'input_list':'som_query_results',
-                    'output_param':'target_pose'});
+                    'obj_position':'target_pose'});
                 
             smach.StateMachine.add(
                 "LookAtObject",

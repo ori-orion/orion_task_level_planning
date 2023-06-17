@@ -264,13 +264,13 @@ def create_point_to_all_guests():
     with sub_sm:
         smach.StateMachine.add(
             'GetGuestPosition',
-            GetPropertyAtIndex('obj_position'),
+            GetPropertyAtIndex(['obj_position']),
             transitions={
                 SUCCESS:'PointAtGuest',         # LookAtGuest
                 'index_out_of_range':SUCCESS},
             remapping={
                 'input_list':'guest_list',
-                'output_param':'ith_guest_pose'});
+                'obj_position':'ith_guest_pose'});
         
         #region For merely looking at the guests
         smach.StateMachine.add(
@@ -328,13 +328,13 @@ def create_get_guest_details():
     with sub_sm:
         smach.StateMachine.add(
             'GetGuestPosition',
-            GetPropertyAtIndex('obj_position'),
+            GetPropertyAtIndex(['obj_position']),
             transitions={
                 SUCCESS:'PointAtGuest',         # LookAtGuest
                 'index_out_of_range':SUCCESS},
             remapping={
                 'input_list':'guest_list',
-                'output_param':'ith_guest_pose'});
+                'obj_position':'ith_guest_pose'});
         
         smach.StateMachine.add(
             'GetGuestInformation',

@@ -3,6 +3,7 @@
 
 import smach;
 from state_machines.Reusable_States.utils import *;
+from typing import List
 
 TRUE_STR = 'true';
 FALSE_STR = 'false';
@@ -52,14 +53,15 @@ class GetPropertyAtIndex(smach.State):
         output_param:Any    - Returns the desired parameter. 
     The state of 'index_out_of_range' will be returned if the index is not within the bounds.
     """
-    def __init__(self, property_getting:str, index:int=None):
+    def __init__(self, properties_getting:List[str], index:int=None):
+        
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, 'index_out_of_range'],
             input_keys=['input_list', 'index'],
-            output_keys=['output_param']);
+            output_keys=properties_getting);
     
-        self.property_getting = property_getting;
+        self.properties_getting:List[str] = properties_getting;
         self.index = index;
 
     def execute(self, userdata):
@@ -74,7 +76,8 @@ class GetPropertyAtIndex(smach.State):
             return 'index_out_of_range';
         
         entry = list_looking_at[index_looking_in];
-        userdata.output_param = getattr(entry, self.property_getting);
+        for property in self.properties_getting:
+            setattr(userdata, property, getattr(entry, property));
         return SUCCESS;
 
 class GetListEmpty(smach.State):
