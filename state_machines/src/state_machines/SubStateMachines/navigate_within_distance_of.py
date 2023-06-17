@@ -233,30 +233,38 @@ def search_for_entity(spin_first=True, find_same_category=False):
     return sub_sm;
 
 
-def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=False):
+def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=False, som_query_already_performed=False):
     """
     Input keys:
-        obj_type            - The class of object we are looking to navigate to.
+        obj_type            - The class of object we are looking to navigate to. Added if som_query_already_performed==False
+        som_query_results   - If som_query_already_performed==True
     Output keys:
         som_query_results   - The output from the query performed in getting the object of interest.
+    Inputs:
+        find_same_category  - Whether we're performing the som query to find objects of a given type or merely of a given category. (Useful for placing an object next to another one).
     Dependencies (28/4/2023):
         nav_and_pick_up_or_place_next_to
     """
+    if som_query_already_performed:
+        input_keys = ['som_query_results']
+    else:
+        input_keys = ['obj_type'];
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
-        input_keys=['obj_type'],
+        input_keys=input_keys,
         output_keys=['som_query_results', 'tf_name']);
 
     with sub_sm:
         # Outputs som_query_results into userdata.
-        smach.StateMachine.add(
-            'search_for_entity',
-            search_for_entity(spin_first=True, find_same_category=find_same_category),
-            transitions={
-                SUCCESS:'GetLocation',
-                FAILURE:FAILURE,
-                'item_not_seen':'query_empty'});
+        if not som_query_already_performed:
+            smach.StateMachine.add(
+                'search_for_entity',
+                search_for_entity(spin_first=True, find_same_category=find_same_category),
+                transitions={
+                    SUCCESS:'GetLocation',
+                    FAILURE:FAILURE,
+                    'item_not_seen':'query_empty'});
 
         smach.StateMachine.add(
             'GetLocation',
@@ -289,7 +297,7 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
     return sub_sm;
 
 
-def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_same_category = False):
+def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_same_category = False, som_query_already_performed=False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
@@ -307,7 +315,8 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
     Input keys:
         obj_type                - The class of object we want to pick up/put the object we're holding next to. 
                                 If we are putting an object down, this can also refer to the category of the 
-                                object.
+                                object. Only if som_query_already_performed==False
+        som_query_results       - The query results from the som query. Only if som_query_already_performed==True.
     Outcomes:
         SUCCESS                 - When the task happens.
         FAILURE                 - Returned for other failures. These tend to be 
@@ -317,9 +326,14 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         put_away_the_groceries.py
         open_day_demo_autonav.py
     """
+    if som_query_already_performed:
+        input_keys = ['som_query_results']
+    else:
+        input_keys = ['obj_type'];
+
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty', MANIPULATION_FAILURE],
-        input_keys=['obj_type'],
+        input_keys=input_keys,
         output_keys=[]);
     
     PICK_UP_STATE = "PickUpObject";

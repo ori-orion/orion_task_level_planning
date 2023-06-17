@@ -160,7 +160,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'PickUpObj',
-            nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=True),
+            nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=True, som_query_already_performed=True),
             transitions={
                 SUCCESS:'NavToCabinet',
                 FAILURE:TASK_FAILURE,
