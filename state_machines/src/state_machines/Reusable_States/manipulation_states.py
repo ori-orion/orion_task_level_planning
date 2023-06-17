@@ -23,7 +23,11 @@ GLOBAL_FRAME = "map";
 MANIPULATION_FAILURE = 'manipulation_failure'
 
 class PickUpObjectState(smach.State):
-    """ State for picking up an object
+    """ 
+    DEPRECATED in favour of PickUpObjectState_v2. Note that this searches the tf tree to find the thing to pick up.
+    However, the function getting all the options is itself deprecated so it is better to use version 2.
+    It also requires the failure infrastructure to be built into any state machine that is used.
+    State for picking up an object
 
     This state picks up an object specified by name.
 
@@ -58,6 +62,7 @@ class PickUpObjectState(smach.State):
         tf_listener = tf.TransformListener()
         buffer = tf_listener._buffer;
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
+        # Deprecated (I think - Matthew Munks 17/6/2023)
         frames = tf_listener.getFrameStrings()
 
         matched_tf_from_tf_tree = "NOT_FOUND" # the matched tf name from the tree

@@ -80,7 +80,9 @@ class GetRobotLocationState(smach.State):
 
 #region navigation states
 class SimpleNavigateState(smach.State):
-    """ State for navigating directly to a location on the map.
+    """ 
+    DEPRECATED in favour of SimpleNavigateState_v2
+    State for navigating directly to a location on the map.
     Requires the repeat failure infrastructure to be coded into the state machine.
 
     This state is given a pose and navigates there.
