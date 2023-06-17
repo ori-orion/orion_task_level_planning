@@ -102,6 +102,7 @@ def create_state_machine():
 
 
     with sm:
+        # NOTE: Startup state machine.
         # NOTE: Needs changing to nav-to-pose
         smach.StateMachine.add(
             'NavToTable',
@@ -112,6 +113,7 @@ def create_state_machine():
             },
             remapping={'target_pose': 'table_pose'})
 
+        # Setting up the query.
         smach.StateMachine.add(
             'CreateTableQuery',
             CreateSOMQuery(
@@ -136,8 +138,7 @@ def create_state_machine():
             PerformSOMQuery(distance_filter=4),
             transitions={
                 SUCCESS: 'SortListInput'},
-            remapping={}
-        )
+            remapping={})
 
         smach.StateMachine.add(
             'SortListInput',
