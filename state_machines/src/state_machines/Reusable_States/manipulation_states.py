@@ -111,18 +111,21 @@ class PickUpObjectState_v2(smach.State):
     Second iteration for picking up an object.
     INPUTS:
         num_iterations_upon_failure     Given that manipulatin fails, how many attempts are we going to make before failing?
-        tf_name                         The tf name of the object we are trying to pick up.
+        tf_name:str                     The tf name of the object we are trying to pick up.
+        som_query_results:List[dict]    The dictionary from SOM for the object we are picking up. Assumes that the list is not empty.
 
-    Does none of the 
+    Does none of the tf searching that the first iteration did.
     """
-    def __init__(self, num_iterations_upon_failure=3):
+    def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True):
+        input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
-            input_keys=['tf_name'],
+            input_keys=input_keys,
             output_keys=['number_of_failures']);
 
         self.num_iterations_upon_failure = num_iterations_upon_failure;
+        self.read_from_som_query_results = read_from_som_query_results;
 
     def run_manipulation_comp(self, pick_up_goal):
         self.pick_up_object_action_client.send_goal(pick_up_goal)
@@ -135,8 +138,13 @@ class PickUpObjectState_v2(smach.State):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
 
-        pick_up_goal = PickUpObjectGoal()
-        pick_up_goal.goal_tf = userdata.tf_name;
+        pick_up_goal = PickUpObjectGoal();
+        if self.read_from_som_query_results:
+            som_query_result:dict = userdata.som_query_results[0];
+            pick_up_goal.goal_tf = som_query_result['tf_name']
+            pass;
+        else:
+            pick_up_goal.goal_tf = userdata.tf_name;
 
         userdata.number_of_failures = 0;
 

@@ -249,7 +249,7 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty'],
         input_keys=['obj_type'],
-        output_keys=['som_query_results']);
+        output_keys=['som_query_results', 'tf_name']);
 
     with sub_sm:
         # Outputs som_query_results into userdata.
@@ -345,6 +345,9 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
 
     with sub_sm:
         # Outputs som_query_results to userdata.
+        # Output parameters:
+        #   som_query_results
+        #   tf_name
         smach.StateMachine.add(
             'nav_to_object',
             nav_within_reaching_distance_of(execute_nav_commands, find_same_category=find_same_category),
@@ -356,13 +359,12 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         if pick_up: 
             smach.StateMachine.add(
                 PICK_UP_STATE,
-                PickUpObjectState(),
+                PickUpObjectState_v2(read_from_som_query_results=False),
                 transitions={
                     SUCCESS:SUCCESS,
                     FAILURE:PICK_UP_STATE,
                     REPEAT_FAILURE:FAILURE},
-                remapping={
-                    'object_name':'obj_type'});
+                remapping={});
         else:
             # The motion of the head as it looks round makes for a slight offset in the position
             # between the actual location and the proposed one. This fixes that issue.
