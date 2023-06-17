@@ -24,12 +24,10 @@ class PickUpObjectState(smach.State):
     This state picks up an object specified by name.
 
     input_keys:
-        tf_name:            The name of the tf for the object to be picked up.
-        object_name:        The object to be picked up. Will be used if tf_name is not in userdata. 
-                            Preserved here for back-compatibility.
-        number_of_failures: An external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
-        failure_threshold:  The number of cumulative failures required to return the repeat_failure outcome
-        ar_marker_ids:      A dictionary of AR marker IDs, keyed by object name
+        object_name: the object to be picked up
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+        ar_marker_ids: a dictionary of AR marker IDs, keyed by object name
     output_keys:
         number_of_failures: the updated failure counter upon state exit
     """
@@ -38,104 +36,118 @@ class PickUpObjectState(smach.State):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
-            input_keys=['tf_name', 'object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
+            input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
             output_keys=['number_of_failures']);
 
         self.object_name = object_name;
 
-    def getTfBySearchingTfTree(self, searching_for) -> Tuple[str, bool, List[str]]:
+    def execute(self, userdata):
+        if (self.object_name == None):
+            object_name = userdata.object_name;
+        else:
+            object_name = self.object_name;
+
+        pick_up_goal = PickUpObjectGoal()
+        pick_up_goal.goal_tf = object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
+
+        # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
         tf_listener = tf.TransformListener()
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
         frames = tf_listener.getFrameStrings()
 
+        matched_tf_from_tf_tree = "NOT_FOUND" # the matched tf name from the tree
+
+        found_by_name = False
         for frame in frames:
             # perform a sub-string search in the frame string so we find the
             # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
-            if searching_for in frame:
-                return frame, True, frames;
-        return "", False, frames;
-    def findQRCodeRef(self, userdata, object_name, frames) -> Tuple[str, bool]:
-        if object_name in userdata.ar_marker_ids:
-            ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[object_name])
-            rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(object_name, ar_tf_string))
+            if pick_up_goal.goal_tf in frame:
+                found_by_name = True
+                matched_tf_from_tf_tree = frame
+                pick_up_goal.goal_tf = matched_tf_from_tf_tree # need to update the goal_tf to the actual frame name (TODO - check why pickup action server no longer resolves this)
+                break
 
-            found_by_ar_marker = False
-            for frame in frames:
-                # perform a sub-string search in the frame string so we find the
-                # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
-                if ar_tf_string in frame:
-                    found_by_ar_marker = True
-                    return frame, True;
+        if not found_by_name:
+            if object_name in userdata.ar_marker_ids:
+                ar_tf_string = 'ar_marker/' + str(userdata.ar_marker_ids[object_name])
+                rospy.loginfo("Target TF '{}' not found in TF tree - using AR marker TF instead '{}'".format(pick_up_goal.goal_tf, ar_tf_string))
 
-            if not found_by_ar_marker:
-                rospy.loginfo("AR marker TF was not found in TF tree '{}'. PickUpObjectState will now return failure state".format(ar_tf_string))
+                found_by_ar_marker = False
+                for frame in frames:
+                    # perform a sub-string search in the frame string so we find the
+                    # frame we are looking for. Eg we find "potted_plant" in "potted_plant_1"
+                    if ar_tf_string in frame:
+                        found_by_ar_marker = True
+                        pick_up_goal.goal_tf = frame # need to update the goal_tf to the actual frame name (TODO - check why pickup action server no longer resolves this)
+                        break
+
+                if not found_by_ar_marker:
+                    rospy.loginfo("AR marker TF was not found in TF tree '{}'. PickUpObjectState will now return failure state".format(ar_tf_string))
+                    userdata.number_of_failures += 1
+                    if userdata.number_of_failures >= userdata.failure_threshold:
+                        userdata.number_of_failures = 0
+                        return REPEAT_FAILURE
+                    else:
+                        return FAILURE
+                else:
+                    rospy.loginfo("PickUpObjectState found matching AR tf '{}' in tf-tree for task object {}".format(ar_tf_string, userdata.object_name))
+            else:
+                rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(pick_up_goal.goal_tf, userdata.object_name))
+                rospy.loginfo("TF tree frames: '{}'".format(frames))
+                rospy.loginfo("PickUpObjectState will now return failure state")
                 userdata.number_of_failures += 1
                 if userdata.number_of_failures >= userdata.failure_threshold:
                     userdata.number_of_failures = 0
-                    return REPEAT_FAILURE, False;
+                    return REPEAT_FAILURE
                 else:
-                    return FAILURE, False;
-            else:
-                rospy.loginfo("PickUpObjectState found matching AR tf '{}' in tf-tree for task object {}".format(ar_tf_string, userdata.object_name))
+                    return FAILURE
         else:
-            rospy.loginfo("Target TF '{}' not found in TF tree and no AR marker is known for object '{}'".format(object_name, object_name))
-            rospy.loginfo("TF tree frames: '{}'".format(frames))
-            rospy.loginfo("PickUpObjectState will now return failure state")
-            userdata.number_of_failures += 1
-            if userdata.number_of_failures >= userdata.failure_threshold:
-                userdata.number_of_failures = 0
-                return REPEAT_FAILURE, False;
-            else:
-                return FAILURE, False;
-        pass;
+            rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
+            
 
+
+class PickUpObjectState_v2(smach.State):
+    """
+    Second iteration for picking up an object.
+    INPUTS:
+        num_iterations_upon_failure     Given that manipulatin fails, how many attempts are we going to make before failing?
+        tf_name                         The tf name of the object we are trying to pick up.
+
+    Does none of the 
+    """
+    def __init__(self, num_iterations_upon_failure=3):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['tf_name'],
+            output_keys=['number_of_failures']);
+
+        self.num_iterations_upon_failure = num_iterations_upon_failure;
+
+    def run_manipulation_comp(self, pick_up_goal):
+        self.pick_up_object_action_client.send_goal(pick_up_goal)
+        self.pick_up_object_action_client.wait_for_result()
+
+        result = self.pick_up_object_action_client.get_result().result
+        return result;
 
     def execute(self, userdata):
-        if (self.object_name == None):
-            object_name:str = userdata.object_name;
-        else:
-            object_name:str = self.object_name;
+        self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
+        self.pick_up_object_action_client.wait_for_server()
 
         pick_up_goal = PickUpObjectGoal()
+        pick_up_goal.goal_tf = userdata.tf_name;
 
-        matched_tf_from_tf_tree = "NOT_FOUND" # the matched tf name from the tree
+        userdata.number_of_failures = 0;
 
-        if hasattr(userdata, "tf_name"):
-            print("Using userdata.tf_name");
-            pick_up_goal.goal_tf = userdata.tf_name;
-        else:
-            print("Searching of the tf.");
-            rospy.logwarn("Searching for the tfs rather than using the tf names stored in SOM.")
-            object_name = object_name.replace(" ", "_");
-            pick_up_goal.goal_tf, tf_found, frames = self.getTfBySearchingTfTree(object_name.replace(" ", "_"));
+        for i in range(self.num_iterations_upon_failure):
+            result = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
+            if result:
+                return SUCCESS;
+            userdata.number_of_failures += 1;
+            rospy.loginfo("Manipulation failed.")
 
-            if not tf_found:
-                pick_up_goal.goal_tf, success = self.findQRCodeRef(userdata, object_name, frames);
-                if success == False:
-                    return pick_up_goal.goal_tf;
-            else:
-                rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
-
-
-        # continue
-        pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
-        pick_up_object_action_client.wait_for_server()
-
-        pick_up_object_action_client.send_goal(pick_up_goal)
-        pick_up_object_action_client.wait_for_result()
-
-        result = pick_up_object_action_client.get_result().result
-
-        if result:
-            userdata.number_of_failures = 0
-            return SUCCESS
-        else:
-            userdata.number_of_failures += 1
-            if userdata.number_of_failures >= userdata.failure_threshold:
-                userdata.number_of_failures = 0
-                return REPEAT_FAILURE
-            else:
-                return FAILURE
+        return FAILURE;
 
 
 class HandoverObjectToOperatorState(smach.State):
