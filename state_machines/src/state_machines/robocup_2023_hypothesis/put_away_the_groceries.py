@@ -150,13 +150,14 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'GetObjectToPickUp',
-            GetPropertyAtIndex(properties_getting=['obj_class'], index=0),
+            GetPropertyAtIndex(properties_getting=['class_', 'category'], index=0),
             transitions={
                 SUCCESS:'PickUpObj',
                 'index_out_of_range':TASK_FAILURE},
             remapping={
                 'input_list':'som_query_results',
-                'obj_class':'pick_up_object_class'})
+                'obj_class':'pick_up_object_class',
+                'category':'put_down_category'})
 
         smach.StateMachine.add(
             'PickUpObj',
@@ -173,24 +174,13 @@ def create_state_machine():
             'NavToCabinet',
             navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
-                SUCCESS: 'GetObjectCategory',
+                SUCCESS: 'PutAwayObject',
                 FAILURE: TASK_FAILURE
             },
             remapping={
                 'target_pose': 'cabinet_pose'
             }
         )
-
-        # use category
-        smach.StateMachine.add(
-            'GetObjectCategory',
-            GetPropertyAtIndex(properties_getting=['obj_class'], index=0),
-            transitions={
-                SUCCESS:'PutAwayObject',
-                'index_out_of_range':TASK_FAILURE},
-            remapping={
-                'input_list':'som_query_results',
-                'obj_class':'put_down_category'})
 
         smach.StateMachine.add(
             'PutAwayObject',
