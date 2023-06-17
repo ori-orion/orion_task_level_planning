@@ -46,7 +46,8 @@ def sub_state_machine_pick_up_and_put_away():
             transitions={
                 SUCCESS:'PlaceObjNextTo',
                 FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE},
+                'query_empty':TASK_FAILURE,
+                MANIPULATION_FAILURE:TASK_FAILURE},
             remapping={'obj_type':'pick_up_class'});
     
         smach.StateMachine.add(
@@ -55,7 +56,8 @@ def sub_state_machine_pick_up_and_put_away():
             transitions={
                 SUCCESS:TASK_SUCCESS,
                 FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE},
+                'query_empty':TASK_FAILURE,
+                MANIPULATION_FAILURE:TASK_FAILURE},
             remapping={'obj_type':'place_next_to_class'});
 
     return sm;
@@ -100,7 +102,7 @@ def create_state_machine():
 
 
     with sm:
-
+        # NOTE: Needs changing to nav-to-pose
         smach.StateMachine.add(
             'NavToTable',
             navigate_within_distance_of_pose_input(execute_nav_commands),
@@ -115,8 +117,7 @@ def create_state_machine():
             CreateSOMQuery(
                 CreateSOMQuery.OBJECT_QUERY, 
                 save_time=True),
-            transitions={SUCCESS: 'LookAtTable'});
-
+            transitions={SUCCESS: 'AddMinObservationsTable'});
         smach.StateMachine.add(
             'AddMinObservationsTable',
             AddSOMEntry('num_observations', min_num_observations),
@@ -163,7 +164,8 @@ def create_state_machine():
             transitions={
                 SUCCESS:'NavToCabinet',
                 FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE},
+                'query_empty':TASK_FAILURE,
+                MANIPULATION_FAILURE:TASK_FAILURE},
             remapping={'obj_type':'pick_up_object_class'})
 
         smach.StateMachine.add(
@@ -194,7 +196,8 @@ def create_state_machine():
             transitions={
                 SUCCESS: 'IncreaseNumber',
                 FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE},
+                'query_empty':TASK_FAILURE,
+                MANIPULATION_FAILURE:TASK_FAILURE},
             remapping={'obj_type':'put_down_category'}
         )
         

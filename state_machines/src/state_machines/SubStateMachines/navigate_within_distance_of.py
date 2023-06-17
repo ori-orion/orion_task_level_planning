@@ -316,7 +316,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         open_day_demo_autonav.py
     """
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        outcomes=[SUCCESS, FAILURE, 'query_empty', MANIPULATION_FAILURE],
         input_keys=['obj_type'],
         output_keys=[]);
     
@@ -362,8 +362,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 PickUpObjectState_v2(read_from_som_query_results=False),
                 transitions={
                     SUCCESS:SUCCESS,
-                    FAILURE:PICK_UP_STATE,
-                    REPEAT_FAILURE:FAILURE},
+                    FAILURE:MANIPULATION_FAILURE},
                 remapping={});
         else:
             # The motion of the head as it looks round makes for a slight offset in the position
@@ -425,7 +424,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,
-                    FAILURE:FAILURE});
+                    MANIPULATION_FAILURE:MANIPULATION_FAILURE});
 
     return sub_sm;
 

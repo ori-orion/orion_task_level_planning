@@ -170,7 +170,7 @@ def test_finding_placement():
             PlaceNextTo(dims, height, radius),
             transitions={
                 SUCCESS: TASK_SUCCESS,
-                FAILURE: 'PRINT_FAILURE'
+                MANIPULATION_FAILURE: 'PRINT_FAILURE'
             },
             remapping={}
         )

@@ -18,6 +18,9 @@ from typing import List, Tuple;
 
 GLOBAL_FRAME = "map";
 
+# To give greater resolution when looking at outcomes within the state machine. Not fully implemented.
+MANIPULATION_FAILURE = 'manipulation_failure'
+
 class PickUpObjectState(smach.State):
     """ State for picking up an object
 
@@ -120,7 +123,7 @@ class PickUpObjectState_v2(smach.State):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
         smach.State.__init__(
             self,
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS, MANIPULATION_FAILURE],
             input_keys=input_keys,
             output_keys=['number_of_failures']);
 
@@ -155,7 +158,7 @@ class PickUpObjectState_v2(smach.State):
             userdata.number_of_failures += 1;
             rospy.loginfo("Manipulation failed.")
 
-        return FAILURE;
+        return MANIPULATION_FAILURE;
 
 
 class HandoverObjectToOperatorState(smach.State):
@@ -287,10 +290,15 @@ def getPlacementOptions(
         print("Service call failed: %s"%e)
 
 class PlaceNextTo(smach.State):
+    """
+    Outcomes:
+        SUCCESS
+        MANIPULATION_FAILURE
+    """
     def __init__(self, dims, max_height, radius, num_candidates=8):
         smach.State.__init__(
             self,
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS, MANIPULATION_FAILURE],
             input_keys=['som_query_results'],
             output_keys=[]);
 
@@ -327,7 +335,7 @@ class PlaceNextTo(smach.State):
             if success:
                 return SUCCESS
             else:
-                return FAILURE
+                return MANIPULATION_FAILURE 
         
         return SUCCESS;
 

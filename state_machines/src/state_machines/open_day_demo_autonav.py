@@ -116,7 +116,8 @@ def create_state_machine(userdata=None):
             transitions={
                 SUCCESS: 'NAV_BACK_TO_OPERATOR',
                 FAILURE: 'CREATE_ASK_FOR_HELP_PHRASE',
-                'query_empty': 'CREATE_ASK_FOR_HELP_PHRASE'},
+                'query_empty': 'CREATE_ASK_FOR_HELP_PHRASE',
+                MANIPULATION_FAILURE: 'CREATE_ASK_FOR_HELP_PHRASE'},
             remapping={
                 'obj_type': 'pickup_object_name'});
 
