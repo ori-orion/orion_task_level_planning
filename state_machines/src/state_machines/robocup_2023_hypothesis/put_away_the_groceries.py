@@ -133,10 +133,10 @@ def create_state_machine():
             'AddMinObservationsTable',
             AddSOMEntry('num_observations', min_num_observations),
             transitions={
-                SUCCESS:'LookAtTable'});
+                SUCCESS:'SpinWhileAtTable'});
 
         smach.StateMachine.add(
-            'LookAtTable',
+            'SpinWhileAtTable',
             SpinState(spin_height=0.7, only_look_forwards=True),
             transitions={
                 SUCCESS:'PerformQuery'},
@@ -175,7 +175,7 @@ def create_state_machine():
                 SUCCESS:'NavToCabinet',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
-                MANIPULATION_FAILURE:TASK_FAILURE},
+                MANIPULATION_FAILURE:'CreateTableQuery'},
             remapping={'obj_type':'pick_up_object_class'})
 
         # Simple Nav state.
