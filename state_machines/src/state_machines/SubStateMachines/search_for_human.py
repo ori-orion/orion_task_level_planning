@@ -212,8 +212,7 @@ def create_search_for_human(execute_nav_commands:bool, start_with_nav:bool = Tru
             'QueryForHumans',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'FindMyMatesOperatorDetection',
-                FAILURE:FAILURE},
+                SUCCESS:'FindMyMatesOperatorDetection'},
             remapping={});
 
         smach.StateMachine.add(

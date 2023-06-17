@@ -121,7 +121,7 @@ class PerformSOMQuery(smach.State):
     """
     def __init__(self, distance_filter:float=0):
         smach.State.__init__(self, 
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS],
             input_keys=['som_query'],
             output_keys=['som_query_results']);
             
@@ -147,7 +147,8 @@ class PerformSOMQuery(smach.State):
             result:SOMQueryObjectsResponse = object_query_srv(query);
             output = result.returns;
         else:
-            return FAILURE;
+            print("Query type not found.")
+            raise Exception("Query type not found.")
 
         if self.distance_filter != 0:
             current_pose = get_current_pose();
@@ -268,8 +269,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
             'QuerySom',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'CheckIfFound',
-                FAILURE:FAILURE});
+                SUCCESS:'CheckIfFound'});
 
         smach.StateMachine.add(
             'CheckIfFound',

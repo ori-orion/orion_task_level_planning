@@ -100,8 +100,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
             'PerformQuery',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'GetLocation',
-                FAILURE:FAILURE},
+                SUCCESS:'GetLocation'},
             remapping={});
 
         # Here we have som_query_results:List[...]. We want to get the first item in this query, and then
@@ -173,8 +172,7 @@ def search_for_entity(spin_first=True, find_same_category=False):
                 'PerformQuery',
                 PerformSOMQuery(distance_filter=4),
                 transitions={
-                    SUCCESS:'CheckSeenObject',
-                    FAILURE:FAILURE},
+                    SUCCESS:'CheckSeenObject'},
                 remapping={});
             
             smach.StateMachine.add(
@@ -210,8 +208,7 @@ def search_for_entity(spin_first=True, find_same_category=False):
                 'PerformAllTimeQuery',
                 PerformSOMQuery(distance_filter=4),
                 transitions={
-                    SUCCESS:'CheckSeenObjectAllTime',
-                    FAILURE:FAILURE},
+                    SUCCESS:'CheckSeenObjectAllTime'},
                 remapping={});
         
 
@@ -311,6 +308,11 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         obj_type                - The class of object we want to pick up/put the object we're holding next to. 
                                 If we are putting an object down, this can also refer to the category of the 
                                 object.
+    Outcomes:
+        SUCCESS                 - When the task happens.
+        FAILURE                 - Returned for other failures. These tend to be 
+        'query_empty'           - Returned when the object in question is not found by the system.
+        MANIPULATION_FAILURE    - Returned when the manipulation component fails.                               
     Dependencies (28/4/2023):
         put_away_the_groceries.py
         open_day_demo_autonav.py
@@ -362,7 +364,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 PickUpObjectState_v2(read_from_som_query_results=False),
                 transitions={
                     SUCCESS:SUCCESS,
-                    FAILURE:MANIPULATION_FAILURE},
+                    MANIPULATION_FAILURE:MANIPULATION_FAILURE},
                 remapping={});
         else:
             # The motion of the head as it looks round makes for a slight offset in the position
@@ -397,8 +399,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             #     'PerformQuery',
             #     PerformSOMQuery(distance_filter=4),
             #     transitions={
-            #         SUCCESS:'GetLocation',
-            #         FAILURE:FAILURE},
+            #         SUCCESS:'GetLocation'},
             #     remapping={});
             
             smach.StateMachine.add(

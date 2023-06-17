@@ -135,8 +135,7 @@ def create_state_machine():
             'PerformQuery',
             PerformSOMQuery(distance_filter=4),
             transitions={
-                SUCCESS: 'SortListInput',
-                FAILURE: TASK_FAILURE},
+                SUCCESS: 'SortListInput'},
             remapping={}
         )
 

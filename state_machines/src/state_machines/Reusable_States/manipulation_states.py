@@ -116,6 +116,9 @@ class PickUpObjectState_v2(smach.State):
         num_iterations_upon_failure     Given that manipulatin fails, how many attempts are we going to make before failing?
         tf_name:str                     The tf name of the object we are trying to pick up.
         som_query_results:List[dict]    The dictionary from SOM for the object we are picking up. Assumes that the list is not empty.
+    Outcomes:
+        SUCCESS
+        MANIPULATION_FAILURE
 
     Does none of the tf searching that the first iteration did.
     """

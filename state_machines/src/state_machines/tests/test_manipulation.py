@@ -161,8 +161,7 @@ def test_finding_placement():
             'FIND_OBJECT',
             PerformSOMQuery(),
             transitions={
-                SUCCESS:'FIND_PLACEMENT',
-                FAILURE:TASK_FAILURE},
+                SUCCESS:'FIND_PLACEMENT'},
             remapping={})
 
         smach.StateMachine.add(
