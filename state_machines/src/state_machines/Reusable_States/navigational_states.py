@@ -81,6 +81,7 @@ class GetRobotLocationState(smach.State):
 #region navigation states
 class SimpleNavigateState(smach.State):
     """ State for navigating directly to a location on the map.
+    Requires the repeat failure infrastructure to be coded into the state machine.
 
     This state is given a pose and navigates there.
     If the robot stays in the same place for more than a second, then assume failed nav.
@@ -157,6 +158,95 @@ class SimpleNavigateState(smach.State):
             return SUCCESS
         else:
             return self.repeat_failure_infrastructure(userdata);
+
+class SimpleNavigateState_v2(smach.State):
+    """ State for navigating directly to a location on the map.
+    Version 2 of the navigation stuff. Removes the retrying being a part of the state machine.
+
+    This state is given a pose and navigates there.
+    If the robot stays in the same place for more than a second, then assume failed nav.
+
+    input_keys:
+        pose: pose for the robot to navigate to
+        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+    output_keys:
+        number_of_failures: the updated failure counter upon state exit
+    """
+
+    DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
+    RETRY = 1;
+    RETRY_STAYED_IN_SAME_PLACE = 2;
+    SUCCESS = 3;
+
+    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=3):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS, FAILURE],
+            input_keys=['pose'],
+            output_keys=[]);
+
+        self.execute_nav_commands = execute_nav_commands;
+        self.max_num_failure_repetitions = max_num_failure_repetitions;
+
+    def executeAction(self, goal, target_pose:Pose, initial_pose:Pose, userdata) -> bool:
+        """
+        Executes the navigation action. 
+        """
+        self.navigate_action_client.send_goal(goal);
+
+        # We want to be able to check to see if the robot has moved or not
+        # (to check to see if path planning has failed.)
+        self.navigate_action_client.wait_for_result(rospy.Duration(2));
+        rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
+
+        current_pose = get_current_pose();
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose)=" + str(distance_between_poses(current_pose, target_pose)));
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose)=" + str(distance_between_poses(current_pose, initial_pose)));
+        if (distance_between_poses(current_pose, target_pose) > self.DISTANCE_SAME_PLACE_THRESHOLD and 
+            distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
+
+            rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
+            rospy.loginfo('status = ' + str(self.navigate_action_client.get_state()))
+            return self.RETRY_STAYED_IN_SAME_PLACE;
+
+        self.navigate_action_client.wait_for_result();
+        status = self.navigate_action_client.get_state();
+        self.navigate_action_client.cancel_all_goals()
+        if status == GoalStatus.SUCCEEDED:
+            return self.SUCCESS;
+        else:
+            return self.RETRY;
+    
+    def execute(self, userdata):
+        if self.execute_nav_commands == False:
+            return SUCCESS;
+
+        target_pose:Pose = userdata.pose;
+        initial_pose = get_current_pose();
+
+        # Navigating without top nav
+        rospy.loginfo('Navigating without top nav')
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose = target_pose;
+        # rospy.loginfo(goal.target_pose.pose)
+
+        self.navigate_action_client = actionlib.SimpleActionClient('move_base/move',  MoveBaseAction)
+        rospy.loginfo('\t\tWaiting for move_base/move.');
+        self.navigate_action_client.wait_for_server();
+
+        i = 0;
+        while (i < self.max_num_failure_repetitions):
+            rospy.loginfo('\t\tSending nav goal.');
+            status = self.executeAction(goal, target_pose, initial_pose, userdata);
+            rospy.loginfo('status = ' + str(status))
+            if status == self.SUCCESS:
+                return SUCCESS
+            elif status == self.RETRY:
+                i += 1;
+        return FAILURE;
 
 #TODO - make a topological localisation node
 #       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
@@ -655,7 +745,5 @@ if __name__ == '__main__':
     sub_sm.userdata.orient_towards.position.x = 4;
     sub_sm.userdata.orient_towards.position.y = 0;
     sub_sm.execute();
-
-    rospy.spin();
 
     rospy.spin();

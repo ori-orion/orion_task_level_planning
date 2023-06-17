@@ -104,14 +104,23 @@ def create_state_machine():
     with sm:
         # NOTE: Startup state machine.
         # NOTE: Needs changing to nav-to-pose
+        # smach.StateMachine.add(
+        #     'NavToTable',
+        #     navigate_within_distance_of_pose_input(execute_nav_commands),
+        #     transitions={
+        #         SUCCESS: 'CreateTableQuery',
+        #         FAILURE: TASK_FAILURE
+        #     },
+        #     remapping={'target_pose': 'table_pose'})
         smach.StateMachine.add(
             'NavToTable',
-            navigate_within_distance_of_pose_input(execute_nav_commands),
+            SimpleNavigateState(execute_nav_commands),
             transitions={
                 SUCCESS: 'CreateTableQuery',
                 FAILURE: TASK_FAILURE
             },
             remapping={'target_pose': 'table_pose'})
+        
 
         # Setting up the query.
         smach.StateMachine.add(
