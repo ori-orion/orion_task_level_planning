@@ -100,6 +100,9 @@ def create_state_machine():
     if rospy.has_param('min_number_of_observations'):
         min_num_observations = rospy.get_param('min_number_of_observations');
 
+    # Keeps track of the tf strings that have been picked up/attempted to
+    # be picked up so as to not get stuck in an infinite loop.
+    sm.userdata.filter_tf_names_out = []; 
 
     with sm:
         # NOTE: Startup state machine.
@@ -175,7 +178,7 @@ def create_state_machine():
                 SUCCESS:'NavToCabinet',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
-                MANIPULATION_FAILURE:'CreateTableQuery'},
+                MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
             remapping={'obj_type':'pick_up_object_class'})
 
         # Simple Nav state.
@@ -205,10 +208,18 @@ def create_state_machine():
                 SUCCESS: 'IncreaseNumber',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
-                MANIPULATION_FAILURE:TASK_FAILURE},
+                MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
             remapping={'obj_type':'put_down_category'}
         )
         
+        smach.StateMachine.add(
+            'AppendTfNameToTfNameFilter',
+            AppendToArrState(),
+            transitions={SUCCESS:'IncreaseNumber'},
+            remapping={
+                'appending_to':'filter_tf_names_out',
+                'appending_with':'tf_name'}); 
+
         smach.StateMachine.add(
             'IncreaseNumber',
             IncrementValue(1),
@@ -217,6 +228,7 @@ def create_state_machine():
             },
             remapping={'val': 'objects_placed'}
         )
+
 
         smach.StateMachine.add(
             'CheckIfShouldContinue',
@@ -227,8 +239,8 @@ def create_state_machine():
             },
             remapping={
                 'left': 'objects_placed'
-            }
-        )
+            });
+
 
     return sm
 

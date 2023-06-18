@@ -25,6 +25,20 @@ class LessThanState(smach.State):
         else:
             return FALSE_STR;
 
+class AppendToArrState(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS],
+            input_keys=['appending_to', 'appending_with'],
+            output_keys=['appending_to']);
+
+    def execute(self, userdata):
+        appending_to = userdata.appending_to;
+        appending_to.append(userdata.appending_with);
+        userdata.appending_to = appending_to;
+        return SUCCESS;
+
 class IncrementValue(smach.State):
     def __init__(self, increment_by=None):
         smach.State.__init__(
