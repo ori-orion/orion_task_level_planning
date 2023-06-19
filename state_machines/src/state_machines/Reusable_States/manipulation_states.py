@@ -135,7 +135,7 @@ class PickUpObjectState_v2(smach.State):
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE],
             input_keys=input_keys,
-            output_keys=['number_of_failures']);
+            output_keys=[]);
 
         self.num_iterations_upon_failure = num_iterations_upon_failure;
         self.read_from_som_query_results = read_from_som_query_results;
@@ -159,13 +159,10 @@ class PickUpObjectState_v2(smach.State):
         else:
             pick_up_goal.goal_tf = userdata.tf_name;
 
-        userdata.number_of_failures = 0;
-
         for i in range(self.num_iterations_upon_failure):
             result = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
             if result:
                 return SUCCESS;
-            userdata.number_of_failures += 1;
             rospy.loginfo("Manipulation failed.")
 
         return MANIPULATION_FAILURE;
@@ -341,6 +338,7 @@ class PlaceNextTo(smach.State):
         if True:
             goal = PutObjectOnSurfaceGoal();
             goal.goal_tf = best_tf;
+            goal.drop_object_by_metres = 0.05;
             success = putObjOnSurfaceAction(goal);
             if success:
                 return SUCCESS
