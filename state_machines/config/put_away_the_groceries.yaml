@@ -10,7 +10,7 @@ find_placement_options : {
     # Looks for placement options radius away
     radius : 0.1,
     # Assumes the object is dims in dimension.
-    dims : [0.05, 0.05, 0.1]
+    dims : [0.05, 0.05, 0.02]
 }
 
 cabinet_pose : {
