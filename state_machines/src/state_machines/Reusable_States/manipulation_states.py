@@ -129,7 +129,8 @@ class PickUpObjectState_v2(smach.State):
 
     Does none of the tf searching that the first iteration did.
     """
-    def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True):
+    def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
+                wait_upon_completion=rospy.Duration(0)):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
         smach.State.__init__(
             self,
@@ -139,6 +140,7 @@ class PickUpObjectState_v2(smach.State):
 
         self.num_iterations_upon_failure = num_iterations_upon_failure;
         self.read_from_som_query_results = read_from_som_query_results;
+        self.wait_upon_completion = wait_upon_completion;
 
     def run_manipulation_comp(self, pick_up_goal):
         self.pick_up_object_action_client.send_goal(pick_up_goal)
@@ -162,9 +164,11 @@ class PickUpObjectState_v2(smach.State):
         for i in range(self.num_iterations_upon_failure):
             result = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
             if result:
+                rospy.sleep(self.wait_upon_completion);
                 return SUCCESS;
             rospy.loginfo("Manipulation failed.")
 
+        rospy.sleep(self.wait_upon_completion);
         return MANIPULATION_FAILURE;
 
 
