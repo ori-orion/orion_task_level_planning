@@ -339,6 +339,8 @@ class PlaceNextTo(smach.State):
 
         radius = self.radius;
 
+        self.speakPhrase("Attempting to find a placement location.")
+
         for i in range(self.num_repeats):
             # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
             place_locations, best_tf = getPlacementOptions(
