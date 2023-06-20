@@ -206,21 +206,27 @@ class RaiseMastState(smach.State):
     MAST_JOINT_NAME = 'arm_lift_joint';
     MAST_JOINT_MAX = 0.69;
     MAST_JOINT_MIN = 0;
-    def __init__(self):
+    def __init__(self, mast_height=None):
+        input_keys = ['mast_height'] if mast_height==None else [];
+            
         smach.State.__init__(
             self,
             outcomes=[SUCCESS],
-            input_keys=['mast_height']);
+            input_keys=input_keys);
 
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
+        self.mast_height = mast_height;
     
     def execute(self, userdata):
-        mast_height = userdata.mast_height;
+        if self.mast_height == None: 
+            mast_height = userdata.mast_height;
+        else:
+            mast_height = self.mast_height;
 
         if mast_height > self.MAST_JOINT_MAX:
             mast_height = self.MAST_JOINT_MAX;
-        elif mast_height > self.MAST_JOINT_MIN:
+        elif mast_height < self.MAST_JOINT_MIN:
             mast_height = self.MAST_JOINT_MIN;
 
         self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
