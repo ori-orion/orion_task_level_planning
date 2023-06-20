@@ -130,7 +130,7 @@ class PickUpObjectState_v2(smach.State):
     Does none of the tf searching that the first iteration did.
     """
     def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
-                wait_upon_completion=rospy.Duration(2)):
+                wait_upon_completion=rospy.Duration(5)):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
         smach.State.__init__(
             self,

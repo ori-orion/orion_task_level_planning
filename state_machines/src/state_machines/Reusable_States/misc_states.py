@@ -233,6 +233,23 @@ class RaiseMastState(smach.State):
         return SUCCESS;
     pass;
 
+class MoveToNeutralState(smach.State):
+    """
+    Sets the robot's pose to neutral.
+    """
+    def __init__(self, mast_height=None):    
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS]);
+
+        self.robot = hsrb_interface.Robot();
+        self.whole_body = self.robot.try_get('whole_body');
+    
+    def execute(self, userdata):
+        self.whole_body.move_to_neutral();
+        return SUCCESS;
+    pass;
+
 
 class SpinState(smach.State):
     """

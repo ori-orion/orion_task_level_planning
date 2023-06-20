@@ -39,6 +39,11 @@ def sub_state_machine_pick_up_and_put_away():
         #    'Startup',
         #    create_wait_for_startup(),
         #    transitions={SUCCESS:'PickUpObj'});
+
+        smach.StateMachine.add(
+            'MoveToNeutral',#
+            MoveToNeutralState(),
+            transitions={SUCCESS:'PickUpObj'});
     
         smach.StateMachine.add(
             'PickUpObj',
