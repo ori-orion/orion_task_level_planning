@@ -306,7 +306,7 @@ class PlaceNextTo(smach.State):
         SUCCESS
         MANIPULATION_FAILURE
     """
-    def __init__(self, dims, max_height, radius, num_candidates=8):
+    def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE],
@@ -317,27 +317,51 @@ class PlaceNextTo(smach.State):
         self.max_height = max_height;
         self.radius = radius;
         self.num_candidates = num_candidates;
+        self.num_repeats=num_repeats;
+    
+    def speakPhrase(self, phrase_speaking):
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = phrase_speaking
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+
+        self.speak_action_client.wait_for_server()
+        self.speak_action_client.send_goal(action_goal)
+        # self.speak_action_client.wait_for_result()
+        
 
     def execute(self, userdata):
         som_query_results:List[dict] = userdata.som_query_results;
 
-        first_response:SOMObject = som_query_results[0];
+        first_response:SOMObject = som_query_results[0];        
 
-        # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
-        place_locations, best_tf = getPlacementOptions(
-            goal_pos=[
-                first_response.obj_position.position.x, 
-                first_response.obj_position.position.y, 
-                first_response.obj_position.position.z],
-            dims=self.dims,
-            max_height=self.max_height,
-            radius=self.radius,
-            num_candidates=self.num_candidates,
-            goal_tf=first_response.tf_name
-            );
-        
-        print(place_locations);
-        print(best_tf);
+        self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+
+        radius = self.radius;
+
+        for i in range(self.num_repeats):
+            # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
+            place_locations, best_tf = getPlacementOptions(
+                goal_pos=[
+                    first_response.obj_position.position.x, 
+                    first_response.obj_position.position.y, 
+                    first_response.obj_position.position.z],
+                dims=self.dims,
+                max_height=self.max_height,
+                radius=radius,
+                num_candidates=self.num_candidates,
+                goal_tf=first_response.tf_name);
+            
+            print(place_locations);
+            print(best_tf);
+
+            if len(best_tf) == 0:
+                self.speakPhrase("No placement options were found. Retrying.");
+                radius *= 1.3;
+            else:
+                self.speakPhrase("A placement option was found. Executing now.");
+                break;
+
 
         if True:
             goal = PutObjectOnSurfaceGoal();
