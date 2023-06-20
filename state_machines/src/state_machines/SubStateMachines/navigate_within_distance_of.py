@@ -264,7 +264,7 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
                 transitions={
                     SUCCESS:'GetLocation',
                     FAILURE:FAILURE,
-                    'item_not_seen':'query_empty'});
+                    'item_not_seen':'search_for_entity'});
 
         smach.StateMachine.add(
             'GetLocation',
