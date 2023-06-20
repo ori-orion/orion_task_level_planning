@@ -444,7 +444,8 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 PlaceNextTo(dims=dims, max_height=height, radius=radius),
                 transitions={
                     SUCCESS:SUCCESS,
-                    MANIPULATION_FAILURE:MANIPULATION_FAILURE});
+                    MANIPULATION_FAILURE:MANIPULATION_FAILURE,
+                    FAILURE:MANIPULATION_FAILURE});
 
     return sub_sm;
 

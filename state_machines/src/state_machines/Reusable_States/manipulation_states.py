@@ -309,7 +309,7 @@ class PlaceNextTo(smach.State):
     def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3):
         smach.State.__init__(
             self,
-            outcomes=[SUCCESS, MANIPULATION_FAILURE],
+            outcomes=[SUCCESS, MANIPULATION_FAILURE, FAILURE],
             input_keys=['som_query_results'],
             output_keys=[]);
 
@@ -341,6 +341,7 @@ class PlaceNextTo(smach.State):
 
         self.speakPhrase("Attempting to find a placement location.")
 
+        placement_option_found = False;
         for i in range(self.num_repeats):
             # best_tf is the name of the tf at which the (hypothetically) best tf for placing an object is at.
             place_locations, best_tf = getPlacementOptions(
@@ -362,20 +363,24 @@ class PlaceNextTo(smach.State):
                 radius *= 1.3;
             else:
                 self.speakPhrase("A placement option was found. Executing now.");
+                placement_option_found = True;
                 break;
 
 
-        if True:
-            goal = PutObjectOnSurfaceGoal();
-            goal.goal_tf = best_tf;
-            goal.drop_object_by_metres = 0.05;
-            success = putObjOnSurfaceAction(goal);
-            if success:
-                return SUCCESS
-            else:
-                return MANIPULATION_FAILURE 
-        
-        return SUCCESS;
+        if placement_option_found:
+            for i in range(self.num_repeats):
+                goal = PutObjectOnSurfaceGoal();
+                goal.goal_tf = best_tf;
+                goal.drop_object_by_metres = 0.05;
+                success = putObjOnSurfaceAction(goal);
+                if success:
+                    return SUCCESS
+                else:
+                    # self.speakPhrase("")
+                    pass;
+            return MANIPULATION_FAILURE 
+        else:
+            return FAILURE;
 
 
 point_at_uid_ref = 0;
