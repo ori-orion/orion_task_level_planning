@@ -164,13 +164,17 @@ class PickUpObjectState_v2(smach.State):
 
         for i in range(self.num_iterations_upon_failure):
             result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
+            print("Failure mode=", failure_mode)
             if result:
                 rospy.sleep(self.wait_upon_completion);
                 return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
+                rospy.loginfo("Tf error");
                 pass;
             elif failure_mode==PickUpObjectResult.GRASPING_FAILED:
-                return MANIPULATION_FAILURE;
+                rospy.loginfo("Grasping failed.");
+                # return MANIPULATION_FAILURE;
+                pass;
             rospy.loginfo("Manipulation failed.")
 
         rospy.sleep(self.wait_upon_completion);

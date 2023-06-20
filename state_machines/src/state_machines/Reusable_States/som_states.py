@@ -161,7 +161,9 @@ class PerformSOMQuery(smach.State):
 
         userdata.som_query_results = output;
         rospy.loginfo('\t\t' + str(len(output)) + " entities found matching the query.")
-        print(output);
+        for element in output:
+            print(element.class_, end=", ");
+        print();
         return SUCCESS;
 
 

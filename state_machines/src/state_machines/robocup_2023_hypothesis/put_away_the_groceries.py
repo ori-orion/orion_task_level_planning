@@ -193,7 +193,9 @@ def create_state_machine():
             remapping={
                 'input_list':'som_query_results',
                 'obj_class':'pick_up_object_class',
-                'category':'put_down_category'})
+                'category':'put_down_category'});
+        
+        
 
         smach.StateMachine.add(
             'PickUpObj',

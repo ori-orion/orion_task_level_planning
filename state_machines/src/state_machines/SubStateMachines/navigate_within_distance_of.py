@@ -387,14 +387,14 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             # The motion of the head as it looks round makes for a slight offset in the position
             # between the actual location and the proposed one. This fixes that issue.
             # We can assume that it's in view however.
-            smach.StateMachine.add(
-                PUT_DOWN_STATE,
-                has_seen_object(rospy.Duration(1),True),
-                transitions={
-                    'object_seen':'GetLocation',
-                    'object_not_seen':FAILURE,
-                    FAILURE:FAILURE},
-                remapping={put_down_query_type:'obj_type'});
+            # smach.StateMachine.add(
+            #     PUT_DOWN_STATE,
+            #     has_seen_object(rospy.Duration(1),True),
+            #     transitions={
+            #         'object_seen':'GetLocation',
+            #         'object_not_seen':FAILURE,
+            #         FAILURE:FAILURE},
+            #     remapping={put_down_query_type:'obj_type'});
 
             # smach.StateMachine.add(
             #     PUT_DOWN_STATE,
@@ -420,7 +420,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             #     remapping={});
             
             smach.StateMachine.add(
-                'GetLocation',
+                PUT_DOWN_STATE,# 'GetLocation',
                 GetPropertyAtIndex(properties_getting=['obj_position'], index=0),
                 transitions={
                     SUCCESS:'LookAtObject',
