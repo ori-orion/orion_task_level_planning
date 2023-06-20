@@ -17,6 +17,7 @@ import time;
 from geometry_msgs.msg import Pose, PoseStamped;
 
 import actionlib;
+from typing import List
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 
@@ -646,6 +647,33 @@ class ReportBackToOperator(smach.State):
 
 
 #region Create Phrase stuff.
+class SayArbitraryPhrase(smach.State):
+    def __init__(self, phrase:str, userdata_using:List[str]):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS],
+            input_keys=userdata_using);
+        self.phrase=phrase;
+        self.userdata_using = userdata_using;
+
+    def execute(self, userdata):
+        format_args = [];
+        for element in self.userdata_using:
+            format_args.append(getattr(userdata, element));
+
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = self.phrase.format( *(tuple(format_args)) );
+
+        rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))
+        speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+
+        speak_action_client.wait_for_server()
+        speak_action_client.send_goal(action_goal)
+        speak_action_client.wait_for_result()
+        return SUCCESS;
+
+
 # This seems to set `userdata.phrase` for subsequent speaking.
 # Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow
 # one of these.

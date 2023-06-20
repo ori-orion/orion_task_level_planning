@@ -335,6 +335,12 @@ class SortSOMResultsAsPer(smach.State):
                 len(queries) - len(queries_output) - num_skipped));
 
         userdata.som_query_results = queries_output;
+
+        print("Sorted elements");
+        for element in queries_output:
+            print(element.class_, end=", ");
+        print();
+
         userdata.first_result = queries_output[0];
         return SUCCESS;
     pass;
