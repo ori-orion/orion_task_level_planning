@@ -100,6 +100,13 @@ def create_state_machine():
     if rospy.has_param('min_number_of_observations'):
         min_num_observations = rospy.get_param('min_number_of_observations');
 
+    if rospy.has_param('table_mast_height') and rospy.has_param('cabinet_mast_height'):
+        table_mast_height = rospy.get_param('table_mast_height');
+        cabinet_mast_height = rospy.get_param('cabinet_mast_height');
+    else:
+        table_mast_height = 0;
+        cabinet_mast_height = 0.5;
+
     # Keeps track of the tf strings that have been picked up/attempted to
     # be picked up so as to not get stuck in an infinite loop.
     sm.userdata.filter_tf_names_out = []; 
@@ -137,6 +144,13 @@ def create_state_machine():
             AddSOMEntry('num_observations', min_num_observations),
             transitions={
                 SUCCESS:'SpinWhileAtTable'});
+        
+        smach.StateMachine.add(
+            'RaiseMastAtTable',
+            RaiseMastState(table_mast_height),
+            transitions={
+                SUCCESS:'SpinWhileAtTable'
+            });
 
         smach.StateMachine.add(
             'SpinWhileAtTable',
@@ -196,10 +210,17 @@ def create_state_machine():
             'NavToCabinet',
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
-                SUCCESS: 'PutAwayObject',
+                SUCCESS: 'PutAwayObject',       # 'RaiseMastAtCabinet',
                 FAILURE: TASK_FAILURE
             },
             remapping={'pose': 'cabinet_pose'})
+        
+        smach.StateMachine.add(
+            'RaiseMastAtCabinet',
+            RaiseMastState(cabinet_mast_height),
+            transitions={
+                SUCCESS:'PutAwayObject'
+            });
 
         smach.StateMachine.add(
             'PutAwayObject',
