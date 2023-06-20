@@ -188,14 +188,19 @@ def create_state_machine():
             'GetObjectToPickUp',
             GetPropertyAtIndex(properties_getting=['class_', 'category'], index=0),
             transitions={
-                SUCCESS:'PickUpObj',
+                SUCCESS:'TellOperatorClassCategory',
                 'index_out_of_range':TASK_FAILURE},
             remapping={
                 'input_list':'som_query_results',
                 'obj_class':'pick_up_object_class',
                 'category':'put_down_category'});
         
-        
+        smach.StateMachine.add(
+            'TellOperatorClassCategory',
+            SayArbitraryPhrase( 
+                "Trying to pick up the {0} of category {1}.",
+                ["pick_up_object_class", "put_down_category"]),
+                transitions={SUCCESS:"PickUpObj"});
 
         smach.StateMachine.add(
             'PickUpObj',
