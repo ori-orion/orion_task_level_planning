@@ -430,9 +430,14 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 "LookAtObject",
                 LookAtPoint(z_looking_at=0.9, set_head_to_neutral=True),
                 transitions={
-                    SUCCESS:'PlaceObj'},
+                    SUCCESS:'WaitALittle'},
                 remapping={
                     'pose':'target_pose'});
+            
+            smach.StateMachine.add(
+                'WaitALittle',
+                WaitForSecs(2),
+                transitions={SUCCESS:"PlaceObj"});
 
             smach.StateMachine.add(
                 "PlaceObj",

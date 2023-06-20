@@ -129,16 +129,18 @@ class PickUpObjectState_v2(smach.State):
 
     Does none of the tf searching that the first iteration did.
     """
-    def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True):
+    def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
+                wait_upon_completion=rospy.Duration(0)):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE],
             input_keys=input_keys,
-            output_keys=['number_of_failures']);
+            output_keys=[]);
 
         self.num_iterations_upon_failure = num_iterations_upon_failure;
         self.read_from_som_query_results = read_from_som_query_results;
+        self.wait_upon_completion = wait_upon_completion;
 
     def run_manipulation_comp(self, pick_up_goal):
         self.pick_up_object_action_client.send_goal(pick_up_goal)
@@ -159,15 +161,14 @@ class PickUpObjectState_v2(smach.State):
         else:
             pick_up_goal.goal_tf = userdata.tf_name;
 
-        userdata.number_of_failures = 0;
-
         for i in range(self.num_iterations_upon_failure):
             result = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
             if result:
+                rospy.sleep(self.wait_upon_completion);
                 return SUCCESS;
-            userdata.number_of_failures += 1;
             rospy.loginfo("Manipulation failed.")
 
+        rospy.sleep(self.wait_upon_completion);
         return MANIPULATION_FAILURE;
 
 
@@ -341,6 +342,7 @@ class PlaceNextTo(smach.State):
         if True:
             goal = PutObjectOnSurfaceGoal();
             goal.goal_tf = best_tf;
+            goal.drop_object_by_metres = 0.05;
             success = putObjOnSurfaceAction(goal);
             if success:
                 return SUCCESS
