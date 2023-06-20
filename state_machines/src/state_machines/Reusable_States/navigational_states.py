@@ -195,6 +195,9 @@ class SimpleNavigateState_v2(smach.State):
         """
         Executes the navigation action. 
         """
+        if self.execute_nav_commands == False:
+            return SUCCESS;
+        
         self.navigate_action_client.send_goal(goal);
 
         # We want to be able to check to see if the robot has moved or not

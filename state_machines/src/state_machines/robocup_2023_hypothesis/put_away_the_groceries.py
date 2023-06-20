@@ -128,6 +128,11 @@ def create_state_machine():
         #     },
         #     remapping={'target_pose': 'table_pose'})
         smach.StateMachine.add(
+            'MoveToNeutral',
+            MoveToNeutralState(),
+            transitions={SUCCESS:'NavToTable'});
+
+        smach.StateMachine.add(
             'NavToTable',
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
@@ -272,7 +277,8 @@ def create_state_machine():
 
 
 if __name__ == '__main__':
-    sm = sub_state_machine_pick_up_and_put_away();
+    # sm = sub_state_machine_pick_up_and_put_away();
+    sm = create_state_machine();
 
     sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
     sis.start()
