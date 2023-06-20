@@ -146,8 +146,9 @@ class PickUpObjectState_v2(smach.State):
         self.pick_up_object_action_client.send_goal(pick_up_goal)
         self.pick_up_object_action_client.wait_for_result()
 
-        result = self.pick_up_object_action_client.get_result().result
-        return result;
+
+        result:PickUpObjectResult = self.pick_up_object_action_client.get_result()
+        return result.result, result.failure_mode
 
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
@@ -162,10 +163,14 @@ class PickUpObjectState_v2(smach.State):
             pick_up_goal.goal_tf = userdata.tf_name;
 
         for i in range(self.num_iterations_upon_failure):
-            result = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
+            result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
             if result:
                 rospy.sleep(self.wait_upon_completion);
                 return SUCCESS;
+            elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
+                pass;
+            elif failure_mode==PickUpObjectResult.GRASPING_FAILED:
+                return MANIPULATION_FAILURE;
             rospy.loginfo("Manipulation failed.")
 
         rospy.sleep(self.wait_upon_completion);
