@@ -366,7 +366,10 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         #   tf_name
         smach.StateMachine.add(
             'nav_to_object',
-            nav_within_reaching_distance_of(execute_nav_commands, find_same_category=find_same_category),
+            nav_within_reaching_distance_of(
+                execute_nav_commands, 
+                find_same_category=find_same_category, 
+                som_query_already_performed=som_query_already_performed),
             transitions={
                 SUCCESS:SECOND_STATE,
                 FAILURE:SECOND_STATE,
