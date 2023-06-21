@@ -153,7 +153,7 @@ def create_state_machine():
             'AddMinObservationsTable',
             AddSOMEntry('num_observations', min_num_observations),
             transitions={
-                SUCCESS:'SpinWhileAtTable'});
+                SUCCESS:'RaiseMastAtTable'});
         
         smach.StateMachine.add(
             'RaiseMastAtTable',

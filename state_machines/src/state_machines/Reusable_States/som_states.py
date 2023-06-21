@@ -311,7 +311,7 @@ class SortSOMResultsAsPer(smach.State):
         queries_output:List[object] = [];
         
         if self.sort_by_num_observations_first:
-            queries = sorted(queries, lambda x:-x.num_observations);
+            queries.sort(key=lambda x:-x.num_observations);
 
         if len(queries) == 0:
             userdata.som_query_results = queries_output;
