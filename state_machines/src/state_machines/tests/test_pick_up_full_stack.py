@@ -13,7 +13,7 @@ Outline:
 import orion_actions;
 import rospy;
 import actionlib;
-from typing import List;
+from typing import List, Tuple;
 
 def getObjectsInSOM(class_querying_for:str="bottle", time_horizon:rospy.Duration=None) -> List[orion_actions.msg.SOMObject]:
     """
@@ -47,7 +47,7 @@ def getObjectsInSOM(class_querying_for:str="bottle", time_horizon:rospy.Duration
     return output;
     
 
-def pickUpObject(object_class="bottle"):
+def pickUpObject(object_class="bottle") -> Tuple[bool, int]:
     """
     So we are trying to pick up an object of class `object_class`.
 
@@ -77,5 +77,11 @@ def pickUpObject(object_class="bottle"):
     pick_up_object_action_client.wait_for_result()
 
     result:orion_actions.msg.PickUpObjectResult = pick_up_object_action_client.get_result();
+    # Finally, result: 
+    # There are two fields, a boolean for if it's succeeded or not, and a failure_mode enum for the reason why it's failed. 
+    #   - result:bool              - Overall success or failure.
+    #   - failure_mode: byte       - These are given in the action definition - might not fully be working yet... will keep you updated.
     return result.result, result.failure_mode
-    pass;
+
+if __name__ == '__main__':
+    pickUpObject("bottle");
