@@ -307,6 +307,7 @@ def getPlacementOptions(
         request.dims = dims;
         request.maxHeight = max_height;
         request.radius = radius;
+        request.z_shift = 0.05;
         request.candidateNum = num_candidates;
         resp:FindPlacementResponse = find_placement(request);
         print("Loc found");
