@@ -159,9 +159,9 @@ class PickUpObjectState_v2(smach.State):
         if self.read_from_som_query_results:
             som_query_result:dict = userdata.som_query_results[0];
             pick_up_goal.goal_tf = som_query_result['tf_name']
-            pass;
         else:
             pick_up_goal.goal_tf = userdata.tf_name;
+        pick_up_goal.publish_own_tf = True;
 
         for i in range(self.num_iterations_upon_failure):
             result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
@@ -174,6 +174,7 @@ class PickUpObjectState_v2(smach.State):
                 return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
                 rospy.loginfo("Tf error");
+                pick_up_goal.publish_own_tf = True;
                 pass;
             elif failure_mode==PickUpObjectResult.GRASPING_FAILED or status==GoalStatus.ABORTED:
                 rospy.loginfo("Grasping failed.");
@@ -367,6 +368,8 @@ class PlaceNextTo(smach.State):
                 radius=radius,
                 num_candidates=self.num_candidates,
                 goal_tf=first_response.tf_name);
+            
+            print("Getting placement options around {0}".format(first_response.tf_name));
             
             print(place_locations);
             print(best_tf);
