@@ -181,7 +181,7 @@ def create_state_machine():
             SortSOMResultsAsPer('category', categories_to_pick_up),
             transitions={
                 SUCCESS:'GetObjectToPickUp',
-                'list_empty':TASK_FAILURE},
+                'list_empty':'CreateTableQuery'},
             remapping={});
 
         smach.StateMachine.add(
@@ -192,7 +192,7 @@ def create_state_machine():
                 'index_out_of_range':TASK_FAILURE},
             remapping={
                 'input_list':'som_query_results',
-                'obj_class':'pick_up_object_class',
+                'class_':'pick_up_object_class',
                 'category':'put_down_category'});
         
         smach.StateMachine.add(

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Author: Matthew Munks
 Maintainer: Matthew Munks
@@ -10,7 +11,8 @@ Outline:
     Use manipulation to pick up the object.
 """
 
-import orion_actions;
+import orion_actions.msg;
+import orion_actions.srv;
 import rospy;
 import actionlib;
 from typing import List, Tuple;

@@ -11,6 +11,7 @@ import rospy;
 # from geometry_msgs.msg import Pose, PoseStamped;
 
 import actionlib
+from actionlib_msgs.msg import GoalStatus
 
 import tf
 import tf2_ros;
@@ -164,6 +165,9 @@ class PickUpObjectState_v2(smach.State):
 
         for i in range(self.num_iterations_upon_failure):
             result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
+
+            status = self.pick_up_object_action_client.get_state();
+            print("status", status);
             print("Failure mode=", failure_mode)
             if result:
                 rospy.sleep(self.wait_upon_completion);
@@ -171,7 +175,7 @@ class PickUpObjectState_v2(smach.State):
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
                 rospy.loginfo("Tf error");
                 pass;
-            elif failure_mode==PickUpObjectResult.GRASPING_FAILED:
+            elif failure_mode==PickUpObjectResult.GRASPING_FAILED or status==GoalStatus.ABORTED:
                 rospy.loginfo("Grasping failed.");
                 # return MANIPULATION_FAILURE;
                 pass;
