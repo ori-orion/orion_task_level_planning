@@ -85,4 +85,4 @@ def pickUpObject(object_class="bottle") -> Tuple[bool, int]:
 
 if __name__ == '__main__':
     rospy.init_node('som_mainpulation_test');
-    pickUpObject("bottle");
+    pickUpObject("cup");
