@@ -296,17 +296,22 @@ class SortSOMResultsAsPer(smach.State):
     object first. This however does mean that this might cause a bug further 
     down the pipeline. 
     """
-    def __init__(self, sort_by:str, order_of_preference:List[str]):
+    def __init__(self, sort_by:str, order_of_preference:List[str], sort_by_num_observations_first:bool=False):
         smach.State.__init__(
             self, outcomes=[SUCCESS, 'list_empty'],
             input_keys=['som_query_results'],
             output_keys=['som_query_results', 'first_result']);
         self.sort_by:str = sort_by;
         self.order_of_preference:List[str] = order_of_preference;
+    
+        self.sort_by_num_observations_first = sort_by_num_observations_first;
 
     def execute(self, userdata):
         queries:List[object] = userdata.som_query_results;
         queries_output:List[object] = [];
+        
+        if self.sort_by_num_observations_first:
+            queries = sorted(queries, lambda x:-x.num_observations);
 
         if len(queries) == 0:
             userdata.som_query_results = queries_output;

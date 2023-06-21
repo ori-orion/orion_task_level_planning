@@ -178,7 +178,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'SortListInput',
-            SortSOMResultsAsPer('category', categories_to_pick_up),
+            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True),
             transitions={
                 SUCCESS:'GetObjectToPickUp',
                 'list_empty':'CreateTableQuery'},
