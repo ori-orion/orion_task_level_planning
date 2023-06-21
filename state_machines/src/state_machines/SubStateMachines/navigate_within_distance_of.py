@@ -170,7 +170,7 @@ def search_for_entity(spin_first=True, find_same_category=False):
 
             smach.StateMachine.add(
                 'PerformQuery',
-                PerformSOMQuery(distance_filter=4),
+                PerformSOMQuery(distance_filter=2),
                 transitions={
                     SUCCESS:'CheckSeenObject'},
                 remapping={});

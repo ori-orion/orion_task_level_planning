@@ -171,7 +171,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'PerformQuery',
-            PerformSOMQuery(distance_filter=4),
+            PerformSOMQuery(distance_filter=2),
             transitions={
                 SUCCESS: 'SortListInput'},
             remapping={})
