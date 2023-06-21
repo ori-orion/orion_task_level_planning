@@ -364,6 +364,41 @@ class SortSOMResultsAsPer(smach.State):
     pass;
 
 
+class FilterSOMResultsAsPer(smach.State):
+    """
+    Filters in/out a set of results by a given parameter.
+    Inputs:
+        filter_by           : What parameter are we filtering by
+        filter_out          : If filter_out==True, then any matches will be filtered out. Else, filtered in.
+        som_query_results   : The set that is being filtered
+        filtering_by        : A list of parameters that determine whether a given element stays in the set.
+    Output:
+        som_query_results   : The filtered list.
+    """
+    def __init__(self, filter_by:str, filter_out=True):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=['som_query_results', 'filtering_by'],
+            output_keys=['som_query_results']);
+        
+        self.filter_by = filter_by;
+        self.filter_out = filter_out;
+
+    def execute(self, userdata):
+        som_query_results = userdata.som_query_results;
+        filtering_by:list = userdata.filtering_by;
+        output = [];
+        for element in som_query_results:
+            if self.filter_out:
+                if getattr(element, self.filter_by) not in filtering_by:
+                    output.append(element);
+            else:
+                if getattr(element, self.filter_by) in filtering_by:
+                    output.append(element);
+        userdata.som_query_results = output;
+        return SUCCESS;
+
+
 class SaveOperatorToSOM(smach.State):
     """ State for robot to log the operator information as an observation in the SOM
 

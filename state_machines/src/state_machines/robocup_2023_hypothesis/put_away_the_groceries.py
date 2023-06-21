@@ -184,10 +184,15 @@ def create_state_machine():
                 SUCCESS:'GetObjectToPickUp',
                 'list_empty':'CreateTableQuery'},
             remapping={});
+        smach.StateMachine.add(
+            'FilterOutTfs',
+            FilterSOMResultsAsPer('tf_name'),
+            transitions={SUCCESS:'GetObjectToPickUp'},
+            remapping={'filtering_by':'filter_tf_names_out'});
 
         smach.StateMachine.add(
             'GetObjectToPickUp',
-            GetPropertyAtIndex(properties_getting=['class_', 'category'], index=0),
+            GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name'], index=0),
             transitions={
                 SUCCESS:'TellOperatorClassCategory',
                 'index_out_of_range':TASK_FAILURE},
