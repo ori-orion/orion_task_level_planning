@@ -247,8 +247,7 @@ def create_state_machine():
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
                 MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
-            remapping={'obj_type':'put_down_category'}
-        )
+            remapping={'obj_type':'put_down_category'})
         
         smach.StateMachine.add(
             'AppendTfNameToTfNameFilter',
@@ -264,8 +263,7 @@ def create_state_machine():
             transitions={
                 SUCCESS: 'CheckIfShouldContinue',
             },
-            remapping={'val': 'objects_placed'}
-        )
+            remapping={'val': 'objects_placed'})
 
 
         smach.StateMachine.add(
