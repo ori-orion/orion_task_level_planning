@@ -161,7 +161,7 @@ class PickUpObjectState_v2(smach.State):
             pick_up_goal.goal_tf = som_query_result['tf_name']
         else:
             pick_up_goal.goal_tf = userdata.tf_name;
-        pick_up_goal.publish_own_tf = True;
+        pick_up_goal.publish_own_tf = False;
 
         for i in range(self.num_iterations_upon_failure):
             result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
