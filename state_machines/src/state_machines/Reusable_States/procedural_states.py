@@ -121,3 +121,16 @@ class GetListEmpty(smach.State):
             userdata.list_empty = False;
             return 'list_not_empty';
 
+class SetToEmptyList(smach.State):
+    """
+    Sets the value of userdata.setting to an emtpy array.
+    """
+    def __init__(self):
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS],
+            input_keys=[],
+            output_keys=['setting']);
+
+    def execute(self, userdata):
+        userdata.setting = [];

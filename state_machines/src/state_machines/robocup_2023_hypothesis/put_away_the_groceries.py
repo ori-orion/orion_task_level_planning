@@ -177,25 +177,41 @@ def create_state_machine():
             remapping={})
 
         smach.StateMachine.add(
+            'FilterOutTfs',
+            FilterSOMResultsAsPer('tf_name'),
+            transitions={SUCCESS:'SortListInput'},
+            remapping={'filtering_by':'filter_tf_names_out'});
+        smach.StateMachine.add(
             'SortListInput',
             SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
                                 num_observations_filter_proportion=0.001),
             transitions={
                 SUCCESS:'GetObjectToPickUp',
-                'list_empty':'CreateTableQuery'},
-            remapping={});
+                'list_empty':'ClearTfNameFilter'},
+            remapping={'som_query_results_out':'som_query_results'});
+        
         smach.StateMachine.add(
-            'FilterOutTfs',
-            FilterSOMResultsAsPer('tf_name'),
-            transitions={SUCCESS:'GetObjectToPickUp'},
-            remapping={'filtering_by':'filter_tf_names_out'});
+            'ClearTfNameFilter',
+            SetToEmptyList(),
+            transitions={SUCCESS:'SortListInput_2'},
+            remapping={'setting':'filter_tf_names_out'});
+        smach.StateMachine.add(
+            'SortListInput_2',
+            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
+                                num_observations_filter_proportion=0.001),
+            transitions={
+                SUCCESS:'GetObjectToPickUp',
+                'list_empty':'CreateTableQuery'},
+            remapping={
+                'som_query_results':'som_query_results_old',
+                'som_query_results_out':'som_query_results'});
 
         smach.StateMachine.add(
             'GetObjectToPickUp',
             GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name'], index=0),
             transitions={
                 SUCCESS:'TellOperatorClassCategory',
-                'index_out_of_range':TASK_FAILURE},
+                'index_out_of_range':'ClearTfNameFilter'},
             remapping={
                 'input_list':'som_query_results',
                 'class_':'pick_up_object_class',

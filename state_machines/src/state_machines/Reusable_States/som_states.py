@@ -306,7 +306,7 @@ class SortSOMResultsAsPer(smach.State):
         smach.State.__init__(
             self, outcomes=[SUCCESS, 'list_empty'],
             input_keys=['som_query_results'],
-            output_keys=['som_query_results', 'first_result']);
+            output_keys=['som_query_results_out', 'first_result']);
         self.sort_by:str = sort_by;
         self.order_of_preference:List[str] = order_of_preference;
     
@@ -328,7 +328,7 @@ class SortSOMResultsAsPer(smach.State):
             queries = queries_carry;
 
         if len(queries) == 0:
-            userdata.som_query_results = queries_output;
+            userdata.som_query_results_out = queries_output;
             userdata.first_result = 0;
             return 'list_empty';
 
@@ -352,7 +352,7 @@ class SortSOMResultsAsPer(smach.State):
             rospy.loginfo("{0} entries were ignored. They had the correct field, but their values were not found in order of preference".format(
                 len(queries) - len(queries_output) - num_skipped));
 
-        userdata.som_query_results = queries_output;
+        userdata.som_query_results_out = queries_output;
 
         print("Sorted elements");
         for element in queries_output:
@@ -368,18 +368,19 @@ class FilterSOMResultsAsPer(smach.State):
     """
     Filters in/out a set of results by a given parameter.
     Inputs:
-        filter_by           : What parameter are we filtering by
-        filter_out          : If filter_out==True, then any matches will be filtered out. Else, filtered in.
-        som_query_results   : The set that is being filtered
-        filtering_by        : A list of parameters that determine whether a given element stays in the set.
+        filter_by               : What parameter are we filtering by
+        filter_out              : If filter_out==True, then any matches will be filtered out. Else, filtered in.
+        som_query_results       : The set that is being filtered
+        filtering_by            : A list of parameters that determine whether a given element stays in the set.
     Output:
-        som_query_results   : The filtered list.
+        som_query_results       : The filtered list.
+        som_query_results_old   : The old version to allow the remembering of things.
     """
     def __init__(self, filter_by:str, filter_out=True):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query_results', 'filtering_by'],
-            output_keys=['som_query_results']);
+            output_keys=['som_query_results', 'som_query_results_old']);
         
         self.filter_by = filter_by;
         self.filter_out = filter_out;
