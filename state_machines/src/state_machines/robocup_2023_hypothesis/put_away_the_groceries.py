@@ -161,7 +161,6 @@ def create_state_machine():
             transitions={
                 SUCCESS:'SpinWhileAtTable'
             });
-
         smach.StateMachine.add(
             'SpinWhileAtTable',
             SpinState(spin_height=0.7, only_look_forwards=True),
@@ -183,8 +182,7 @@ def create_state_machine():
             remapping={'filtering_by':'filter_tf_names_out'});
         smach.StateMachine.add(
             'SortListInput',
-            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
-                                num_observations_filter_proportion=0.001),
+            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, num_observations_filter_proportion=0.001),
             transitions={
                 SUCCESS:'GetObjectToPickUp',
                 'list_empty':'ClearTfNameFilter'},

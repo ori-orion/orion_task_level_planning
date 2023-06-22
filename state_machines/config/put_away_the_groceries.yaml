@@ -1,7 +1,7 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: false
+execute_navigation_commands: true
 
 # For putting down objects next to others
 find_placement_options : {
@@ -13,20 +13,20 @@ find_placement_options : {
     dims : [0.05, 0.05, 0.02]
 }
 
-cabinet_pose : {
-    position : {
-        x : 0, y : 0, z : 0
-    },
-    orientation : {
-        x : 0, y : 0, z : 0, w : 0
-    }
-}
 table_pose : {
     position : {
-        x : 0, y : 0, z : 0
+        x : 4.61, y : 0.308, z : 0
     },
     orientation : {
-        x : 0, y : 0, z : 0, w : 0
+        x : 0, y : 0, z : 0.751, w : 0.66
+    }
+}
+cabinet_pose : {
+    position : {
+        x : 2.62, y : 0.36, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : -0.821, w : 0.571
     }
 }
 

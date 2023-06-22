@@ -18,8 +18,8 @@ class LessThanState(smach.State):
         self.right = right
 
     def execute(self, userdata):
-        left = userdata.left if userdata.left is not None else self.left
-        right = userdata.right if userdata.right is not None else self.right
+        left = userdata.left if self.left is None else self.left
+        right = userdata.right if self.right is None else self.right
         if (left < right):
             return TRUE_STR;
         else:

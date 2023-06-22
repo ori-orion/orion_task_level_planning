@@ -131,8 +131,8 @@ class PerformSOMQuery(smach.State):
 
         query = userdata.som_query;
 
-        print(query);
-        print(rospy.Time.now());
+        # print(query);
+        # print(rospy.Time.now());
 
         output:List[SOMObject] = [];
 
@@ -317,6 +317,11 @@ class SortSOMResultsAsPer(smach.State):
         queries:List[object] = userdata.som_query_results;
         queries_output:List[object] = [];
         
+        if len(queries) == 0:
+            userdata.som_query_results_out = queries_output;
+            userdata.first_result = 0;
+            return 'list_empty';
+
         if self.sort_by_num_observations_first:
             queries:List[SOMObject]
             queries.sort(key=lambda x:-x.num_observations);
@@ -326,11 +331,6 @@ class SortSOMResultsAsPer(smach.State):
                 if element.num_observations > max_num_observations * self.num_observations_filter_proportion:
                     queries_carry.append(element);
             queries = queries_carry;
-
-        if len(queries) == 0:
-            userdata.som_query_results_out = queries_output;
-            userdata.first_result = 0;
-            return 'list_empty';
 
 
         num_skipped = 0;
