@@ -318,8 +318,9 @@ def getPlacementOptions(
 class PlaceNextTo(smach.State):
     """
     Outcomes:
-        SUCCESS
-        MANIPULATION_FAILURE
+        SUCCESS                 : Entire motion correctly carried out.
+        MANIPULATION_FAILURE    : Place object failed.
+        FAILURE                 : Placement option was not found.
     """
     def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3):
         smach.State.__init__(

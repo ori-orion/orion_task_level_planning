@@ -22,6 +22,9 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
     """
     Basically the core of this set of sub-state machines.
     Looks at userdata.target_pose, works out the position of the nav goal and navigates there.
+    Outcomes:
+        SUCCESS
+        NAVIGATIONAL_FAILURE
     Dependancies (28/4/2023):
         navigate_within_distance_of_som_input   - Not in use.
         nav_within_reaching_distance_of         - Used by anything using this functionality.
@@ -274,24 +277,15 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
 
         smach.StateMachine.add(
             'GetLocation',
-            GetPropertyAtIndex(properties_getting=['obj_position'], index=0),
-            transitions={
-                SUCCESS:'GetTfName',
-                'index_out_of_range':'query_empty'},
-            remapping={
-                'input_list':'som_query_results',
-                'obj_position':'target_pose'});
-        
-        smach.StateMachine.add(
-            'GetTfName',
-            GetPropertyAtIndex(properties_getting=['tf_name'], index=0),
+            GetPropertyAtIndex(properties_getting=['obj_position', 'tf_name'], index=0),
             transitions={
                 SUCCESS:'NavToLoc',
                 'index_out_of_range':'query_empty'},
             remapping={
                 'input_list':'som_query_results',
+                'obj_position':'target_pose',
                 'tf_name':'tf_name'});
-
+        
         smach.StateMachine.add(
             'NavToLoc',
             # OrientRobot(),
@@ -370,6 +364,10 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         # Output parameters:
         #   som_query_results
         #   tf_name
+        # Outcomes for this state and what they're mapped to. 
+        # Given that both manipulation systems have manipulation components that do navigate
+        # themselves, it makes sense for a manipulation failure to map to the second state.
+        # However, this could be a problem later on if we are too far away from the object.   
         smach.StateMachine.add(
             'nav_to_object',
             nav_within_reaching_distance_of(
