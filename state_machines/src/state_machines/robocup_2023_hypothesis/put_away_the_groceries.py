@@ -124,7 +124,7 @@ def create_state_machine():
         #     navigate_within_distance_of_pose_input(execute_nav_commands),
         #     transitions={
         #         SUCCESS: 'CreateTableQuery',
-        #         FAILURE: TASK_FAILURE
+        #         NAVIGATIONAL_FAILURE: TASK_FAILURE
         #     },
         #     remapping={'target_pose': 'table_pose'})
         smach.StateMachine.add(
@@ -137,7 +137,7 @@ def create_state_machine():
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
                 SUCCESS: 'CreateTableQuery',
-                FAILURE: TASK_FAILURE
+                NAVIGATIONAL_FAILURE: TASK_FAILURE
             },
             remapping={'pose': 'table_pose'})
         
@@ -240,7 +240,7 @@ def create_state_machine():
         #     navigate_within_distance_of_pose_input(execute_nav_commands),
         #     transitions={
         #         SUCCESS: 'PutAwayObject',
-        #         FAILURE: TASK_FAILURE
+        #         NAVIGATIONAL_FAILURE: TASK_FAILURE
         #     },
         #     remapping={
         #         'target_pose': 'cabinet_pose'
@@ -250,7 +250,7 @@ def create_state_machine():
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
                 SUCCESS: 'PutAwayObject',       # 'RaiseMastAtCabinet',
-                FAILURE: TASK_FAILURE
+                NAVIGATIONAL_FAILURE: TASK_FAILURE
             },
             remapping={'pose': 'cabinet_pose'})
         

@@ -27,7 +27,7 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
         nav_within_reaching_distance_of         - Used by anything using this functionality.
     """
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE],
+        outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
         input_keys=['target_pose']);
 
     sub_sm.userdata.number_of_failures = 0;
@@ -56,11 +56,10 @@ def navigate_within_distance_of_pose_input(execute_nav_commands):
 
         smach.StateMachine.add(
             'NavToGoal',
-            SimpleNavigateState(execute_nav_commands),
+            SimpleNavigateState_v2(execute_nav_commands),
             transitions={
                 SUCCESS:'LookAtObject_AGAIN',
-                FAILURE:'NavToGoal',
-                REPEAT_FAILURE: FAILURE},
+                NAVIGATIONAL_FAILURE:NAVIGATIONAL_FAILURE},
             remapping={
                 'pose':'nav_target'
             });
@@ -82,9 +81,9 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
     Navigates to a close distance from the first element that comes up from the query.
 
     outcomes:
-        SUCCESS         : Self explanatory
-        FAILURE         : Self explanatory
-        'query_empty'   : If the query has nothing in it, then this is the response.
+        SUCCESS                 : Self explanatory
+        NAVIGATIONAL_FAILURE    : Self explanatory
+        'query_empty'           : If the query has nothing in it, then this is the response.
     inputs:
         som_query       : The query we will give the SOM system.
     Dependencies (28/4/2023):
@@ -92,7 +91,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
                nav_within_reaching_distance_of covers this functionality.
     """
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        outcomes=[SUCCESS, NAVIGATIONAL_FAILURE, 'query_empty'],
         input_keys=['som_query']);
 
     with sub_sm:
@@ -121,7 +120,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
             navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:FAILURE});
+                NAVIGATIONAL_FAILURE:NAVIGATIONAL_FAILURE});
 
     return sub_sm;
 
@@ -132,18 +131,21 @@ def search_for_entity(spin_first=True, find_same_category=False):
     It will then query for said object. 
     If an object matching `userdata.obj_type` is seen, then a list of all items matching the query will be returned.
     Otherwise, an empty array will be returned.
+    Outcomes:
+        SUCCESS
+        "item_not_seen"
     Dependencies (28/4/2023):
         nav_within_reaching_distance_of   
     """
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, "item_not_seen"],
+        outcomes=[SUCCESS, "item_not_seen"],
         input_keys=['obj_type'],
         output_keys=['som_query_results']);
 
     search_for_query_type = 'category' if find_same_category else 'class_'
     
     with sub_sm:
-        def createSpinAndQuery(subsequent_state:SUCCESS):
+        def createSpinAndQuery(subsequent_state):
             smach.StateMachine.add(
                 'CreateObjQuery',
                 CreateSOMQuery(
@@ -186,7 +188,7 @@ def search_for_entity(spin_first=True, find_same_category=False):
                     'input_list':'som_query_results'
                 });
         
-        def createAllTimeQuery(subsequent_state:SUCCESS):
+        def createAllTimeQuery(subsequent_state):
             smach.StateMachine.add(
                 'CreateAllTimeQuery',
                 CreateSOMQuery(
@@ -242,6 +244,11 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
         som_query_results   - The output from the query performed in getting the object of interest.
     Inputs:
         find_same_category  - Whether we're performing the som query to find objects of a given type or merely of a given category. (Useful for placing an object next to another one).
+    Outcomes:
+        SUCCESS
+        NAVIGATIONAL_FAILURE
+        "query_empty"
+            No items matching the SOM query were found.
     Dependencies (28/4/2023):
         nav_and_pick_up_or_place_next_to
     """
@@ -251,7 +258,7 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
         input_keys = ['obj_type'];
 
     sub_sm = smach.StateMachine(
-        outcomes=[SUCCESS, FAILURE, 'query_empty'],
+        outcomes=[SUCCESS, 'query_empty', NAVIGATIONAL_FAILURE],
         input_keys=input_keys,
         output_keys=['som_query_results', 'tf_name']);
 
@@ -263,7 +270,6 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
                 search_for_entity(spin_first=True, find_same_category=find_same_category),
                 transitions={
                     SUCCESS:'GetLocation',
-                    FAILURE:FAILURE,
                     'item_not_seen':'search_for_entity'});
 
         smach.StateMachine.add(
@@ -292,7 +298,7 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
             navigate_within_distance_of_pose_input(execute_nav_commands),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:FAILURE
+                NAVIGATIONAL_FAILURE:NAVIGATIONAL_FAILURE
             });
     return sub_sm;
 
@@ -319,9 +325,11 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         som_query_results       - The query results from the som query. Only if som_query_already_performed==True.
     Outcomes:
         SUCCESS                 - When the task happens.
-        FAILURE                 - Returned for other failures. These tend to be 
+        FAILURE                 - Returned for other failures. 
         'query_empty'           - Returned when the object in question is not found by the system.
         MANIPULATION_FAILURE    - Returned when the manipulation component fails.                               
+    Reasons for Outcome FAILURE:
+        No objects seen matching the criteria 
     Dependencies (28/4/2023):
         put_away_the_groceries.py
         open_day_demo_autonav.py
@@ -339,8 +347,6 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
     PICK_UP_STATE = "PickUpObject";
     PUT_DOWN_STATE = "PutObjectDown";
     SECOND_STATE = PICK_UP_STATE if pick_up else PUT_DOWN_STATE;
-
-    put_down_query_type = 'category' if find_same_category else 'class_'
 
     sub_sm.userdata.number_of_failures = 0;
     sub_sm.userdata.failure_threshold = 3;
@@ -372,7 +378,7 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
                 som_query_already_performed=som_query_already_performed),
             transitions={
                 SUCCESS:SECOND_STATE,
-                FAILURE:SECOND_STATE,
+                NAVIGATIONAL_FAILURE:SECOND_STATE,
                 'query_empty':'query_empty'});
 
         if pick_up: 

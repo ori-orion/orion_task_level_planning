@@ -21,6 +21,7 @@ import math;
 
 import nav_msgs.msg;
 
+
 class NavigationalListener:
 
     def __init__(self, listen_to:str = "/base_path_planner/inflated_static_obstacle_map"):
@@ -161,6 +162,8 @@ class SimpleNavigateState(smach.State):
         else:
             return self.repeat_failure_infrastructure(userdata);
 
+# Associated with SimpleNavigate_v2 state.
+NAVIGATIONAL_FAILURE = "navigational_failure"
 class SimpleNavigateState_v2(smach.State):
     """ State for navigating directly to a location on the map.
     Version 2 of the navigation stuff. Removes the retrying being a part of the state machine.
@@ -184,7 +187,7 @@ class SimpleNavigateState_v2(smach.State):
     def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=3):
         smach.State.__init__(
             self,
-            outcomes=[SUCCESS, FAILURE],
+            outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
             input_keys=['pose'],
             output_keys=[]);
 
@@ -251,7 +254,7 @@ class SimpleNavigateState_v2(smach.State):
                 return SUCCESS
             elif status == self.RETRY:
                 i += 1;
-        return FAILURE;
+        return NAVIGATIONAL_FAILURE;
 
 #TODO - make a topological localisation node
 #       Subscribe to /topological_location - topic type from ori_topological_navigation_msgs : TopologicalLocation to get closest_node_id and current_node_id strings (empty string if not at any)
