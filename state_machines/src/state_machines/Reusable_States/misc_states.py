@@ -16,6 +16,7 @@ from geometry_msgs.msg import Pose, PoseStamped;
 import actionlib
 
 import hsrb_interface;
+import hsrb_interface.geometry as geometry
 hsrb_interface.robot.enable_interactive();
 
 #region Temporal states
@@ -206,7 +207,7 @@ class RaiseMastState(smach.State):
     MAST_JOINT_NAME = 'arm_lift_joint';
     MAST_JOINT_MAX = 0.69;
     MAST_JOINT_MIN = 0;
-    def __init__(self, mast_height=None):
+    def __init__(self, mast_height=None, rotate_body=True):
         input_keys = ['mast_height'] if mast_height==None else [];
             
         smach.State.__init__(
@@ -217,6 +218,7 @@ class RaiseMastState(smach.State):
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
         self.mast_height = mast_height;
+        self.rotate_body = rotate_body;
     
     def execute(self, userdata):
         if self.mast_height == None: 
@@ -229,7 +231,16 @@ class RaiseMastState(smach.State):
         elif mast_height < self.MAST_JOINT_MIN:
             mast_height = self.MAST_JOINT_MIN;
 
-        self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
+        if self.rotate_body:
+            BASE_ROTATION = math.pi/2;
+            self.whole_body.move_to_neutral();
+            self.whole_body.move_to_joint_positions({
+                'arm_lift_joint':0.5,
+                'arm_flex_joint':-0.1*math.pi/2,
+                'head_pan_joint':-BASE_ROTATION});
+            self.omni_base.follow_trajectory([geometry.pose(ek=BASE_ROTATION)])
+        else:
+            self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
         return SUCCESS;
     pass;
 
