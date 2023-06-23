@@ -236,7 +236,7 @@ def create_state_machine():
             'NavToTable',
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
-                SUCCESS: 'CreateTableQuery',
+                SUCCESS: 'PerformSOMAtTable',
                 NAVIGATIONAL_FAILURE: TASK_FAILURE
             },
             remapping={'pose': 'table_pose'})
@@ -256,7 +256,7 @@ def create_state_machine():
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
                 MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
-            remapping={'obj_type':'pick_up_object_class'})
+            remapping={'obj_type':'pick_up_object_class'});
 
         # Simple Nav state.
         # smach.StateMachine.add(

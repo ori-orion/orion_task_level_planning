@@ -291,12 +291,12 @@ class SpinState(smach.State):
     TAKE_OFFSET_FROM_USERDATA = 2;
 
     def __init__(self, spin_height:float=1, only_look_forwards:bool=False, offset_instruction:int=OFFSET_BY_0):
-        output_keys = ['body_rotated'] if offset_instruction==self.TAKE_OFFSET_FROM_USERDATA else [];
+        input_keys = ['body_rotated'] if offset_instruction==self.TAKE_OFFSET_FROM_USERDATA else [];
         smach.State.__init__(
             self, 
             outcomes = [SUCCESS],
-            input_keys=[], 
-            output_keys=output_keys);
+            input_keys=input_keys, 
+            output_keys=[]);
 
         self.spin_height = spin_height;
         self.only_look_forwards:bool = only_look_forwards;
