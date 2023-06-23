@@ -203,6 +203,9 @@ class LookAtPoint(smach.State):
 class RaiseMastState(smach.State):
     """
     Raises the mast to a given height.
+
+    Outputs:
+        body_rotated:bool   : Returns whether the base was rotated 90 degrees relative to the nav goal given.
     """
     MAST_JOINT_NAME = 'arm_lift_joint';
     MAST_JOINT_MAX = 0.69;
@@ -213,7 +216,8 @@ class RaiseMastState(smach.State):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS],
-            input_keys=input_keys);
+            input_keys=input_keys,
+            output_keys=['body_rotated']);
 
         self.robot = hsrb_interface.Robot();
         self.whole_body = self.robot.try_get('whole_body');
@@ -231,18 +235,24 @@ class RaiseMastState(smach.State):
             mast_height = self.MAST_JOINT_MAX;
         elif mast_height < self.MAST_JOINT_MIN:
             mast_height = self.MAST_JOINT_MIN;
+        
+        userdata.body_rotated = False;
+
+        if mast_height == 0:
+            return SUCCESS;
 
         if self.rotate_body:
             BASE_ROTATION = math.pi/2;
             self.whole_body.move_to_neutral();
             self.whole_body.move_to_joint_positions({
-                'arm_lift_joint':0.5,
+                'arm_lift_joint':mast_height,
                 'arm_flex_joint':-0.1*math.pi/2,
                 'head_pan_joint':-BASE_ROTATION});
             self.omni_base.follow_trajectory(
                 [geometry.pose(ek=BASE_ROTATION)],
                 time_from_starts=[10],
                 ref_frame_id='base_footprint');
+            userdata.body_rotated = True;
         else:
             self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
         return SUCCESS;
@@ -276,14 +286,21 @@ class SpinState(smach.State):
             the horizontal plane. This parameter gives the vertical height off the 
             ground for the robot to look at.
     """
-    def __init__(self, spin_height:float=1, only_look_forwards:bool=False, offset_by_90_degrees:bool=False):
-        smach.State.__init__(self, 
-                                outcomes = [SUCCESS],
-                                input_keys=[], output_keys=[]);
+    OFFSET_BY_0 = 0;
+    OFFSET_BY_90 = 1;
+    TAKE_OFFSET_FROM_USERDATA = 2;
+
+    def __init__(self, spin_height:float=1, only_look_forwards:bool=False, offset_instruction:int=OFFSET_BY_0):
+        output_keys = ['body_rotated'] if offset_instruction==self.TAKE_OFFSET_FROM_USERDATA else [];
+        smach.State.__init__(
+            self, 
+            outcomes = [SUCCESS],
+            input_keys=[], 
+            output_keys=output_keys);
 
         self.spin_height = spin_height;
         self.only_look_forwards:bool = only_look_forwards;
-        self.offset_by_90_degrees = offset_by_90_degrees;
+        self.offset_instruction = offset_instruction;
 
     def execute(self, userdata):
         client = actionlib.SimpleActionClient('spin', SpinAction);
@@ -291,10 +308,12 @@ class SpinState(smach.State):
         goal = SpinGoal();
         goal.only_look_forwards = self.only_look_forwards;
         goal.height_to_look_at = self.spin_height;
-        if self.offset_by_90_degrees:
-            goal.spin_offset = -90;     # This needs to be -90 so that we don't intersect with the head rotation restriction.
-        else:
+        if self.offset_instruction == self.OFFSET_BY_0:
             goal.spin_offset = 0;
+        elif self.offset_instruction == self.OFFSET_BY_90:
+            goal.spin_offset = -90;
+        elif self.offset_instruction == self.TAKE_OFFSET_FROM_USERDATA:
+            goal.spin_offset = 0 if userdata.body_rotated==False else -90;
         client.send_goal(goal);
         client.wait_for_result();
 
