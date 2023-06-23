@@ -18,6 +18,9 @@ import tf2_ros;
 from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
 from typing import List, Tuple;
 
+import hsrb_interface;
+hsrb_interface.robot.enable_interactive();
+
 GLOBAL_FRAME = "map";
 
 # To give greater resolution when looking at outcomes within the state machine. Not fully implemented.
@@ -130,6 +133,9 @@ class PickUpObjectState_v2(smach.State):
 
     Does none of the tf searching that the first iteration did.
     """
+    # If the gripper is more closed than this, we will say it has not actually picked anything up.
+    GRIPPER_DISTANCCE_THRESHOLD = 0.01;
+
     def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
                 wait_upon_completion=rospy.Duration(5)):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
@@ -154,6 +160,12 @@ class PickUpObjectState_v2(smach.State):
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
+        robot = hsrb_interface.Robot();
+        print(dir(robot));
+        print(robot.Items);
+        print(robot.list());
+        self.gripper = robot.try_get("gripper")
+        print(dir(self.gripper));
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
@@ -171,6 +183,9 @@ class PickUpObjectState_v2(smach.State):
             print("Failure mode=", failure_mode)
             if result:
                 rospy.sleep(self.wait_upon_completion);
+                print(dir(self.gripper));
+                print("Gripper distance", self.gripper.get_distance());
+                
                 return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
                 rospy.loginfo("Tf error");
@@ -180,7 +195,7 @@ class PickUpObjectState_v2(smach.State):
                 rospy.loginfo("Grasping failed.");
                 # return MANIPULATION_FAILURE;
                 pass;
-            rospy.loginfo("Manipulation failed.")
+            rospy.loginfo("Manipulation failed.");
 
         rospy.sleep(self.wait_upon_completion);
         return MANIPULATION_FAILURE;

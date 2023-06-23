@@ -386,6 +386,9 @@ class SortSOMResultsAsPer(smach.State):
             print(element.class_, end=", ");
         print();
 
+        if len(queries_output) == 0:
+            return 'list_empty'
+
         userdata.first_result = queries_output[0];
         return SUCCESS;
     pass;
