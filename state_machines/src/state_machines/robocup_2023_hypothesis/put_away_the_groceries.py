@@ -175,7 +175,12 @@ def create_state_machine():
                 remapping={'filtering_by':'filter_tf_names_out'});
             smach.StateMachine.add(
                 'SortListInput',
-                SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, num_observations_filter_proportion=0.001),
+                SortSOMResultsAsPer(
+                    'category', 
+                    categories_to_pick_up, 
+                    sort_by_num_observations_first=True, 
+                    num_observations_filter_proportion=0.001, 
+                    filter_for_duplicates_distance=0.02),
                 transitions={
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'ClearTfNameFilter'},
@@ -188,8 +193,12 @@ def create_state_machine():
                 remapping={'setting':'filter_tf_names_out'});
             smach.StateMachine.add(
                 'SortListInput_2',
-                SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
-                                    num_observations_filter_proportion=0.001),
+                SortSOMResultsAsPer(
+                    'category', 
+                    categories_to_pick_up, 
+                    sort_by_num_observations_first=True, 
+                    num_observations_filter_proportion=0.001,
+                    filter_for_duplicates_distance=0.02),
                 transitions={
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'CreateTableQuery'},

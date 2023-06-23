@@ -115,6 +115,7 @@ class PerformSOMQuery(smach.State):
         If this is non-zero, this will do that filtering.
 
     Inputs:
+        distance_filter:float                   : A distance beyond which we will ignore items.
         som_query:<query_type>                  : The query we will give the SOM system. This does type checking for the correct query.
     Outputs:
         som_query_results:List[<response_type>] : The response in the form of a raw array.
@@ -295,13 +296,21 @@ class SortSOMResultsAsPer(smach.State):
     NOTE: Error safe, in that it checks that the parameter exists in the 
     object first. This however does mean that this might cause a bug further 
     down the pipeline. 
+
+    Inputs:
+        sort_by:str
+        order_of_preference:List[str]
+        sort_by_num_observations_first:bool
+        num_observations_filter_proportion:float
+        filter_for_duplicates_distance:float        : If we are sorting by number of observations, then this will discard any elemnts with fewer observations that are within this distance (m).
     """
     def __init__(
             self, 
             sort_by:str, 
             order_of_preference:List[str], 
             sort_by_num_observations_first:bool=False,
-            num_observations_filter_proportion=0.001):
+            num_observations_filter_proportion=0.001,
+            filter_for_duplicates_distance:float=0):
         
         smach.State.__init__(
             self, outcomes=[SUCCESS, 'list_empty'],
@@ -312,6 +321,7 @@ class SortSOMResultsAsPer(smach.State):
     
         self.sort_by_num_observations_first = sort_by_num_observations_first;
         self.num_observations_filter_proportion = num_observations_filter_proportion;
+        self.filter_for_duplicates_distance = filter_for_duplicates_distance;
 
     def execute(self, userdata):
         queries:List[object] = userdata.som_query_results;
@@ -326,11 +336,28 @@ class SortSOMResultsAsPer(smach.State):
             queries:List[SOMObject]
             queries.sort(key=lambda x:-x.num_observations);
             max_num_observations = queries[0].num_observations;
-            queries_carry = [];
+            queries_carry:List[SOMObject] = [];
             for element in queries:
                 if element.num_observations > max_num_observations * self.num_observations_filter_proportion:
                     queries_carry.append(element);
-            queries = queries_carry;
+            
+            if self.filter_for_duplicates_distance != 0:
+                indices_removing = [];
+                for i in range(len(queries_carry)):
+                    for j in range(i+1,len(queries_carry)):
+                        if distance_between_poses(queries_carry[i].obj_position, queries_carry[j].obj_position) < self.filter_for_duplicates_distance:
+                            indices_removing.append(j);
+                queries = [];
+                for i,element in enumerate(queries_carry):
+                    if i not in indices_removing:
+                        queries.append(element);
+                print("Filtered for duplicates:");
+                for element in queries:
+                    print(element.class_, end=", ");
+                print();
+            else:
+                queries = queries_carry;
+        
 
 
         num_skipped = 0;
