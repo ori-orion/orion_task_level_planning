@@ -241,86 +241,12 @@ def create_state_machine():
             },
             remapping={'pose': 'table_pose'})
         
-
-        # Setting up the query.
         smach.StateMachine.add(
-            'CreateTableQuery',
-            CreateSOMQuery(
-                CreateSOMQuery.OBJECT_QUERY, 
-                save_time=True),
-            transitions={SUCCESS: 'AddMinObservationsTable'});
-        smach.StateMachine.add(
-            'AddMinObservationsTable',
-            AddSOMEntry('num_observations', min_num_observations),
+            'PerformSOMAtTable',
+            performSOMQueryAtTable(),
             transitions={
-                SUCCESS:'RaiseMastAtTable'});
-        
-        smach.StateMachine.add(
-            'RaiseMastAtTable',
-            RaiseMastState(table_mast_height),
-            transitions={
-                SUCCESS:'SpinWhileAtTable'
-            });
-        smach.StateMachine.add(
-            'SpinWhileAtTable',
-            SpinState(spin_height=0.7, only_look_forwards=True),
-            transitions={
-                SUCCESS:'PerformQuery'},
-            remapping={});
-
-        smach.StateMachine.add(
-            'PerformQuery',
-            PerformSOMQuery(distance_filter=2),
-            transitions={
-                SUCCESS: 'SortListInput'},
-            remapping={})
-
-        smach.StateMachine.add(
-            'FilterOutTfs',
-            FilterSOMResultsAsPer('tf_name'),
-            transitions={SUCCESS:'SortListInput'},
-            remapping={'filtering_by':'filter_tf_names_out'});
-        smach.StateMachine.add(
-            'SortListInput',
-            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, num_observations_filter_proportion=0.001),
-            transitions={
-                SUCCESS:'GetObjectToPickUp',
-                'list_empty':'ClearTfNameFilter'},
-            remapping={'som_query_results_out':'som_query_results'});
-        
-        smach.StateMachine.add(
-            'ClearTfNameFilter',
-            SetToEmptyList(),
-            transitions={SUCCESS:'SortListInput_2'},
-            remapping={'setting':'filter_tf_names_out'});
-        smach.StateMachine.add(
-            'SortListInput_2',
-            SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
-                                num_observations_filter_proportion=0.001),
-            transitions={
-                SUCCESS:'GetObjectToPickUp',
-                'list_empty':'CreateTableQuery'},
-            remapping={
-                'som_query_results':'som_query_results_old',
-                'som_query_results_out':'som_query_results'});
-
-        smach.StateMachine.add(
-            'GetObjectToPickUp',
-            GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name'], index=0),
-            transitions={
-                SUCCESS:'TellOperatorClassCategory',
-                'index_out_of_range':'ClearTfNameFilter'},
-            remapping={
-                'input_list':'som_query_results',
-                'class_':'pick_up_object_class',
-                'category':'put_down_category'});
-        
-        smach.StateMachine.add(
-            'TellOperatorClassCategory',
-            SayArbitraryPhrase( 
-                "Trying to pick up the {0} of category {1}.",
-                ["pick_up_object_class", "put_down_category"]),
-                transitions={SUCCESS:"PickUpObj"});
+                'PickUpObj':'PickUpObj',
+                FAILURE:TASK_FAILURE});
 
         smach.StateMachine.add(
             'PickUpObj',
