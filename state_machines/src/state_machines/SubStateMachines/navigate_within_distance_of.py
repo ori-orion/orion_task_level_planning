@@ -312,7 +312,8 @@ def nav_within_reaching_distance_of(
 
 
 def nav_and_pick_up_or_place_next_to(
-        execute_nav_commands, pick_up:bool, 
+        execute_nav_commands, 
+        pick_up:bool, 
         find_same_category = False, 
         som_query_already_performed=False,
         take_body_rotated_as_input=False):

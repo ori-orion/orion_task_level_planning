@@ -130,7 +130,8 @@ def create_state_machine():
             output_keys=[
                 'pick_up_object_class',
                 'put_down_category',
-                'som_query_results'
+                'som_query_results',
+                'tf_name'
             ]);
         
         with sub_sm:
