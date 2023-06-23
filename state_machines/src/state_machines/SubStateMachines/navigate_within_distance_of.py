@@ -128,7 +128,7 @@ def navigate_within_distance_of_som_input(execute_nav_commands):
     return sub_sm;
 
 
-def search_for_entity(spin_first=True, find_same_category=False):
+def search_for_entity(spin_first=True, find_same_category=False, take_body_rotated_as_input=False):
     """
     Spins on the spot in the persuit of seeing an object. 
     It will then query for said object. 
@@ -140,9 +140,14 @@ def search_for_entity(spin_first=True, find_same_category=False):
     Dependencies (28/4/2023):
         nav_within_reaching_distance_of   
     """
+    input_keys = ['obj_type'];
+
+    if take_body_rotated_as_input:
+        input_keys.append('body_rotated');
+
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, "item_not_seen"],
-        input_keys=['obj_type'],
+        input_keys=input_keys,
         output_keys=['som_query_results']);
 
     search_for_query_type = 'category' if find_same_category else 'class_'
@@ -238,7 +243,10 @@ def search_for_entity(spin_first=True, find_same_category=False):
     return sub_sm;
 
 
-def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=False, som_query_already_performed=False):
+def nav_within_reaching_distance_of(
+        execute_nav_commands, find_same_category=False, 
+        som_query_already_performed=False,
+        take_body_rotated_as_input=False):
     """
     Input keys:
         obj_type            - The class of object we are looking to navigate to. Added if som_query_already_performed==False
@@ -260,6 +268,9 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
     else:
         input_keys = ['obj_type'];
 
+    if take_body_rotated_as_input:
+        input_keys.append('body_rotated');
+
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, 'query_empty', NAVIGATIONAL_FAILURE],
         input_keys=input_keys,
@@ -270,7 +281,10 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
         if not som_query_already_performed:
             smach.StateMachine.add(
                 'search_for_entity',
-                search_for_entity(spin_first=True, find_same_category=find_same_category),
+                search_for_entity(
+                    spin_first=True, 
+                    find_same_category=find_same_category,
+                    take_body_rotated_as_input=take_body_rotated_as_input),
                 transitions={
                     SUCCESS:'GetLocation',
                     'item_not_seen':'search_for_entity'});
@@ -297,7 +311,11 @@ def nav_within_reaching_distance_of(execute_nav_commands, find_same_category=Fal
     return sub_sm;
 
 
-def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_same_category = False, som_query_already_performed=False):
+def nav_and_pick_up_or_place_next_to(
+        execute_nav_commands, pick_up:bool, 
+        find_same_category = False, 
+        som_query_already_performed=False,
+        take_body_rotated_as_input=False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
@@ -332,6 +350,9 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
         input_keys = ['som_query_results']
     else:
         input_keys = ['obj_type'];
+    
+    if take_body_rotated_as_input:
+        input_keys.append('body_rotated')
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty', MANIPULATION_FAILURE],
@@ -373,7 +394,8 @@ def nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up:bool, find_sa
             nav_within_reaching_distance_of(
                 execute_nav_commands, 
                 find_same_category=find_same_category, 
-                som_query_already_performed=som_query_already_performed),
+                som_query_already_performed=som_query_already_performed,
+                take_body_rotated_as_input=take_body_rotated_as_input),
             transitions={
                 SUCCESS:SECOND_STATE,
                 NAVIGATIONAL_FAILURE:SECOND_STATE,

@@ -155,7 +155,7 @@ def create_state_machine():
                 });
             smach.StateMachine.add(
                 'SpinWhileAtTable',
-                SpinState(spin_height=0.7, only_look_forwards=True),
+                SpinState(spin_height=0.7, only_look_forwards=True, offset_instruction=SpinState.TAKE_OFFSET_FROM_USERDATA),
                 transitions={
                     SUCCESS:'PerformQuery'},
                 remapping={});
