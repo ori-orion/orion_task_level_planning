@@ -138,6 +138,7 @@ class PointCloud:
         return summed_dist / tot_num_elements;
     #endregion
 
+
     #region Cropping the point cloud.
     def findClosestPoint(self, tf_point:List[float]) -> tuple:
         """
@@ -178,7 +179,11 @@ class PointCloud:
             top = self.data_np.shape[1]-1;
         
         self.data_np = self.data_np[ left:right, bottom:top, :];
+
+        new_closest_point = ( closest_point_index[0]-left, closest_point_index[1]-bottom );
+        return new_closest_point;
     #endregion
+
 
     #region Finding a plane:
     """
@@ -218,17 +223,13 @@ class PointCloud:
         normal = np.cross(delta_1, delta_2);
         normal /= np.linalg.norm(normal);
         return normal;
-    def RANSAC_PlaneAlg(self):
+    def RANSAC_PlaneAlg(self, plane_dist_threshold):
         """
         Runs RANSAC on the point cloud to find a plane.
         Note, it will then set the matching points to NAN, thus removing them and allowing for us to progress.
         """
         MAX_NUM_ITS = 200;
         MIN_PROPORTION = 0.3;
-        MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 2;
-
-        mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
-        plane_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
 
         data_in_shape = self.data_np.shape;
         total_num_points = data_in_shape[0] * data_in_shape[1];
@@ -257,11 +258,45 @@ class PointCloud:
 
             if proportion_matching > MIN_PROPORTION:
                 break;
+        return best_matches;
+    def RANSAC_getPlaneAndRemove(self, plane_dist_threshold):
+        best_matches = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
+        self.data_np[ best_matches ] = np.nan;
+    #endregion
+
+
+    #region Finding the cluster that corresponds to the object.
+    def getObjExtent(self, tf_point:List[float]):
+        MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 3;
+
+        new_closest_point = self.getPointsInImageCloseToClosestPoint(tf_point);
+
+        mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
+        point_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
+        self.RANSAC_getPlaneAndRemove(point_dist_threshold);
+
+        num_points_uid = (self.data_np.shape[0]-1) * (self.data_np.shape[1]-1);
+        point_uids = np.reshape( np.arange( 0, num_points_uid ), (self.data_np.shape[0], self.data_np.shape[1]) );
+
+        data_shape = self.data_np.shape;
+        # Note that there are bounds on both sides because we want the shape to be the same as that of point_uids.
+        pointwise_deltas_horizontal = (self.data_np[0:data_shape[0]-1,0:data_shape[1]-1,0:3] 
+                                       - self.data_np[1:data_shape[0],0:data_shape[1]-1,0:3]);
+        pointwise_deltas_vertical   = (self.data_np[0:data_shape[0]-1,0:data_shape[1]-1,0:3] 
+                                       - self.data_np[0:data_shape[0]-1,1:data_shape[1],0:3]);
+
+        dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
+        dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
+
+        dist_horiz_lt_dist = dist_horiz < point_dist_threshold;
+        dist_vert_lt_dist =  dist_vert  < point_dist_threshold;
+
+
+
 
 
         pass;
     #endregion
-
 
     def filter_removeNanVals(self):
         self.data_np = self.data_np[ np.isnan(self.data_np[:,0]) == False, : ];
