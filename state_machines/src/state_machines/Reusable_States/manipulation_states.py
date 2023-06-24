@@ -18,6 +18,8 @@ import tf2_ros;
 from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
 from typing import List, Tuple;
 
+import PointCloudStuff.PointCloudManager;
+
 import hsrb_interface;
 hsrb_interface.robot.enable_interactive();
 
@@ -148,6 +150,15 @@ class PickUpObjectState_v2(smach.State):
         self.num_iterations_upon_failure = num_iterations_upon_failure;
         self.read_from_som_query_results = read_from_som_query_results;
         self.wait_upon_completion = wait_upon_completion;
+
+    def performSegmentation(self, point_segmenting_around:np.ndarray):
+        segmenter = PointCloudStuff.PointCloudManager.PointCloudSegmenter();
+        point_cloud_raw = rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloudStuff.PointCloudManager.PointCloud2);
+        print("Reading point cloud");
+        segmenter.readROSPointCloud(point_cloud_raw);
+
+        plane_info, centre_mid = segmenter.getObjExtent(point_segmenting_around);
+        pass;
 
     def run_manipulation_comp(self, pick_up_goal):
         self.pick_up_object_action_client.send_goal(pick_up_goal)

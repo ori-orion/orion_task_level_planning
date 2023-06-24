@@ -44,7 +44,7 @@ def quaternion_to_rot_mat(quat:geometry_msgs.msg.Quaternion) -> np.ndarray:
     
     return output;
 
-class PointCloud:
+class PointCloudSegmenter:
     """
     Manages all the forms the point cloud might take.
     """
