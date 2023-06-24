@@ -355,6 +355,9 @@ class PointCloud:
             vals_matching:np.ndarray = vals[point_uids==cluster_val_of_interest];
             point_cloud[:,i] = vals_matching.flatten();
 
+        # Expecting something with 3 columns and n rows.
+        print(point_cloud);
+
         """
         We now want to find a set of planes. 
         We already (theoretically) have the plane the object's sitting on.
@@ -382,7 +385,19 @@ class PointCloud:
 
         # left_right_vec points to the left from the robot's perspective
         # front_vec points towards the robot.
+        left_right_dot = np.dot(point_cloud, left_right_vec);
+        front_dot = np.dot(point_cloud, front_vec);
+        top_dot = np.dot(point_cloud, bottom_plane_normal);
 
+        left_most_index = np.argmax(left_right_dot);
+        front_most_index = np.argmax(front_dot);
+        right_most_index = np.argmin(left_right_dot);
+        top_most_index = np.argmax(top_dot)
+
+        top_most_point = point_cloud[top_most_index,:];
+        left_most_point = point_cloud[left_most_index,:];
+        right_most_point = point_cloud[right_most_index,:];
+        front_most_point = point_cloud[front_most_index,:];
 
 
         pass;
