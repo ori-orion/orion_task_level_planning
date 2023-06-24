@@ -150,8 +150,22 @@ class PickUpObjectState_v2(smach.State):
         self.num_iterations_upon_failure = num_iterations_upon_failure;
         self.read_from_som_query_results = read_from_som_query_results;
         self.wait_upon_completion = wait_upon_completion;
+        
+        self._tf_buffer = tf2_ros.Buffer(rospy.Duration.from_sec(60.0))
+        self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
 
-    def performSegmentation(self, point_segmenting_around:np.ndarray):
+    def performSegmentation(self, point_segmenting_around:np.ndarray, tf_name:str):
+        CAMERA_FRAME = "head_rgbd_sensor_rgb_frame";
+
+        try:
+            self._tf_listener.waitForTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
+            trans_stamped = self._tf_listener.lookupTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
+            translation = trans_stamped.transform.translation;
+        except:
+            print("tf error - SOM lookup here.")
+            return;
+
+
         segmenter = PointCloudStuff.PointCloudManager.PointCloudSegmenter();
         point_cloud_raw = rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloudStuff.PointCloudManager.PointCloud2);
         print("Reading point cloud");
