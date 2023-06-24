@@ -326,6 +326,13 @@ class PointCloud:
         return point_uids, max_val;
 
     def getObjExtent(self, tf_point:List[float]):
+        """
+        Calculates the planes in the following directions:
+            front, left, right, bottom, top.
+        These are returned in a dictionary.
+        We then have the central middle point, given in the form of a numpy.ndarray type.
+        NOTE: This is given in the frame of the camera, rather than in the global frame.
+        """
         MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 3;
 
         print("Getting points in the image that are close to the tf.")
@@ -429,9 +436,26 @@ class PointCloud:
         bottom_right_b = np.asarray( [bottom_plane_d, right_plane_d, front_plane_d] );
         bottom_right_intersection = np.dot( np.linalg.inv(bottom_right_mat), bottom_right_b );
 
+        plane_dict = {
+            "bottom":{
+                "normal":bottom_plane_normal,
+                "d":bottom_plane_d},
+            "top":{
+                "normal":bottom_plane_normal,
+                "d":top_plane_d},
+            "left":{
+                "normal":left_right_vec,
+                "d":left_plane_d},
+            "right":{
+                "normal":left_right_vec,
+                "d":right_plane_d},
+            "front":{
+                "normal":front_vec,
+                "d":front_plane_d}}
+
         # This is the point we've done so much work to get!
         mean_point = 0.5 * (bottom_right_intersection + top_left_intersection);
-
+        return plane_dict, mean_point;
     #endregion
 
     def filter_removeNanVals(self):
