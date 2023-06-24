@@ -219,11 +219,22 @@ class PointCloud:
         normal /= np.linalg.norm(normal);
         return normal;
     def RANSAC_PlaneAlg(self):
+        """
+        Runs RANSAC on the point cloud to find a plane.
+        Note, it will then set the matching points to NAN, thus removing them and allowing for us to progress.
+        """
         MAX_NUM_ITS = 200;
         MIN_PROPORTION = 0.3;
+        MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 2;
+
+        mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
+        plane_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
 
         data_in_shape = self.data_np.shape;
-        total_num_points = data_in_shape[0] * data_in_shape[1]; 
+        total_num_points = data_in_shape[0] * data_in_shape[1];
+
+        best_proportion = 0;
+        best_matches = None;
 
         for i in range(MAX_NUM_ITS):
             rand_points = self.RANSAC_getRandomPoints();
@@ -235,15 +246,19 @@ class PointCloud:
                 pointwise_deltas[:,:,i] = self.data_np[:,:,i] - rand_points[0,i];
                 pointwise_distances[:,:] += pointwise_deltas[:,:,i] * normal_vec[i];
 
+            match_plane = pointwise_distances < plane_dist_threshold;
+            num_matches = np.sum(match_plane);
 
-            
+            proportion_matching = num_matches/total_num_points;
 
+            if proportion_matching > best_proportion:
+                best_proportion = proportion_matching;
+                best_matches = match_plane;
 
-            
-
-            if True:
+            if proportion_matching > MIN_PROPORTION:
                 break;
-            pass;
+
+
         pass;
     #endregion
 
