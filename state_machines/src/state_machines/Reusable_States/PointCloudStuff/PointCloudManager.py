@@ -212,17 +212,20 @@ class PointCloud:
         for i in range(num):
             output[i,:] = self.data_np[i0[i], i1[i], 0:3];
         return output;
-    def RANSAC_getNormalVec(self, rand_points:np.ndarray) -> np.ndarray:
+    def RANSAC_getNormalVec(self, rand_points:np.ndarray) -> Tuple[np.ndarray, float]:
         """
         Gets the normal vector using cross products.
         Returns normalised vec.
         rand_points:np.ndarray is in the same form as from RANSAC_getRandomPoints(...);
+        Taking n.x=d=n.a as the definition of the plane. The value of d would then be useful later on.
+        Let this value be known as plane_d as it's the d value in the plane.
         """
         delta_1 = rand_points[0,:] - rand_points[1,:];
         delta_2 = rand_points[0,:] - rand_points[2,:];
         normal = np.cross(delta_1, delta_2);
         normal /= np.linalg.norm(normal);
-        return normal;
+        plane_d = np.dot(normal, rand_points[0,:]);
+        return normal, plane_d;
     def RANSAC_PlaneAlg(self, plane_dist_threshold):
         """
         Runs RANSAC on the point cloud to find a plane.
@@ -237,10 +240,11 @@ class PointCloud:
         best_proportion = 0;
         best_matches = None;
         best_plane_normal = None;
+        best_plane_d = None;
 
         for i in range(MAX_NUM_ITS):
             rand_points = self.RANSAC_getRandomPoints();
-            normal_vec = self.RANSAC_getNormalVec(rand_points);
+            normal_vec, plane_d = self.RANSAC_getNormalVec(rand_points);
 
             pointwise_deltas = np.ndarray(self.data_np.shape);
             pointwise_distances = np.zeros( (data_in_shape[0],data_in_shape[1]) );
@@ -257,17 +261,18 @@ class PointCloud:
                 best_proportion = proportion_matching;
                 best_matches = match_plane;
                 best_plane_normal = normal_vec;
+                best_plane_d = plane_d;
 
             if proportion_matching > MIN_PROPORTION:
                 break;
-        return best_matches, best_plane_normal;
-    def RANSAC_getPlaneAndRemove(self, plane_dist_threshold) -> np.ndarray:
-        best_matches, best_plane_normal = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
+        return best_matches, best_plane_normal, best_plane_d;
+    def RANSAC_getPlaneAndRemove(self, plane_dist_threshold) -> Tuple[np.ndarray, float]:
+        best_matches, best_plane_normal, best_plane_d = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
         for i in range(3):
             data_masked = self.data_np[:,:,i];
             data_masked[best_matches] = np.inf;
             self.data_np[:,:,i] = data_masked;
-        return best_plane_normal;
+        return best_plane_normal, best_plane_d;
     #endregion
 
 
@@ -331,7 +336,7 @@ class PointCloud:
         print("\tmean_distance_measure", mean_dist_between_adjacent_points);
         point_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
         print("getPlaneAndRemove");
-        bottom_plane_normal = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
+        bottom_plane_normal, bottom_plane_d = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
 
         #region clustering
         print("Cluster algorithm");
@@ -385,6 +390,8 @@ class PointCloud:
 
         # left_right_vec points to the left from the robot's perspective
         # front_vec points towards the robot.
+        # Note that we have not tried to get the rear most vector. I am assuming that we want a tf at the front of the object,
+        # rather than in the middle.
         left_right_dot = np.dot(point_cloud, left_right_vec);
         front_dot = np.dot(point_cloud, front_vec);
         top_dot = np.dot(point_cloud, bottom_plane_normal);
@@ -399,8 +406,32 @@ class PointCloud:
         right_most_point = point_cloud[right_most_index,:];
         front_most_point = point_cloud[front_most_index,:];
 
+        top_plane_d = np.dot(bottom_plane_normal, top_most_point);
+        left_plane_d = np.dot(left_right_vec, left_most_point);
+        right_plane_d = np.dot(left_right_vec, right_most_point);
+        front_plane_d = np.dot(front_vec, front_most_point);
 
-        pass;
+        # We now have 5 planes, giving the different faces that we wanted.
+        # Next is to find the centre of the front face. This can be represented as simple matrix algebra.  
+        
+        # Finding the top left point:
+        top_left_mat = np.zeros((3,3));
+        top_left_mat[0,:] = bottom_plane_normal;
+        top_left_mat[1,:] = left_right_vec;
+        top_left_mat[2,:] = front_vec;
+        top_left_b = np.asarray( [top_plane_d, left_plane_d, front_plane_d] );
+        top_left_intersection = np.dot( np.linalg.inv(top_left_mat), top_left_b )
+
+        bottom_right_mat = np.zeros((3,3));
+        bottom_right_mat[0,:] = bottom_plane_normal;
+        bottom_right_mat[1,:] = left_right_vec;
+        bottom_right_mat[2,:] = front_vec;
+        bottom_right_b = np.asarray( [bottom_plane_d, right_plane_d, front_plane_d] );
+        bottom_right_intersection = np.dot( np.linalg.inv(bottom_right_mat), bottom_right_b );
+
+        # This is the point we've done so much work to get!
+        mean_point = 0.5 * (bottom_right_intersection + top_left_intersection);
+
     #endregion
 
     def filter_removeNanVals(self):
