@@ -134,3 +134,4 @@ class SetToEmptyList(smach.State):
 
     def execute(self, userdata):
         userdata.setting = [];
+        return SUCCESS;

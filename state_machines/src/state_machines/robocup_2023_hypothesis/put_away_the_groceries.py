@@ -130,7 +130,8 @@ def create_state_machine():
             output_keys=[
                 'pick_up_object_class',
                 'put_down_category',
-                'som_query_results'
+                'som_query_results',
+                'tf_name'
             ]);
         
         with sub_sm:
@@ -155,7 +156,7 @@ def create_state_machine():
                 });
             smach.StateMachine.add(
                 'SpinWhileAtTable',
-                SpinState(spin_height=0.7, only_look_forwards=True),
+                SpinState(spin_height=0.7, only_look_forwards=True, offset_instruction=SpinState.TAKE_OFFSET_FROM_USERDATA),
                 transitions={
                     SUCCESS:'PerformQuery'},
                 remapping={});
@@ -174,7 +175,12 @@ def create_state_machine():
                 remapping={'filtering_by':'filter_tf_names_out'});
             smach.StateMachine.add(
                 'SortListInput',
-                SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, num_observations_filter_proportion=0.001),
+                SortSOMResultsAsPer(
+                    'category', 
+                    categories_to_pick_up, 
+                    sort_by_num_observations_first=True, 
+                    num_observations_filter_proportion=0.001, 
+                    filter_for_duplicates_distance=0.02),
                 transitions={
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'ClearTfNameFilter'},
@@ -187,8 +193,12 @@ def create_state_machine():
                 remapping={'setting':'filter_tf_names_out'});
             smach.StateMachine.add(
                 'SortListInput_2',
-                SortSOMResultsAsPer('category', categories_to_pick_up, sort_by_num_observations_first=True, 
-                                    num_observations_filter_proportion=0.001),
+                SortSOMResultsAsPer(
+                    'category', 
+                    categories_to_pick_up, 
+                    sort_by_num_observations_first=True, 
+                    num_observations_filter_proportion=0.001,
+                    filter_for_duplicates_distance=0.02),
                 transitions={
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'CreateTableQuery'},
@@ -236,7 +246,7 @@ def create_state_machine():
             'NavToTable',
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
-                SUCCESS: 'CreateTableQuery',
+                SUCCESS: 'PerformSOMAtTable',
                 NAVIGATIONAL_FAILURE: TASK_FAILURE
             },
             remapping={'pose': 'table_pose'})
@@ -256,7 +266,7 @@ def create_state_machine():
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
                 MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
-            remapping={'obj_type':'pick_up_object_class'})
+            remapping={'obj_type':'pick_up_object_class'});
 
         # Simple Nav state.
         # smach.StateMachine.add(

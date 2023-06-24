@@ -47,5 +47,5 @@ categories_to_pick_up : [
 # the `num_observations` parameter within the query.
 min_number_of_observations : 3
 
-table_mast_height : 0
+table_mast_height : 0.3
 cabinet_mast_height : 0.5
