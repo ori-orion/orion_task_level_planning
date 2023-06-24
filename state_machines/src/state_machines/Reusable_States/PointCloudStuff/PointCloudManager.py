@@ -119,14 +119,46 @@ class PointCloud:
         self.transformation_to_global_is_set = True;
     #endregion
 
-    def findClosestPoint(self, closest_point:List[float]):
+    def findClosestPoint(self, tf_point:List[float]) -> tuple:
         """
         Finds the closest point in self.data_np 
         Inputs:
-            closest_point:List[float]   : [x,y,z];  
+            tf_point:List[float]   : [x,y,z], Needs to be in the frame of the camera. (We're not transforming everything to global).
+        Operates on:
+            self.data_np:np.ndarray[height,width,3|6]
         """
+        data_copy:np.ndarray = self.data_np.copy();
+        for i in range(3):
+            data_copy[:,:,i] -= tf_point[i];
+        squared_distances:np.ndarray = np.sum( data_copy[:,:,0:3]*data_copy[:,:,0:3], axis=2 );
+        min_index = np.unravel_index( np.argmin(squared_distances, axis=None), squared_distances.shape );
+        print("Expecting this to be a 2-tuple");
+        print("Minimum index is", min_index);
+        return min_index;
+    def getPointsInImageCloseToClosestPoint(self, tf_point:List[float]):
+        """
+        Removes points in the image space that are too far away. This reduces the processing required.
+        """
+        # Thinking about this as an image, how many points in that image to the left, right, up and down are we going to take.
+        POINT_DELTA = 50;
 
-        pass;
+        closest_point_index:tuple = self.findClosestPoint(tf_point);
+        left = closest_point_index[0] - POINT_DELTA;
+        right = closest_point_index[0] + POINT_DELTA;
+        bottom = closest_point_index[1] - POINT_DELTA;
+        top = closest_point_index[1] + POINT_DELTA;
+
+        if left < 0:
+            left = 0;
+        if right >= self.data_np.shape[0]:
+            right = self.data_np.shape[0]-1;
+        if bottom < 0:
+            bottom = 0;
+        if top >= self.data_np.shape[1]:
+            top = self.data_np.shape[1]-1;
+        
+        self.data_np = self.data_np[ left:right, bottom:top, :];
+
 
 
     def filter_removeNanVals(self):
