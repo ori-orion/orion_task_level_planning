@@ -119,6 +119,26 @@ class PointCloud:
         self.transformation_to_global_is_set = True;
     #endregion
 
+    #region General stuff
+    def getPointwiseDistMeasure(self):
+        """
+        Roughly how close are the points to each other.
+        Looks at adjacent points and takes the average over their distances.
+        """
+        data_shape = self.data_np.shape;
+        pointwise_deltas_horizontal = self.data_np[0:data_shape[0]-1,:,0:3] - self.data_np[1:data_shape[0],:,0:3];
+        pointwise_deltas_vertical   = self.data_np[:,0:data_shape[1]-1,0:3] - self.data_np[:,1:data_shape[1],0:3];
+
+        dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
+        dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
+
+        summed_dist = dist_horiz.sum() + dist_vert.sum();
+        tot_num_elements = dist_horiz.shape[0]*dist_horiz.shape[1] + dist_vert.shape[0]*dist_vert.shape[1];
+
+        return summed_dist / tot_num_elements;
+    #endregion
+
+    #region Cropping the point cloud.
     def findClosestPoint(self, tf_point:List[float]) -> tuple:
         """
         Finds the closest point in self.data_np 
@@ -158,7 +178,74 @@ class PointCloud:
             top = self.data_np.shape[1]-1;
         
         self.data_np = self.data_np[ left:right, bottom:top, :];
+    #endregion
 
+    #region Finding a plane:
+    """
+    For this we will use RANSAC.
+    We are assuming the largest plane is the table. This could be a bad assumption in some cases, but it should hold in most.
+    The whole aim of this is to simply remove these points. We can thus set them to Nan when we're done. I don't think we will
+    need them again if we have the model of the plane.
+
+    Model of the plane:
+    n.x=n.a or ax+by+cz+d=0
+    Ideally we would have a parallelisable method for working out the distances.
+    n.(p-a) = |p-a| cos theta
+            = d
+    where p is the point, a is a point on the plane, and n is a unit vector.
+    This should then be parallelisable.
+    n we find using cross products.
+    """
+    def RANSAC_getRandomPoints(self, num=3) -> np.ndarray:
+        """
+        Returns a num x 3 array with each column being a point. 
+        """
+        i0 = np.random.randint(0, self.data_np.shape[0], size=(num,));
+        i1 = np.random.randint(0, self.data_np.shape[1], size=(num,));
+
+        output = np.ndarray((num,3));
+        for i in range(num):
+            output[i,:] = self.data_np[i0[i], i1[i], 0:3];
+        return output;
+    def RANSAC_getNormalVec(self, rand_points:np.ndarray) -> np.ndarray:
+        """
+        Gets the normal vector using cross products.
+        Returns normalised vec.
+        rand_points:np.ndarray is in the same form as from RANSAC_getRandomPoints(...);
+        """
+        delta_1 = rand_points[0,:] - rand_points[1,:];
+        delta_2 = rand_points[0,:] - rand_points[2,:];
+        normal = np.cross(delta_1, delta_2);
+        normal /= np.linalg.norm(normal);
+        return normal;
+    def RANSAC_PlaneAlg(self):
+        MAX_NUM_ITS = 200;
+        MIN_PROPORTION = 0.3;
+
+        data_in_shape = self.data_np.shape;
+        total_num_points = data_in_shape[0] * data_in_shape[1]; 
+
+        for i in range(MAX_NUM_ITS):
+            rand_points = self.RANSAC_getRandomPoints();
+            normal_vec = self.RANSAC_getNormalVec(rand_points);
+
+            pointwise_deltas = np.ndarray(self.data_np.shape);
+            pointwise_distances = np.zeros( (data_in_shape[0],data_in_shape[1]) );
+            for i in range(3):
+                pointwise_deltas[:,:,i] = self.data_np[:,:,i] - rand_points[0,i];
+                pointwise_distances[:,:] += pointwise_deltas[:,:,i] * normal_vec[i];
+
+
+            
+
+
+            
+
+            if True:
+                break;
+            pass;
+        pass;
+    #endregion
 
 
     def filter_removeNanVals(self):
