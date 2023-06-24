@@ -323,14 +323,20 @@ class PointCloud:
     def getObjExtent(self, tf_point:List[float]):
         MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 3;
 
+        print("Getting points in the image that are close to the tf.")
         new_closest_point = self.getPointsInImageCloseToClosestPoint(tf_point);
 
+        print("Getting the point wise distance measure.")
         mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
+        print("\tmean_distance_measure", mean_dist_between_adjacent_points);
         point_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
-        best_plane_normal = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
+        print("getPlaneAndRemove");
+        bottom_plane_normal = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
 
         #region clustering
+        print("Cluster algorithm");
         point_uids, max_val = self.clusterAlg(point_dist_threshold);
+        print("End cluster algorithm")
 
         # I think this should work...
         cluster_val_of_interest = point_uids[new_closest_point[0], new_closest_point[1]];
@@ -349,7 +355,35 @@ class PointCloud:
             vals_matching:np.ndarray = vals[point_uids==cluster_val_of_interest];
             point_cloud[:,i] = vals_matching.flatten();
 
-        
+        """
+        We now want to find a set of planes. 
+        We already (theoretically) have the plane the object's sitting on.
+        We want to know top, left, right, front. 
+        We also assume that top will have the same normal as bottom.
+
+        Coordinate conventions for the HSR camera:
+            z-forward, x-right, y-down
+        We thus expect the bottom_plane normal to be ROUGHLY aligned with y.
+        Thus left-right should be aligned with bottom_plane x z_hat.
+
+        Then, given these vectors, we want to find the points that are furthest in these directions.
+            Take the simple sequence of planes: x=0, x=1, x=2. 
+            As n.x increases, we move in the direction of the vector.
+            Thus, to find the point that is the furthest in a given direction, we want to find the point that maximises the
+            dot product between itself and the direction. 
+        """
+
+        # Aligning bottom_plane_normal to go opposite to down. (see above).
+        if np.dot(bottom_plane_normal, np.asarray([0,1,0])) > 0:
+            bottom_plane_normal *= -1;
+
+        left_right_vec = np.cross( bottom_plane_normal, np.asarray([0,0,1]) );
+        front_vec = np.cross( bottom_plane_normal, left_right_vec );
+
+        # left_right_vec points to the left from the robot's perspective
+        # front_vec points towards the robot.
+
+
 
         pass;
     #endregion
