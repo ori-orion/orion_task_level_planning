@@ -6,7 +6,7 @@ import tf2_ros;
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 import geometry_msgs.msg;
 
-from typing import List;
+from typing import List, Tuple;
 
 # Currrent forms of data.
 NUMPY = 1;
@@ -236,6 +236,7 @@ class PointCloud:
 
         best_proportion = 0;
         best_matches = None;
+        best_plane_normal = None;
 
         for i in range(MAX_NUM_ITS):
             rand_points = self.RANSAC_getRandomPoints();
@@ -255,17 +256,70 @@ class PointCloud:
             if proportion_matching > best_proportion:
                 best_proportion = proportion_matching;
                 best_matches = match_plane;
+                best_plane_normal = normal_vec;
 
             if proportion_matching > MIN_PROPORTION:
                 break;
-        return best_matches;
-    def RANSAC_getPlaneAndRemove(self, plane_dist_threshold):
-        best_matches = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
-        self.data_np[ best_matches ] = np.nan;
+        return best_matches, best_plane_normal;
+    def RANSAC_getPlaneAndRemove(self, plane_dist_threshold) -> np.ndarray:
+        best_matches, best_plane_normal = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
+        for i in range(3):
+            data_masked = self.data_np[:,:,i];
+            data_masked[best_matches] = np.inf;
+            self.data_np[:,:,i] = data_masked;
+        return best_plane_normal;
     #endregion
 
 
     #region Finding the cluster that corresponds to the object.
+    def clusterAlg(self, point_dist_threshold) -> Tuple[np.ndarray, int]:
+        """
+        Performs clustering in an efficient numpy manner to find points that are next to each other and thus objects that
+        are next to each other.
+        """
+        point_uid_shape = ( self.data_np.shape[0], self.data_np.shape[1] );
+        num_points_uid = point_uid_shape[0] * point_uid_shape[1];
+        point_uids = np.reshape( np.arange( 0, num_points_uid ), point_uid_shape );
+        max_val = num_points_uid + 10;
+
+        point_uids[np.isnan(self.data_np[:,:,0])] = max_val;
+
+        data_shape = self.data_np.shape;
+        # Note that there are bounds on both sides because we want the shape to be the same as that of point_uids.
+        pointwise_deltas_horizontal = (self.data_np[0:data_shape[0]-1,:,0:3] 
+                                       - self.data_np[1:data_shape[0],:,0:3]);
+        pointwise_deltas_vertical   = (self.data_np[:,0:data_shape[1]-1,0:3] 
+                                       - self.data_np[:,1:data_shape[1],0:3]);
+
+        dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
+        dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
+
+        dist_horiz_lt_dist = dist_horiz < point_dist_threshold;
+        dist_vert_lt_dist  = dist_vert  < point_dist_threshold;
+
+        point_uids_copy = point_uids.copy();
+
+        while True:
+            # Clustering alg parallelised.
+            # Still need a way of working out termination.
+            point_uids_left_min = np.minimum( point_uids[0:point_uid_shape[0]-1,:], point_uids[1:point_uid_shape[0],:] );
+            point_uids[0:point_uid_shape[0]-1,:][dist_horiz_lt_dist] = point_uids_left_min[dist_horiz_lt_dist];
+            point_uids[1:point_uid_shape[0],:][dist_horiz_lt_dist]   = point_uids_left_min[dist_horiz_lt_dist];
+
+            point_uids_up_min   = np.minimum( point_uids[:,0:point_uid_shape[1]-1], point_uids[:,1:point_uid_shape[1]] );
+            point_uids[:,0:point_uid_shape[0]-1][dist_vert_lt_dist] = point_uids_up_min[dist_vert_lt_dist];
+            point_uids[:,1:point_uid_shape[0]][dist_vert_lt_dist]   = point_uids_up_min[dist_vert_lt_dist];
+        
+            point_uids[np.isnan(self.data_np[:,:,0])] = max_val;
+
+            deltas:np.ndarray = point_uids_copy - point_uids;
+            if np.abs(deltas).sum() == 0:
+                break;
+
+            # This could be slow. If entire alg is slow, see how long this step is taking.
+            point_uids_copy = point_uids.copy();
+        return point_uids, max_val;
+
     def getObjExtent(self, tf_point:List[float]):
         MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 3;
 
@@ -273,27 +327,29 @@ class PointCloud:
 
         mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
         point_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
-        self.RANSAC_getPlaneAndRemove(point_dist_threshold);
+        best_plane_normal = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
 
-        num_points_uid = (self.data_np.shape[0]-1) * (self.data_np.shape[1]-1);
-        point_uids = np.reshape( np.arange( 0, num_points_uid ), (self.data_np.shape[0], self.data_np.shape[1]) );
+        #region clustering
+        point_uids, max_val = self.clusterAlg(point_dist_threshold);
 
-        data_shape = self.data_np.shape;
-        # Note that there are bounds on both sides because we want the shape to be the same as that of point_uids.
-        pointwise_deltas_horizontal = (self.data_np[0:data_shape[0]-1,0:data_shape[1]-1,0:3] 
-                                       - self.data_np[1:data_shape[0],0:data_shape[1]-1,0:3]);
-        pointwise_deltas_vertical   = (self.data_np[0:data_shape[0]-1,0:data_shape[1]-1,0:3] 
-                                       - self.data_np[0:data_shape[0]-1,1:data_shape[1],0:3]);
+        # I think this should work...
+        cluster_val_of_interest = point_uids[new_closest_point[0], new_closest_point[1]];
+        if cluster_val_of_interest == max_val:
+            print("We have a problem. The closest point was on the plane.");
+        #endregion
+        
+        # NOTE: I think this should work, but I don't know for sure.
+        x_vals = self.data_np[:,:,0];
+        x_vals_matching:np.ndarray = x_vals[point_uids==cluster_val_of_interest];
+        x_vals_matching = x_vals_matching.flatten();
+        point_cloud = np.ndarray((x_vals_matching.shape[0],3));
+        point_cloud[:,0] = x_vals_matching;
+        for i in range(1,3):
+            vals = self.data_np[:,:,i];
+            vals_matching:np.ndarray = vals[point_uids==cluster_val_of_interest];
+            point_cloud[:,i] = vals_matching.flatten();
 
-        dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
-        dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
-
-        dist_horiz_lt_dist = dist_horiz < point_dist_threshold;
-        dist_vert_lt_dist =  dist_vert  < point_dist_threshold;
-
-
-
-
+        
 
         pass;
     #endregion
