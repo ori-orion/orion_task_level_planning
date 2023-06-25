@@ -316,7 +316,8 @@ def nav_and_pick_up_or_place_next_to(
         pick_up:bool, 
         find_same_category = False, 
         som_query_already_performed=False,
-        take_body_rotated_as_input=False):
+        take_body_rotated_as_input=False,
+        input_obj_size_for_place=False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
@@ -354,6 +355,9 @@ def nav_and_pick_up_or_place_next_to(
     
     if take_body_rotated_as_input:
         input_keys.append('body_rotated')
+
+    if input_obj_size_for_place:
+        input_keys.append('put_down_size');
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty', MANIPULATION_FAILURE],

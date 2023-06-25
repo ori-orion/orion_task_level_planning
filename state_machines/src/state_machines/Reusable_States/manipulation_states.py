@@ -337,7 +337,11 @@ class PlaceNextTo(smach.State):
         MANIPULATION_FAILURE    : Place object failed.
         FAILURE                 : Placement option was not found.
     """
-    def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3):
+    def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3, input_put_down_obj_size=False):
+        input_keys = ['som_query_results'];
+        if input_put_down_obj_size:
+            input_keys.append('put_down_size')
+
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE, FAILURE],
@@ -349,6 +353,7 @@ class PlaceNextTo(smach.State):
         self.radius = radius;
         self.num_candidates = num_candidates;
         self.num_repeats=num_repeats;
+        self.input_put_down_obj_size = input_put_down_obj_size;
     
     def speakPhrase(self, phrase_speaking):
         action_goal = TalkRequestGoal()

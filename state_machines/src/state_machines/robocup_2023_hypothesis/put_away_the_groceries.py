@@ -122,6 +122,12 @@ def create_state_machine():
         This is to make the main body of the state machine cleaner and easier to work with.
         This itself will have feedback loops etc, some of which will feedback into themselves, 
         and some which will be external.
+        Oututs:
+            pick_up_object_class:str
+            put_down_category:str
+            som_query_results:List[SOMObject]
+            tf_name:str
+            put_down_size:geometry_msgs.msg.Point
         """
         sub_sm = smach.StateMachine(
             outcomes=["PickUpObj", FAILURE],
@@ -131,7 +137,8 @@ def create_state_machine():
                 'pick_up_object_class',
                 'put_down_category',
                 'som_query_results',
-                'tf_name'
+                'tf_name',
+                'put_down_size'
             ]);
         
         with sub_sm:
@@ -206,16 +213,24 @@ def create_state_machine():
                     'som_query_results':'som_query_results_old',
                     'som_query_results_out':'som_query_results'});
 
+            """
+            Outputs from this state:
+                pick_up_object_class:str
+                put_down_category:str
+                tf_name:str
+                put_down_size:geometry_msgs.msg.Point
+            """
             smach.StateMachine.add(
                 'GetObjectToPickUp',
-                GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name'], index=0),
+                GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name', 'size'], index=0),
                 transitions={
                     SUCCESS:'TellOperatorClassCategory',
                     'index_out_of_range':'ClearTfNameFilter'},
                 remapping={
                     'input_list':'som_query_results',
                     'class_':'pick_up_object_class',
-                    'category':'put_down_category'});
+                    'category':'put_down_category',
+                    'size':'put_down_size'});
             
             smach.StateMachine.add(
                 'TellOperatorClassCategory',
