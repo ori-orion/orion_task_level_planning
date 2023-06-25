@@ -369,6 +369,7 @@ class PointCloudSegmenter:
 
         # Expecting something with 3 columns and n rows.
         print(point_cloud);
+        self.debug_visualisePointCloud_static(point_cloud);
 
         """
         We now want to find a set of planes. 
@@ -458,8 +459,6 @@ class PointCloudSegmenter:
         return plane_dict, mean_point;
     #endregion
 
-    def filter_removeNanVals(self):
-        self.data_np = self.data_np[ np.isnan(self.data_np[:,0]) == False, : ];
     def createO3dPclFromNumpy(self) -> o3d.geometry.PointCloud():
         """
         We want a method that doesn't modify the self here for odometry reasons.
@@ -480,3 +479,22 @@ class PointCloudSegmenter:
         
         o3d.visualization.draw_geometries([self.data_oped3d_pcl]);
     #endregion
+
+    def debug_visualisePointCloud_static(self, visualising:np.ndarray):
+        def filter_removeNanVals(data:np.ndarray) -> np.ndarray:
+            if len(data) == 2:
+                data = data[ np.isnan(data[:,0]) == False, : ];
+        
+
+        visualising_shape = visualising.shape;
+        if len(visualising_shape) == 3: 
+            visualising = visualising.reshape((-1, visualising.shape[2]));
+
+        visualising = filter_removeNanVals(visualising);
+        
+        data_open3d_pcl = o3d.geometry.PointCloud();
+        data_open3d_pcl.points = o3d.utility.Vector3dVector(visualising[:,0:3]);
+        if visualising.shape[1] >= 6:
+            data_open3d_pcl.colors = o3d.utility.Vector3dVector(self.data_np[:,3:6]);
+
+        o3d.visualization.draw_geometries([data_open3d_pcl]);
