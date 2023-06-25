@@ -154,7 +154,7 @@ class PickUpObjectState_v2(smach.State):
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
         self._tf_publisher = tf2_ros.StaticTransformBroadcaster();
 
-    def performSegmentation(self, point_segmenting_around:np.ndarray, tf_name:str):
+    def performSegmentation(self, tf_name:str) -> str:
         CAMERA_FRAME = "head_rgbd_sensor_rgb_frame";
 
         time_stamp = rospy.Time.now();
@@ -163,6 +163,7 @@ class PickUpObjectState_v2(smach.State):
             self._tf_listener.waitForTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
             trans_stamped = self._tf_listener.lookupTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
             translation = trans_stamped.transform.translation;
+            point_segmenting_around = np.asarray([translation.x, translation.y, translation.z]);
         except:
             print("tf error - SOM lookup here.")
             return;
@@ -185,14 +186,16 @@ class PickUpObjectState_v2(smach.State):
         p_global_frame:tf2_geometry_msgs.PoseStamped = self._tf_buffer.transform(
             centre_mid_point, GLOBAL_FRAME, timeout=rospy.Duration(0.5));
         
+        TF_NAME = "manipulation_states_pickup_tf";
         publishing = geometry_msgs.msg.TransformStamped();
         publishing.header.frame_id = GLOBAL_FRAME;
         publishing.header.stamp = time_stamp;
-        publishing.child_frame_id = "manipulation_states_pickup_tf";
+        publishing.child_frame_id = TF_NAME;
         publishing.transform.translation = p_global_frame.pose.translation;
         publishing.transform.rotation.w = 1;
         self._tf_publisher.sendTransform([publishing]);
-        pass;
+
+        return TF_NAME;
 
     def run_manipulation_comp(self, pick_up_goal):
         self.pick_up_object_action_client.send_goal(pick_up_goal)
@@ -204,13 +207,15 @@ class PickUpObjectState_v2(smach.State):
 
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
-        self.pick_up_object_action_client.wait_for_server()
+        self.pick_up_object_action_client.wait_for_server();
         robot = hsrb_interface.Robot();
         print(dir(robot));
         print(robot.Items);
         print(robot.list());
         self.gripper = robot.try_get("gripper")
         print(dir(self.gripper));
+
+
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
