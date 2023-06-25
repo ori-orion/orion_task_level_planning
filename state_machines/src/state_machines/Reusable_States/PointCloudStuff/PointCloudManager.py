@@ -325,7 +325,7 @@ class PointCloudSegmenter:
             point_uids_copy = point_uids.copy();
         return point_uids, max_val;
 
-    def getObjExtent(self, tf_point:List[float]):
+    def getObjExtent(self, tf_point:List[float]) -> Tuple[dict, np.ndarray]:
         """
         Calculates the planes in the following directions:
             front, left, right, bottom, top.
@@ -455,7 +455,7 @@ class PointCloudSegmenter:
                 "d":front_plane_d}}
 
         # This is the point we've done so much work to get!
-        mean_point = 0.5 * (bottom_right_intersection + top_left_intersection);
+        mean_point:np.ndarray = 0.5 * (bottom_right_intersection + top_left_intersection);
         return plane_dict, mean_point;
     #endregion
 

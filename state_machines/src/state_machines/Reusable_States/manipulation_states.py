@@ -7,12 +7,10 @@ from orion_actions.msg import *;
 from orion_actions.srv import *;
 
 import rospy;
-
-# from geometry_msgs.msg import Pose, PoseStamped;
-
+import tf2_geometry_msgs
+import geometry_msgs.msg 
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-
 import tf
 import tf2_ros;
 from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
@@ -151,11 +149,15 @@ class PickUpObjectState_v2(smach.State):
         self.read_from_som_query_results = read_from_som_query_results;
         self.wait_upon_completion = wait_upon_completion;
         
+        # For the segmentation stuff.
         self._tf_buffer = tf2_ros.Buffer(rospy.Duration.from_sec(60.0))
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
+        self._tf_publisher = tf2_ros.StaticTransformBroadcaster();
 
     def performSegmentation(self, point_segmenting_around:np.ndarray, tf_name:str):
         CAMERA_FRAME = "head_rgbd_sensor_rgb_frame";
+
+        time_stamp = rospy.Time.now();
 
         try:
             self._tf_listener.waitForTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
@@ -165,13 +167,31 @@ class PickUpObjectState_v2(smach.State):
             print("tf error - SOM lookup here.")
             return;
 
-
+        # Performing the segmentation
         segmenter = PointCloudStuff.PointCloudManager.PointCloudSegmenter();
         point_cloud_raw = rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloudStuff.PointCloudManager.PointCloud2);
         print("Reading point cloud");
         segmenter.readROSPointCloud(point_cloud_raw);
 
         plane_info, centre_mid = segmenter.getObjExtent(point_segmenting_around);
+
+        # Transforming the point into global coordinates.
+        centre_mid_point = tf2_geometry_msgs.PoseStamped();
+        centre_mid_point.header.frame_id = CAMERA_FRAME;
+        centre_mid_point.header.stamp = time_stamp;
+        centre_mid_point.pose.position = Point(
+            centre_mid[0], centre_mid[1], centre_mid[2]);
+
+        p_global_frame:tf2_geometry_msgs.PoseStamped = self._tf_buffer.transform(
+            centre_mid_point, GLOBAL_FRAME, timeout=rospy.Duration(0.5));
+        
+        publishing = geometry_msgs.msg.TransformStamped();
+        publishing.header.frame_id = GLOBAL_FRAME;
+        publishing.header.stamp = time_stamp;
+        publishing.child_frame_id = "manipulation_states_pickup_tf";
+        publishing.transform.translation = p_global_frame.pose.translation;
+        publishing.transform.rotation.w = 1;
+        self._tf_publisher.sendTransform([publishing]);
         pass;
 
     def run_manipulation_comp(self, pick_up_goal):
