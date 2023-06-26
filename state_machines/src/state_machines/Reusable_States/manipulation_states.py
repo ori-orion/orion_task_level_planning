@@ -160,12 +160,9 @@ class PickUpObjectState_v2(smach.State):
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
+        
         robot = hsrb_interface.Robot();
-        print(dir(robot));
-        print(robot.Items);
-        print(robot.list());
         self.gripper = robot.try_get("gripper")
-        print(dir(self.gripper));
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
@@ -182,11 +179,12 @@ class PickUpObjectState_v2(smach.State):
             print("status", status);
             print("Failure mode=", failure_mode)
             if result:
-                rospy.sleep(self.wait_upon_completion);
-                print(dir(self.gripper));
                 print("Gripper distance", self.gripper.get_distance());
+
+                if self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
+                    rospy.sleep(self.wait_upon_completion);
+                    return SUCCESS;
                 
-                return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
                 rospy.loginfo("Tf error");
                 pick_up_goal.publish_own_tf = True;
