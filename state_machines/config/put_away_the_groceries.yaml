@@ -49,3 +49,6 @@ min_number_of_observations : 3
 
 table_mast_height : 0.3
 cabinet_mast_height : 0.5
+
+
+# We may need to hardcode the shelving unit.
