@@ -123,6 +123,21 @@ class PickUpObjectState(smach.State):
 class PickUpObjectState_v2(smach.State):
     """
     Second iteration for picking up an object.
+
+    Overall workflow:
+        For num_repeats:
+            Pick up object. 
+            If success and gripper is somewhat open:
+                return SUCCESS
+            If tf error, publish own tf.
+        [Failed num_repeats times]
+        return MANIPULATION_FAILURE
+        `gripper is somewhat open` is given by GRIPPER_DISTANCE_THRESHOLD. This has 
+        a drawback in that it will not register if it's picked up a piece of paper 
+        for instance. Instances of this are rare however, so this is a case that is
+        not handled by this at present.
+
+
     INPUTS:
         num_iterations_upon_failure     Given that manipulatin fails, how many attempts are we going to make before failing?
         tf_name:str                     The tf name of the object we are trying to pick up.
