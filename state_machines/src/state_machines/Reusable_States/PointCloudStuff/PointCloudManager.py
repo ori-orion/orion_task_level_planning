@@ -73,12 +73,15 @@ class PointCloudSegmenter:
         self.nans_removed = False;
         self.row_step = int(point_cloud.row_step / point_cloud.point_step);
 
+        final_dim = 6 if self.data_has_colour else 3;
+
         array_form:np.ndarray = np.copy( np.frombuffer(point_cloud.data, dtype=np.float32).reshape((-1,int(point_cloud.point_step/4))) );
         array_form_shape = array_form.shape;
-        self.data_np = np.zeros((array_form_shape[0], (6 if self.data_has_colour else 3)  ));
+        self.data_np = np.zeros((array_form_shape[0], final_dim  ));
         self.data_np[:,0:3] = array_form[:,0:3];
 
         if self.data_has_colour:       # For including colour.
+            print("Including colour");
             rgb_float:np.ndarray = array_form[:,4];
             rgb_buffer = rgb_float.tobytes();
             rgb_np = np.copy( np.frombuffer( rgb_buffer, dtype=np.uint8 ).reshape((-1,4)) );
@@ -89,7 +92,7 @@ class PointCloudSegmenter:
             self.data_np[:,4] = ( g.astype(np.float32) ) / 256;
             self.data_np[:,5] = ( b.astype(np.float32) ) / 256;
 
-        self.data_np = self.data_np.reshape((-1,self.row_step, 3));
+        self.data_np = self.data_np.reshape((self.row_step,-1, final_dim));
     #endregion
 
     #region Coordinate system stuff.
@@ -125,15 +128,27 @@ class PointCloudSegmenter:
         Roughly how close are the points to each other.
         Looks at adjacent points and takes the average over their distances.
         """
+        DIST_MAX_VAL = 0.5;
+
         data_shape = self.data_np.shape;
         pointwise_deltas_horizontal = self.data_np[0:data_shape[0]-1,:,0:3] - self.data_np[1:data_shape[0],:,0:3];
         pointwise_deltas_vertical   = self.data_np[:,0:data_shape[1]-1,0:3] - self.data_np[:,1:data_shape[1],0:3];
 
         dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
         dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
+        dist_horiz = dist_horiz.flatten();
+        dist_vert = dist_vert.flatten();
+        print(dist_horiz);
+        print(dist_vert);
+        print();
+        dist_horiz = dist_horiz[ dist_horiz < DIST_MAX_VAL ];
+        dist_vert = dist_vert[ dist_vert < DIST_MAX_VAL ];
+
+        print(dist_horiz);
+        print(dist_vert);
 
         summed_dist = dist_horiz.sum() + dist_vert.sum();
-        tot_num_elements = dist_horiz.shape[0]*dist_horiz.shape[1] + dist_vert.shape[0]*dist_vert.shape[1];
+        tot_num_elements = dist_horiz.shape[0] + dist_vert.shape[0];
 
         return summed_dist / tot_num_elements;
     #endregion
@@ -178,6 +193,8 @@ class PointCloudSegmenter:
         if top >= self.data_np.shape[1]:
             top = self.data_np.shape[1]-1;
         
+        print("\tlrbt", left, right, bottom, top);
+
         self.data_np = self.data_np[ left:right, bottom:top, :];
 
         new_closest_point = ( closest_point_index[0]-left, closest_point_index[1]-bottom );
@@ -265,6 +282,7 @@ class PointCloudSegmenter:
 
             if proportion_matching > MIN_PROPORTION:
                 break;
+        print("Proportion matching", proportion_matching);
         return best_matches, best_plane_normal, best_plane_d;
     def RANSAC_getPlaneAndRemove(self, plane_dist_threshold) -> Tuple[np.ndarray, float]:
         best_matches, best_plane_normal, best_plane_d = self.RANSAC_PlaneAlg(plane_dist_threshold=plane_dist_threshold);
@@ -282,6 +300,8 @@ class PointCloudSegmenter:
         Performs clustering in an efficient numpy manner to find points that are next to each other and thus objects that
         are next to each other.
         """
+
+
         point_uid_shape = ( self.data_np.shape[0], self.data_np.shape[1] );
         num_points_uid = point_uid_shape[0] * point_uid_shape[1];
         point_uids = np.reshape( np.arange( 0, num_points_uid ), point_uid_shape );
@@ -291,13 +311,14 @@ class PointCloudSegmenter:
 
         data_shape = self.data_np.shape;
         # Note that there are bounds on both sides because we want the shape to be the same as that of point_uids.
-        pointwise_deltas_horizontal = (self.data_np[0:data_shape[0]-1,:,0:3] 
-                                       - self.data_np[1:data_shape[0],:,0:3]);
-        pointwise_deltas_vertical   = (self.data_np[:,0:data_shape[1]-1,0:3] 
-                                       - self.data_np[:,1:data_shape[1],0:3]);
+        pointwise_deltas_horizontal = (self.data_np[0:data_shape[0]-1,:,0:3] - self.data_np[1:data_shape[0],:,0:3]);
+        pointwise_deltas_vertical   = (self.data_np[:,0:data_shape[1]-1,0:3] - self.data_np[:,1:data_shape[1],0:3]);
 
         dist_horiz:np.ndarray = np.sqrt( np.sum( pointwise_deltas_horizontal*pointwise_deltas_horizontal, axis=2) );
         dist_vert:np.ndarray  = np.sqrt( np.sum( pointwise_deltas_vertical*pointwise_deltas_vertical, axis=2) );
+
+        print(dist_horiz);
+        print(dist_vert);
 
         dist_horiz_lt_dist = dist_horiz < point_dist_threshold;
         dist_vert_lt_dist  = dist_vert  < point_dist_threshold;
@@ -307,14 +328,21 @@ class PointCloudSegmenter:
         while True:
             # Clustering alg parallelised.
             # Still need a way of working out termination.
+            print(point_uids.shape);
+
             point_uids_left_min = np.minimum( point_uids[0:point_uid_shape[0]-1,:], point_uids[1:point_uid_shape[0],:] );
             point_uids[0:point_uid_shape[0]-1,:][dist_horiz_lt_dist] = point_uids_left_min[dist_horiz_lt_dist];
             point_uids[1:point_uid_shape[0],:][dist_horiz_lt_dist]   = point_uids_left_min[dist_horiz_lt_dist];
 
+            print(point_uids.shape);
+
             point_uids_up_min   = np.minimum( point_uids[:,0:point_uid_shape[1]-1], point_uids[:,1:point_uid_shape[1]] );
-            point_uids[:,0:point_uid_shape[0]-1][dist_vert_lt_dist] = point_uids_up_min[dist_vert_lt_dist];
-            point_uids[:,1:point_uid_shape[0]][dist_vert_lt_dist]   = point_uids_up_min[dist_vert_lt_dist];
+            print(point_uids_up_min.shape);
+            point_uids[:,0:point_uid_shape[1]-1][dist_vert_lt_dist] = point_uids_up_min[dist_vert_lt_dist];
+            point_uids[:,1:point_uid_shape[1]][dist_vert_lt_dist]   = point_uids_up_min[dist_vert_lt_dist];
         
+            print(point_uids.shape);
+
             point_uids[np.isnan(self.data_np[:,:,0])] = max_val;
 
             deltas:np.ndarray = point_uids_copy - point_uids;
@@ -333,10 +361,16 @@ class PointCloudSegmenter:
         We then have the central middle point, given in the form of a numpy.ndarray type.
         NOTE: This is given in the frame of the camera, rather than in the global frame.
         """
-        MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 3;
+        MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD = 1;
+        
+        self.data_np[ np.isnan(self.data_np) ] = np.inf;
+
+        self.debug_visualisePointCloud_static(self.data_np);
 
         print("Getting points in the image that are close to the tf.")
         new_closest_point = self.getPointsInImageCloseToClosestPoint(tf_point);
+
+        self.debug_visualisePointCloud_static(self.data_np);
 
         print("Getting the point wise distance measure.")
         mean_dist_between_adjacent_points = self.getPointwiseDistMeasure();
@@ -344,6 +378,8 @@ class PointCloudSegmenter:
         point_dist_threshold:float = MEAN_DIST_MULT_FOR_PLANE_DIST_THRESHOLD*mean_dist_between_adjacent_points;
         print("getPlaneAndRemove");
         bottom_plane_normal, bottom_plane_d = self.RANSAC_getPlaneAndRemove(point_dist_threshold);
+
+        self.debug_visualisePointCloud_static(self.data_np);
 
         #region clustering
         print("Cluster algorithm");
@@ -481,9 +517,13 @@ class PointCloudSegmenter:
     #endregion
 
     def debug_visualisePointCloud_static(self, visualising:np.ndarray):
+        visualising = np.copy(visualising);
+
         def filter_removeNanVals(data:np.ndarray) -> np.ndarray:
-            if len(data) == 2:
+            if len(data.shape) == 2:
                 data = data[ np.isnan(data[:,0]) == False, : ];
+                data = data[ np.isinf(data[:,0]) == False, : ];
+            return data;
         
 
         visualising_shape = visualising.shape;
@@ -491,10 +531,12 @@ class PointCloudSegmenter:
             visualising = visualising.reshape((-1, visualising.shape[2]));
 
         visualising = filter_removeNanVals(visualising);
+
+        print(visualising);
         
         data_open3d_pcl = o3d.geometry.PointCloud();
         data_open3d_pcl.points = o3d.utility.Vector3dVector(visualising[:,0:3]);
         if visualising.shape[1] >= 6:
-            data_open3d_pcl.colors = o3d.utility.Vector3dVector(self.data_np[:,3:6]);
+            data_open3d_pcl.colors = o3d.utility.Vector3dVector(visualising[:,3:6]);
 
         o3d.visualization.draw_geometries([data_open3d_pcl]);

@@ -16,7 +16,8 @@ import tf2_ros;
 from manipulation.srv import FindPlacement, FindPlacementRequest, FindPlacementResponse
 from typing import List, Tuple;
 
-import PointCloudStuff.PointCloudManager;
+from state_machines.Reusable_States.PointCloudStuff.PointCloudManager import PointCloudSegmenter 
+from sensor_msgs.msg import PointCloud2
 
 import hsrb_interface;
 hsrb_interface.robot.enable_interactive();
@@ -160,17 +161,17 @@ class PickUpObjectState_v2(smach.State):
         time_stamp = rospy.Time.now();
 
         try:
-            self._tf_listener.waitForTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
-            trans_stamped = self._tf_listener.lookupTransform(CAMERA_FRAME, tf_name, rospy.Time(0));
+            trans_stamped:geometry_msgs.msg.TransformStamped = self._tf_buffer.lookup_transform(CAMERA_FRAME, tf_name, rospy.Time(0));
             translation = trans_stamped.transform.translation;
             point_segmenting_around = np.asarray([translation.x, translation.y, translation.z]);
-        except:
+        except Exception as e:
+            print(e);
             print("tf error - SOM lookup here.")
             return;
 
         # Performing the segmentation
-        segmenter = PointCloudStuff.PointCloudManager.PointCloudSegmenter();
-        point_cloud_raw = rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloudStuff.PointCloudManager.PointCloud2);
+        segmenter = PointCloudSegmenter();
+        point_cloud_raw = rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2);
         print("Reading point cloud");
         segmenter.readROSPointCloud(point_cloud_raw);
 
@@ -214,7 +215,8 @@ class PickUpObjectState_v2(smach.State):
         print(robot.list());
         self.gripper = robot.try_get("gripper")
         print(dir(self.gripper));
-
+        print("Gripper distance", self.gripper.get_distance());
+        
 
 
         pick_up_goal = PickUpObjectGoal();
@@ -224,6 +226,10 @@ class PickUpObjectState_v2(smach.State):
         else:
             pick_up_goal.goal_tf = userdata.tf_name;
         pick_up_goal.publish_own_tf = False;
+
+        print("Performing segmentation");
+        self.performSegmentation(pick_up_goal.goal_tf);
+        print("Segmentation performed");
 
         for i in range(self.num_iterations_upon_failure):
             result, failure_mode = self.run_manipulation_comp(pick_up_goal=pick_up_goal);
@@ -235,6 +241,7 @@ class PickUpObjectState_v2(smach.State):
                 rospy.sleep(self.wait_upon_completion);
                 print(dir(self.gripper));
                 print("Gripper distance", self.gripper.get_distance());
+
                 
                 return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
