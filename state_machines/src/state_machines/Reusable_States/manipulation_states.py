@@ -196,7 +196,7 @@ class PickUpObjectState_v2(smach.State):
             if result:
                 print("Gripper distance", self.gripper.get_distance());
 
-                if self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
+                if True: #self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
                     rospy.sleep(self.wait_upon_completion);
                     return SUCCESS;
                 
