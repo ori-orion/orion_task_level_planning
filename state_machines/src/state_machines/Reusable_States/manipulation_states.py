@@ -332,6 +332,9 @@ def getPlacementOptions(
 
 class PlaceNextTo(smach.State):
     """
+    Inputs:
+        som_query_results:dict
+        put_down_size:geometry_msgs.msg.Point   : Optional arg.
     Outcomes:
         SUCCESS                 : Entire motion correctly carried out.
         MANIPULATION_FAILURE    : Place object failed.
@@ -375,7 +378,12 @@ class PlaceNextTo(smach.State):
 
         radius = self.radius;
 
-        self.speakPhrase("Attempting to find a placement location.")
+        self.speakPhrase("Attempting to find a placement location.");
+
+        put_down_dims = self.dims;
+        if self.input_put_down_obj_size:
+            obj_size:Point = userdata.put_down_size;
+            put_down_dims = ( obj_size.x, obj_size.y, obj_size.z );
 
         placement_option_found = False;
         for i in range(self.num_repeats):
@@ -385,7 +393,7 @@ class PlaceNextTo(smach.State):
                     first_response.obj_position.position.x, 
                     first_response.obj_position.position.y, 
                     first_response.obj_position.position.z],
-                dims=self.dims,
+                dims=put_down_dims,
                 max_height=self.max_height,
                 radius=radius,
                 num_candidates=self.num_candidates,
@@ -409,7 +417,9 @@ class PlaceNextTo(smach.State):
             for i in range(self.num_repeats):
                 goal = PutObjectOnSurfaceGoal();
                 goal.goal_tf = best_tf;
-                goal.drop_object_by_metres = 0.05;
+                goal.drop_object_by_metres = 0.03;
+                if self.input_put_down_obj_size:
+                    goal.object_half_height = obj_size.z/2
                 success = putObjOnSurfaceAction(goal);
                 if success:
                     return SUCCESS
