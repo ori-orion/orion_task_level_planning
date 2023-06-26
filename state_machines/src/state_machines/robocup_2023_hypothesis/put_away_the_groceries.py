@@ -283,8 +283,8 @@ def create_state_machine():
             'NavToCabinet',
             SimpleNavigateState_v2(execute_nav_commands),
             transitions={
-                SUCCESS: 'PutAwayObject',       # 'RaiseMastAtCabinet',
-                NAVIGATIONAL_FAILURE: TASK_FAILURE
+                SUCCESS: 'RaiseMastAtCabinet',       # 'RaiseMastAtCabinet',
+                NAVIGATIONAL_FAILURE: 'RaiseMastAtCabinet' 
             },
             remapping={'pose': 'cabinet_pose'})
         
