@@ -1,17 +1,14 @@
-from geometry_msgs.msg import Pose, Point, PoseStamped;
-
 import numpy as np;
-
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+import math;
 
 import rospy;
-
-# from strands_navigation_msgs.msg import TopologicalMap
+import actionlib
+from geometry_msgs.msg import Pose, Point, PoseStamped;
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from visualization_msgs.msg import Marker, MarkerArray, InteractiveMarker, InteractiveMarkerControl
+from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
-
-import actionlib
-
 
 TASK_SUCCESS = 'task_success';
 TASK_FAILURE = 'task_failure';
@@ -142,3 +139,133 @@ def dict_to_obj(dictionary:dict, objFillingOut):
                 setattr(objFillingOut, key, dictionary[key]);
     
     return objFillingOut;
+
+
+
+class RvizVisualisationManager:
+    def __init__(self, 
+        im_server:InteractiveMarkerServer, 
+        colour_a, colour_r, colour_g, colour_b):
+
+        # Interactive Marker server.
+        self.im_server:InteractiveMarkerServer = im_server;
+        # self.coll_manager:CollectionManager.CollectionManager = coll_manager;
+
+        # In the range [0,1]
+        self.colour_a = colour_a;
+        self.colour_r = colour_r;
+        self.colour_g = colour_g;
+        self.colour_b = colour_b;
+
+        self.query_callback = None;
+
+    def delete_object(self, id):
+        """
+        Deletes the rviz object with id.
+        """
+        self.im_server.erase(id);
+        self.im_server.applyChanges();
+
+    def handle_viz_input(self, input):
+        """
+        Handles the click callback for when the user clicks on one of the rviz boxes.
+        """
+        if (self.query_callback != None):
+            obj:list = self.query_callback(
+                {"_id":pymongo.collection.ObjectId(input.marker_name)});
+
+            if len(obj) > 0:
+                rospy.loginfo(obj);
+                rospy.loginfo("\n\n\n");
+
+
+    def add_object_arrow(
+            self, 
+            id:str, 
+            position:Point, 
+            direction_vec:np.ndarray, 
+            size:Point, 
+            obj_class:str,
+            alpha_val=None):
+            
+        # print(direction_vec);
+        def normalise(vec:np.ndarray):
+            # print("\t", vec);
+            return vec / np.linalg.norm(vec);
+
+        direction_vec = np.copy( direction_vec );
+        direction_vec *= -1;
+
+        up_vec = np.asarray([0,0,1], dtype=np.float32);
+        side = np.cross(up_vec, direction_vec);
+        up_new = np.cross(side, direction_vec);
+        
+        up_vec = normalise(up_vec);
+        side = normalise(side);
+        direction_vec = normalise(direction_vec);
+
+        rotation_mat = np.zeros((3,3));
+        rotation_mat[:,0] = direction_vec;
+        rotation_mat[:,1] = up_new;
+        rotation_mat[:,2] = side;
+
+        quaternion = utils.rot_mat_to_quaternion(rotation_mat);
+        pose = Pose();
+        pose.position = position;
+        pose.orientation = quaternion;
+
+        self.add_object(id, pose, size, obj_class, marker_type=Marker.ARROW, alpha_val=alpha_val)
+
+    def add_object(
+            self, 
+            id:str, 
+            pose:Pose, 
+            size:Point, 
+            obj_class:str, 
+            num_observations=math.inf,
+            alpha_val=None,
+            marker_type=Marker.CUBE):
+        """
+        Deals with the adding of an object to the visualisation server. 
+        id                  - The id of the object (and the id that rviz will use).
+        pose                - The pose of the object
+        size                - The size of the object
+        obj_class           - The label the object will be given in the visualisation.
+        num_observations    - The number of observations (will be used in a function for the alpha value of the object.)
+        """
+
+        self.im_server.erase(id);
+
+        int_marker = InteractiveMarker()
+        int_marker.header.frame_id = "map"
+        int_marker.name = id;
+        int_marker.description = obj_class;
+        int_marker.pose = pose;
+
+        box_marker = Marker();
+        box_marker.type = marker_type;
+        box_marker.pose.orientation.w = 1;
+        
+        box_marker.scale.x = size.x if size.x > 0.05 else 0.05;
+        box_marker.scale.y = size.y if size.y > 0.05 else 0.05;
+        box_marker.scale.z = size.z if size.z > 0.05 else 0.05;
+        
+        box_marker.color.r = self.colour_r;
+        box_marker.color.g = self.colour_g;
+        box_marker.color.b = self.colour_b;
+        if alpha_val == None:
+            box_marker.color.a = self.colour_a * num_observations/10;
+            if box_marker.color.a > self.colour_a:
+                box_marker.color.a = self.colour_a;
+        else:
+            box_marker.color.a = alpha_val;
+
+        button_control = InteractiveMarkerControl()
+        button_control.interaction_mode = InteractiveMarkerControl.BUTTON
+        button_control.always_visible = True
+        button_control.markers.append(box_marker);
+        int_marker.controls.append(button_control);
+
+        self.im_server.insert(int_marker, self.handle_viz_input)
+        self.im_server.applyChanges();
+        return
