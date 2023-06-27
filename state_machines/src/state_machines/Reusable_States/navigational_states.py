@@ -25,13 +25,22 @@ import nav_msgs.msg;
 class NavigationalListener:
 
     def __init__(self, listen_to:str = "/base_path_planner/inflated_static_obstacle_map"):
-        rospy.Subscriber(
-            listen_to,
-            nav_msgs.msg.GridCells,
-            self.occupancyMapCallback);
+        # rospy.Subscriber(
+        #     listen_to,
+        #     nav_msgs.msg.GridCells,
+        #     self.occupancyMapCallback);
 
         self.most_recent_map = None;
+        self.listen_to = listen_to;
+        self.map_bounds = None;
+        self.grid:np.ndarray = None;
+        
+    
+    def getOccupancyMap(self) -> nav_msgs.msg.GridCells:
+        self.most_recent_map:nav_msgs.msg.GridCells = rospy.wait_for_message(self.listen_to, nav_msgs.msg.GridCells);
+        return self.most_recent_map;
 
+    # Deprecated.
     def occupancyMapCallback(self, data:nav_msgs.msg.GridCells):
         print("Nav callback:")
         print("\theader      = ", data.header);
@@ -56,6 +65,59 @@ class NavigationalListener:
                 return True;
         
         return False;
+    
+    def getMapBounds(self) -> tuple:
+        if self.most_recent_map == None:
+            return None;
+
+        min_x = math.inf;
+        min_y = math.inf;
+        max_x = -math.inf;
+        max_y = -math.inf;
+
+        for point_cell in self.most_recent_map.cells:
+            point_cell:Point;
+
+            min_x = min(min_x, point_cell.x);
+            min_y = min(min_y, point_cell.y);
+            max_x = max(max_x, point_cell.x);
+            max_y = max(max_y, point_cell.y);
+            
+        self.map_bounds = (min_x, min_y, max_x, max_y);
+
+        return self.map_bounds;
+    
+
+    def getGrid(self):
+        if self.map_bounds == None:
+            self.getMapBounds();
+            
+        min_x, min_y, max_x, max_y = self.map_bounds;
+        w = self.most_recent_map.cell_width;
+        h = self.most_recent_map.cell_height;
+        self.grid = np.full(((max_x-min_x)/w + 2, (max_y-min_y)/h + 2), False);
+        
+        for point_cell in self.most_recent_map.cells:
+            point_cell:Point;
+
+            x = (point_cell.x - min_x)/w;
+            y = (point_cell.y - min_y)/h;
+
+            self.grid[x, y] = True;
+            
+        return self.grid;
+    
+    def printGrid(self):
+        if self.grid == None:
+            self.getGrid();
+        
+        grid_shape = self.grid.shape;
+        for x in range(grid_shape[0]):
+            for y in range(grid_shape[1]):
+                print("X" if self.grid[x, y] else " ", end="");
+            print();
+        print();
+        
 
 
 
