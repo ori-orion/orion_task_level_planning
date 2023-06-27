@@ -121,6 +121,8 @@ def create_state_machine():
         shelves_hardcoded_dict:dict = rospy.get_param('shelves_hardcoded');
         shelves_z_vals = shelves_hardcoded_dict["z_vals"];
         shelves_width = shelves_hardcoded_dict["width"];
+        shelves_height = shelves_hardcoded_dict["height"];
+        shelves_pose = shelves_hardcoded_dict["shelf_pose"];
         pass;
     else:
         rospy.logwarn("shelves_hardcoded not found.")

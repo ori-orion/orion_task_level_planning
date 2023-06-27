@@ -47,7 +47,6 @@ def getObjectsInSOM(class_querying_for:str="bottle", time_horizon:rospy.Duration
     #endregion
 
     return output;
-    
 
 def pickUpObject(object_class="bottle") -> Tuple[bool, int]:
     """
@@ -84,6 +83,14 @@ def pickUpObject(object_class="bottle") -> Tuple[bool, int]:
     #   - result:bool              - Overall success or failure.
     #   - failure_mode: byte       - These are given in the action definition - might not fully be working yet... will keep you updated.
     return result.result, result.failure_mode
+
+
+def getTfName(object_class:str) -> str:
+    objects = getObjectsInSOM(object_class);
+    object_picking_up = objects[0];
+    tf_name = object_picking_up.tf_name;
+    return tf_name;
+
 
 if __name__ == '__main__':
     rospy.init_node('som_mainpulation_test');
