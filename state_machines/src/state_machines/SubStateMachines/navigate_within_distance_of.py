@@ -317,7 +317,8 @@ def nav_and_pick_up_or_place_next_to(
         find_same_category = False, 
         som_query_already_performed=False,
         take_body_rotated_as_input=False,
-        input_obj_size_for_place=False):
+        input_obj_size_for_place=False,
+        input_hardcoded_shelf_for_placement=False):
     """
     Creates the state machine for either navigating and picking stuff up (pick_up==True)
         or navigating and putting stuff down (pick_up==False).
@@ -358,6 +359,9 @@ def nav_and_pick_up_or_place_next_to(
 
     if input_obj_size_for_place:
         input_keys.append('put_down_size');
+        
+    if input_hardcoded_shelf_for_placement:
+        input_keys.append('shelf_height_dict');
 
     sub_sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE, 'query_empty', MANIPULATION_FAILURE],
@@ -475,7 +479,10 @@ def nav_and_pick_up_or_place_next_to(
 
             smach.StateMachine.add(
                 "PlaceObj",
-                PlaceNextTo(dims=dims, max_height=height, radius=radius),
+                PlaceNextTo(
+                    dims=dims, max_height=height, radius=radius,
+                    input_obj_size_for_place=input_obj_size_for_place,
+                    take_shelf_heights_as_input=input_hardcoded_shelf_for_placement),
                 transitions={
                     SUCCESS:SUCCESS,
                     MANIPULATION_FAILURE:MANIPULATION_FAILURE,
