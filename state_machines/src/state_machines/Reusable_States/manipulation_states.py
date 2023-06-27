@@ -123,6 +123,21 @@ class PickUpObjectState(smach.State):
 class PickUpObjectState_v2(smach.State):
     """
     Second iteration for picking up an object.
+
+    Overall workflow:
+        For num_repeats:
+            Pick up object. 
+            If success and gripper is somewhat open:
+                return SUCCESS
+            If tf error, publish own tf.
+        [Failed num_repeats times]
+        return MANIPULATION_FAILURE
+        `gripper is somewhat open` is given by GRIPPER_DISTANCE_THRESHOLD. This has 
+        a drawback in that it will not register if it's picked up a piece of paper 
+        for instance. Instances of this are rare however, so this is a case that is
+        not handled by this at present.
+
+
     INPUTS:
         num_iterations_upon_failure     Given that manipulatin fails, how many attempts are we going to make before failing?
         tf_name:str                     The tf name of the object we are trying to pick up.
@@ -160,12 +175,9 @@ class PickUpObjectState_v2(smach.State):
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
+        
         robot = hsrb_interface.Robot();
-        print(dir(robot));
-        print(robot.Items);
-        print(robot.list());
         self.gripper = robot.try_get("gripper")
-        print(dir(self.gripper));
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
@@ -182,11 +194,12 @@ class PickUpObjectState_v2(smach.State):
             print("status", status);
             print("Failure mode=", failure_mode)
             if result:
-                rospy.sleep(self.wait_upon_completion);
-                print(dir(self.gripper));
                 print("Gripper distance", self.gripper.get_distance());
+
+                if True: #self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
+                    rospy.sleep(self.wait_upon_completion);
+                    return SUCCESS;
                 
-                return SUCCESS;
             elif failure_mode==PickUpObjectResult.TF_NOT_FOUND or failure_mode==PickUpObjectResult.TF_TIMEOUT:
                 rospy.loginfo("Tf error");
                 pick_up_goal.publish_own_tf = True;
@@ -332,6 +345,9 @@ def getPlacementOptions(
 
 class PlaceNextTo(smach.State):
     """
+    Inputs:
+        som_query_results:dict
+        put_down_size:geometry_msgs.msg.Point   : Optional arg.
     Outcomes:
         SUCCESS                 : Entire motion correctly carried out.
         MANIPULATION_FAILURE    : Place object failed.
@@ -375,7 +391,12 @@ class PlaceNextTo(smach.State):
 
         radius = self.radius;
 
-        self.speakPhrase("Attempting to find a placement location.")
+        self.speakPhrase("Attempting to find a placement location.");
+
+        put_down_dims = self.dims;
+        if self.input_put_down_obj_size:
+            obj_size:Point = userdata.put_down_size;
+            put_down_dims = ( obj_size.x, obj_size.y, obj_size.z );
 
         placement_option_found = False;
         for i in range(self.num_repeats):
@@ -385,7 +406,7 @@ class PlaceNextTo(smach.State):
                     first_response.obj_position.position.x, 
                     first_response.obj_position.position.y, 
                     first_response.obj_position.position.z],
-                dims=self.dims,
+                dims=put_down_dims,
                 max_height=self.max_height,
                 radius=radius,
                 num_candidates=self.num_candidates,
@@ -409,7 +430,9 @@ class PlaceNextTo(smach.State):
             for i in range(self.num_repeats):
                 goal = PutObjectOnSurfaceGoal();
                 goal.goal_tf = best_tf;
-                goal.drop_object_by_metres = 0.05;
+                goal.drop_object_by_metres = 0.03;
+                if self.input_put_down_obj_size:
+                    goal.object_half_height = obj_size.z/2
                 success = putObjOnSurfaceAction(goal);
                 if success:
                     return SUCCESS
