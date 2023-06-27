@@ -112,6 +112,7 @@ def create_state_machine():
         table_mast_height = 0;
         cabinet_mast_height = 0.5;
 
+    transform_broadcaster = tf2_ros.StaticTransformBroadcaster();
 
     interactive_marker_server = InteractiveMarkerServer("zzz_task_level_planning/markers")
     visualisation_manager = RvizVisualisationManager(
@@ -121,21 +122,33 @@ def create_state_machine():
         shelves_hardcoded_dict:dict = rospy.get_param('shelves_hardcoded');
         shelves_z_vals = shelves_hardcoded_dict["z_vals"];
         shelves_width = shelves_hardcoded_dict["width"];
-        shelves_height = shelves_hardcoded_dict["height"];
-        shelves_pose = shelves_hardcoded_dict["shelf_pose"];
+        shelves_depth = shelves_hardcoded_dict["depth"];
+        shelves_pose = utils.dict_to_obj(shelves_hardcoded_dict["shelf_pose"], Pose());
+        
+        shelf_names = [];
+        transforms_publishing = [];
         
         for i, z_height in enumerate(shelves_z_vals):
-            individual_shelf_pose:Pose = copy.copy(shelves_pose);
+            shelf_name = "shelf_{0}".format(i);
+            shelf_names.append(shelf_name);1
+            individual_shelf_pose:Pose = copy.deepcopy(shelves_pose);
             individual_shelf_pose.position.z = z_height;
             visualisation_manager.add_object(
-                "shelf_{0}".format(i),
-                shelves_pose,
-                size=Point(shelves_width, shelves_height, 0.01),
-                obj_class="shelf_{0}".format(i),
+                shelf_name,
+                individual_shelf_pose,
+                size=Point(shelves_width, shelves_depth, 0.01),
+                obj_class=shelf_name,
                 alpha_val=0.8,
                 marker_type=Marker.CUBE);
-            pass;
-        pass;
+            individual_tf = geometry_msgs.msg.TransformStamped();
+            individual_tf.header.stamp = rospy.Time.now();
+            individual_tf.header.frame_id = "map";
+            individual_tf.child_frame_id = shelf_name;
+            individual_tf.transform.translation = individual_shelf_pose.position;
+            individual_tf.transform.rotation = individual_shelf_pose.orientation;
+            transforms_publishing.append(individual_tf);
+        
+        transform_broadcaster.sendTransform(transforms_publishing);
     else:
         rospy.logwarn("shelves_hardcoded not found.")
 
@@ -380,6 +393,8 @@ def create_state_machine():
 
 
 if __name__ == '__main__':
+    rospy.init_node('pick_up_and_put_away_state_machine');
+    
     # sm = sub_state_machine_pick_up_and_put_away();
     sm = create_state_machine();
 
