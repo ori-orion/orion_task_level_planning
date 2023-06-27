@@ -24,40 +24,95 @@ import nav_msgs.msg;
 
 class NavigationalListener:
 
-    def __init__(self, listen_to:str = "/base_path_planner/inflated_static_obstacle_map"):
-        # rospy.Subscriber(
-        #     listen_to,
-        #     nav_msgs.msg.GridCells,
-        #     self.occupancyMapCallback);
+    def __init__(self, listen_to:str="/dynamic_obstacle_map", listen_to_map:bool=False):
+        # /base_path_planner/inflated_static_obstacle_map -> nav_msgs.msg.GridCells
+        # /dynamic_obstacle_map -> nav_msgs/OccupancyGrid
+        if listen_to_map:
+            print("Initialising subscriber");
+            rospy.Subscriber(
+                listen_to,
+                nav_msgs.msg.OccupancyGrid,
+                self.occupancyGridCallback);
 
-        self.most_recent_map = None;
+        self.most_recent_grid_cells = None;
         self.listen_to = listen_to;
         self.map_bounds = None;
         self.grid:np.ndarray = None;
         
     
-    def getOccupancyMap(self) -> nav_msgs.msg.GridCells:
-        self.most_recent_map:nav_msgs.msg.GridCells = rospy.wait_for_message(self.listen_to, nav_msgs.msg.GridCells);
-        return self.most_recent_map;
+    def getOccupancyMap(self) -> nav_msgs.msg.OccupancyGrid:
+        data:nav_msgs.msg.OccupancyGrid = rospy.wait_for_message(self.listen_to, nav_msgs.msg.OccupancyGrid);
+        self.processOccupancyGrid(data);
+        return self.grid;
+        
 
+    def processOccupancyGrid(self, data:nav_msgs.msg.OccupancyGrid):
+        grid_np_int = np.asarray(data.data);
+        print(np.unique(grid_np_int));
+        grid_np_int = grid_np_int.reshape((data.info.height, data.info.width));
+        self.grid = (grid_np_int >= 1);
+        self.cell_resolution = data.info.resolution;
+        self.origin = data.info.origin;
+
+
+        
+    def occupancyGridCallback(self, data:nav_msgs.msg.OccupancyGrid):
+        print(data.info);
+        print(len(data.data));
+        self.processOccupancyGrid(data);
+        
+        print(self.grid);
+        
+        self.printGrid();
+        pass;
+
+
+    
+    def printGrid(self):
+        RADIUS_AWAY = 0.2;
+        grid_shape = self.grid.shape;
+        current_position = get_current_pose().position;
+        print(self.cell_resolution);
+        for i in range(grid_shape[0]-1, -1, -1):
+            for j in range(grid_shape[1]):
+                x = i*self.cell_resolution + self.origin.position.x;
+                y = j*self.cell_resolution + self.origin.position.y;
+                if distance_between_points(current_position, Point(x, y,0)) < RADIUS_AWAY:
+                    print(".", end="");
+                elif self.grid[i, j]:
+                    print("X", end="");
+                else:
+                    print(" ", end="");
+                    
+
+            print();
+        print();
+        
+        
+    #region Deprecated
     # Deprecated.
-    def occupancyMapCallback(self, data:nav_msgs.msg.GridCells):
+    def gridCellsCallback(self, data:nav_msgs.msg.GridCells):
         print("Nav callback:")
         print("\theader      = ", data.header);
         print("\tcell_width  = ", data.cell_width);
         print("\tcell_height = ", data.cell_height);
         print("\tlen(cells)  = ", len(data.cells));
 
-        self.most_recent_map = data;
-
+        self.most_recent_grid_cells = data;
+        
+        self.getMapBounds();
+        self.getGrid();
+        self.printGrid();
+    
+    # Deprecated
     def isPointOccluded(self, point:Point) -> bool:
-        if self.most_recent_map == None:
+        if self.most_recent_grid_cells == None:
             return True;
 
-        w = self.most_recent_map.cell_width;
-        h = self.most_recent_map.cell_height;
+        w = self.most_recent_grid_cells.cell_width;
+        h = self.most_recent_grid_cells.cell_height;
         
-        for point_cell in self.most_recent_map.cells:
+        for point_cell in self.most_recent_grid_cells.cells:
             point_cell:Point;
 
             # Assuming a 2D map.
@@ -66,8 +121,9 @@ class NavigationalListener:
         
         return False;
     
+    # Deprecated
     def getMapBounds(self) -> tuple:
-        if self.most_recent_map == None:
+        if self.most_recent_grid_cells == None:
             return None;
 
         min_x = math.inf;
@@ -75,7 +131,7 @@ class NavigationalListener:
         max_x = -math.inf;
         max_y = -math.inf;
 
-        for point_cell in self.most_recent_map.cells:
+        for point_cell in self.most_recent_grid_cells.cells:
             point_cell:Point;
 
             min_x = min(min_x, point_cell.x);
@@ -87,37 +143,26 @@ class NavigationalListener:
 
         return self.map_bounds;
     
-
+    # Deprecated
     def getGrid(self):
         if self.map_bounds == None:
             self.getMapBounds();
             
         min_x, min_y, max_x, max_y = self.map_bounds;
-        w = self.most_recent_map.cell_width;
-        h = self.most_recent_map.cell_height;
-        self.grid = np.full(((max_x-min_x)/w + 2, (max_y-min_y)/h + 2), False);
+        w = self.most_recent_grid_cells.cell_width;
+        h = self.most_recent_grid_cells.cell_height;
+        self.grid = np.full((int((max_x-min_x)/w) + 2, int((max_y-min_y)/h) + 2), False);
         
-        for point_cell in self.most_recent_map.cells:
+        for point_cell in self.most_recent_grid_cells.cells:
             point_cell:Point;
 
-            x = (point_cell.x - min_x)/w;
-            y = (point_cell.y - min_y)/h;
+            x = int((point_cell.x - min_x)/w);
+            y = int((point_cell.y - min_y)/h);
 
             self.grid[x, y] = True;
             
         return self.grid;
-    
-    def printGrid(self):
-        if self.grid == None:
-            self.getGrid();
-        
-        grid_shape = self.grid.shape;
-        for x in range(grid_shape[0]):
-            for y in range(grid_shape[1]):
-                print("X" if self.grid[x, y] else " ", end="");
-            print();
-        print();
-        
+    #endregion
 
 
 
@@ -797,11 +842,8 @@ class SearchForGuestNavToNextNode(smach.State):
         del userdata.nodes_not_searched[0]
         return 'searched'
 
-if __name__ == '__main__':
-    rospy.init_node('listening_to_nav');
 
-    # NavigationalListener();
-
+def testOrientRobot():
     sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
 
     with sub_sm:
@@ -817,5 +859,19 @@ if __name__ == '__main__':
     sub_sm.userdata.orient_towards.position.x = 4;
     sub_sm.userdata.orient_towards.position.y = 0;
     sub_sm.execute();
+    
+def testNavigationalListener():
+    NavigationalListener(listen_to_map=True);
+    pass;
+
+if __name__ == '__main__':
+    rospy.init_node('listening_to_nav');
+
+    print("Pre testNavigationalListener");
+    testNavigationalListener();
+
+    print("testNavigationalListener setup");
+
+    # testOrientRobot();    
 
     rospy.spin();
