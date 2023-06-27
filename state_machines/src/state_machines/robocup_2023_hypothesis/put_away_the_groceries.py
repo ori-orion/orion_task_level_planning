@@ -118,7 +118,9 @@ def create_state_machine():
         im_server=interactive_marker_server,
         colour_a=0.7, colour_r=0.0, colour_g=1.0, colour_b=0.2)
     if rospy.has_param('shelves_hardcoded'):
-        shelves_hardcoded_dict = rospy.get_param('shelves_hardcoded');
+        shelves_hardcoded_dict:dict = rospy.get_param('shelves_hardcoded');
+        shelves_z_vals = shelves_hardcoded_dict["z_vals"];
+        shelves_width = shelves_hardcoded_dict["width"];
         pass;
     else:
         rospy.logwarn("shelves_hardcoded not found.")
