@@ -123,6 +123,18 @@ def create_state_machine():
         shelves_width = shelves_hardcoded_dict["width"];
         shelves_height = shelves_hardcoded_dict["height"];
         shelves_pose = shelves_hardcoded_dict["shelf_pose"];
+        
+        for i, z_height in enumerate(shelves_z_vals):
+            individual_shelf_pose:Pose = copy.copy(shelves_pose);
+            individual_shelf_pose.position.z = z_height;
+            visualisation_manager.add_object(
+                "shelf_{0}".format(i),
+                shelves_pose,
+                size=Point(shelves_width, shelves_height, 0.01),
+                obj_class="shelf_{0}".format(i),
+                alpha_val=0.8,
+                marker_type=Marker.CUBE);
+            pass;
         pass;
     else:
         rospy.logwarn("shelves_hardcoded not found.")
