@@ -154,21 +154,21 @@ class NavigationalListener:
         J_DELTAS = [-1,0,1,0];
         
         print("Entering while loop");
-        while True:
+        while len(indices_to_look_at) > index_in_indices:
             if self.grid[indices_to_look_at[index_in_indices]]:
                 x, y = self.coordinatesToPoint(*indices_to_look_at[index_in_indices]);
                 return Point(x, y, 0), False;
             
             # Thus here we have to look at the neighbours of the current index s.t., these are closer to the current position than the goal.
             for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
-                trial_index:tuple = indices_to_look_at[index_in_indices]+(i_delta, j_delta);
+                trial_index:tuple = (indices_to_look_at[index_in_indices][0]+i_delta, indices_to_look_at[index_in_indices][1]+j_delta);
                 if (not indices_looked_at[trial_index]) and getDistBetweenIndices(current_i, current_j, trial_index[0], trial_index[1]) < distance_criterion:
-                    indices_looked_at[trial_index] = True;
-                    indices_to_look_at.append(trial_index);
+                       indices_looked_at[trial_index] = True;
+                       indices_to_look_at.append(trial_index);
             
             index_in_indices += 1;
         
-        
+        return goal, False;
         
     #region Deprecated
     # Deprecated.
@@ -381,6 +381,23 @@ class SimpleNavigateState_v2(smach.State):
 
         self.execute_nav_commands = execute_nav_commands;
         self.max_num_failure_repetitions = max_num_failure_repetitions;
+        
+        
+    def checkSamePlaceLoop(self, target_pose) -> int:
+        prev_current_pose = get_current_pose();
+        while True:
+            self.navigate_action_client.wait_for_result(rospy.Duration(1));
+            print("Checking goal dist", end="\t");
+            if distance_between_poses(prev_current_pose, target_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
+                return self.SUCCESS;
+            current_pose = get_current_pose();
+            print("Checking if moved", end="\t");
+            if distance_between_poses(current_pose, prev_current_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
+                print("Not moved");
+                return self.RETRY_STAYED_IN_SAME_PLACE;
+            print("Moved");
+            prev_current_pose = current_pose;
+        
 
     def executeAction(self, goal, target_pose:Pose, initial_pose:Pose, userdata) -> bool:
         """
@@ -393,19 +410,17 @@ class SimpleNavigateState_v2(smach.State):
 
         # We want to be able to check to see if the robot has moved or not
         # (to check to see if path planning has failed.)
-        self.navigate_action_client.wait_for_result(rospy.Duration(2));
+        
         rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
 
         current_pose = get_current_pose();
         rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose)=" + str(distance_between_poses(current_pose, target_pose)));
         rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose)=" + str(distance_between_poses(current_pose, initial_pose)));
-        if (distance_between_poses(current_pose, target_pose) > self.DISTANCE_SAME_PLACE_THRESHOLD and 
-            distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
-
-            rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
-            rospy.loginfo('status = ' + str(self.navigate_action_client.get_state()))
+        loop_result = self.checkSamePlaceLoop(target_pose);
+        if loop_result == self.RETRY_STAYED_IN_SAME_PLACE:
+            self.navigate_action_client.cancel_all_goals();
             return self.RETRY_STAYED_IN_SAME_PLACE;
-
+        
         self.navigate_action_client.wait_for_result();
         status = self.navigate_action_client.get_state();
         self.navigate_action_client.cancel_all_goals()
@@ -958,6 +973,9 @@ def testNavigationalListener():
     pass;
 
 def testNavigationalFallback():
+    """
+    Goal is in collision within the hsrb_megaweb2015world map.
+    """
     goal = Pose();
     
     goal.position.x = 3;
