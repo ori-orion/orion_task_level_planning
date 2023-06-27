@@ -85,6 +85,39 @@ def pickUpObject(object_class="bottle") -> Tuple[bool, int]:
     #   - failure_mode: byte       - These are given in the action definition - might not fully be working yet... will keep you updated.
     return result.result, result.failure_mode
 
+
+def getTfName(object_class:str) -> str:
+    objects = getObjectsInSOM(object_class);
+    # Now `objects_seen` is a list of potential candidates.
+    # Each entry has the properties given within the message definition.
+    # However, just to highlight a couple:
+    #   - obj_position      : Gives the position in the global frame... might be useful for sorting based on position.
+    #   - num_observations  : You might want to look for the entity with the most observations for the sake of robustness.
+    #   - size              : Might be useful for other reasons?
+    #   - tf_name           : Name of the tf given. - we will use this later.  
+    # One might want to sort based on some of these. For simplicity, we will just take the first entity for now.
+
+    object_picking_up = objects[0];
+    tf_position = object_picking_up.obj_position.position; #obj_position is the geometry_msgs.Pose()
+    # =============================================================================
+    # MSG: geometry_msgs/Point (.position)
+    # # This contains the position of a point in free space
+    # float64 x
+    # float64 y
+    # float64 z
+
+    # ================================================================================
+    # MSG: geometry_msgs/Quaternion (.orientation)
+    # # This represents an orientation in free space in quaternion form.
+
+    # float64 x
+    # float64 y
+    # float64 z
+    # float64 w
+    # """
+    return tf_position;
+
+
 if __name__ == '__main__':
     rospy.init_node('som_mainpulation_test');
     pickUpObject("cup");
