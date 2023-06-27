@@ -100,6 +100,17 @@ class NavigationalListener:
         """
         i,j = self.pointToCoordinates(point.x, point.y);
         
+        delta = 2;
+        
+        for i_delta in range(-delta,delta+1):
+            for j_delta in range(-delta,delta+1):
+                if self.grid[i+i_delta, j+j_delta]:
+                    print("returning True. Point occupied")
+                    return True;
+        print("Returning False. No points were occupied");
+        return False;
+        
+        # Old code:
         I_DELTAS = [0,0,1,0,-1];
         J_DELTAS = [0,1,0,-1,0];
         
