@@ -112,6 +112,17 @@ def create_state_machine():
         table_mast_height = 0;
         cabinet_mast_height = 0.5;
 
+
+    interactive_marker_server = InteractiveMarkerServer("zzz_task_level_planning/markers")
+    visualisation_manager = RvizVisualisationManager(
+        im_server=interactive_marker_server,
+        colour_a=0.7, colour_r=0.0, colour_g=1.0, colour_b=0.2)
+    if rospy.has_param('shelves_hardcoded'):
+        shelves_hardcoded_dict = rospy.get_param('shelves_hardcoded');
+        pass;
+    else:
+        rospy.logwarn("shelves_hardcoded not found.")
+
     # Keeps track of the tf strings that have been picked up/attempted to
     # be picked up so as to not get stuck in an infinite loop.
     sm.userdata.filter_tf_names_out = [];

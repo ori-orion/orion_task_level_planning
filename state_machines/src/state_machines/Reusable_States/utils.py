@@ -3,7 +3,7 @@ import math;
 
 import rospy;
 import actionlib
-from geometry_msgs.msg import Pose, Point, PoseStamped;
+from geometry_msgs.msg import Pose, Point, PoseStamped, Quaternion;
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from visualization_msgs.msg import Marker, MarkerArray, InteractiveMarker, InteractiveMarkerControl
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
@@ -141,6 +141,15 @@ def dict_to_obj(dictionary:dict, objFillingOut):
     return objFillingOut;
 
 
+def rot_mat_to_quaternion(rot_mat:np.ndarray):
+    quat = Quaternion();
+
+    quat.w = math.sqrt( 1 + rot_mat[0,0] + rot_mat[1,1] + rot_mat[2,2] )  / 2;
+    quat.x = (rot_mat[2,1] - rot_mat[1,2])/(4*quat.w);
+    quat.y = (rot_mat[0,2] - rot_mat[2,0])/(4*quat.w);
+    quat.z = (rot_mat[1,0] - rot_mat[0,1])/(4*quat.w);
+
+    return quat;
 
 class RvizVisualisationManager:
     def __init__(self, 
@@ -149,7 +158,6 @@ class RvizVisualisationManager:
 
         # Interactive Marker server.
         self.im_server:InteractiveMarkerServer = im_server;
-        # self.coll_manager:CollectionManager.CollectionManager = coll_manager;
 
         # In the range [0,1]
         self.colour_a = colour_a;
@@ -171,12 +179,7 @@ class RvizVisualisationManager:
         Handles the click callback for when the user clicks on one of the rviz boxes.
         """
         if (self.query_callback != None):
-            obj:list = self.query_callback(
-                {"_id":pymongo.collection.ObjectId(input.marker_name)});
-
-            if len(obj) > 0:
-                rospy.loginfo(obj);
-                rospy.loginfo("\n\n\n");
+            pass;
 
 
     def add_object_arrow(
@@ -209,7 +212,7 @@ class RvizVisualisationManager:
         rotation_mat[:,1] = up_new;
         rotation_mat[:,2] = side;
 
-        quaternion = utils.rot_mat_to_quaternion(rotation_mat);
+        quaternion = rot_mat_to_quaternion(rotation_mat);
         pose = Pose();
         pose.position = position;
         pose.orientation = quaternion;
@@ -222,7 +225,6 @@ class RvizVisualisationManager:
             pose:Pose, 
             size:Point, 
             obj_class:str, 
-            num_observations=math.inf,
             alpha_val=None,
             marker_type=Marker.CUBE):
         """
@@ -231,7 +233,8 @@ class RvizVisualisationManager:
         pose                - The pose of the object
         size                - The size of the object
         obj_class           - The label the object will be given in the visualisation.
-        num_observations    - The number of observations (will be used in a function for the alpha value of the object.)
+        alpha_val
+        marker_type
         """
 
         self.im_server.erase(id);
@@ -253,11 +256,7 @@ class RvizVisualisationManager:
         box_marker.color.r = self.colour_r;
         box_marker.color.g = self.colour_g;
         box_marker.color.b = self.colour_b;
-        if alpha_val == None:
-            box_marker.color.a = self.colour_a * num_observations/10;
-            if box_marker.color.a > self.colour_a:
-                box_marker.color.a = self.colour_a;
-        else:
+        if alpha_val != None:
             box_marker.color.a = alpha_val;
 
         button_control = InteractiveMarkerControl()

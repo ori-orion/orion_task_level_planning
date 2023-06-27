@@ -52,7 +52,7 @@ cabinet_mast_height : 0.5
 
 
 # Next thing to worry about is potentially hardcoding the shelves.
-shelf_hardcoded : {
+shelves_hardcoded : {
     normal: [0,0,1],
     z_vals: [0],
     # Pose of the base of the shelves
