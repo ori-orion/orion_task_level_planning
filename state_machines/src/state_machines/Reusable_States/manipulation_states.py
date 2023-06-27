@@ -346,22 +346,43 @@ def getPlacementOptions(
 class PlaceNextTo(smach.State):
     """
     Inputs:
+        dims:tuple                          : The dimensions of the object to be put down.
+        max_height:float                    : The height below the object to find the plane.
+        radius:float                        : The radius around the goal position to search for placement candidates.
+        num_candidates:int                  : The number of placement candidates to search through.
+        input_put_down_obj_size:bool        : Give as input the size of the object to be put down.
+        take_shelf_heights_as_input:bool    : Take as input a dictionary giving shelf heights and corresponding shelf tf names.
+    Input keys:
         som_query_results:dict
         put_down_size:geometry_msgs.msg.Point   : Optional arg.
+        shelf_height_dict:dict                  : Optional arg.
     Outcomes:
         SUCCESS                 : Entire motion correctly carried out.
         MANIPULATION_FAILURE    : Place object failed.
         FAILURE                 : Placement option was not found.
+    The form of shelf_height_dict:
+        shelf_height_dict = {
+            heights:List[float],
+            tf_names:List[str]}
+        heights are then in increasing order.
     """
-    def __init__(self, dims, max_height, radius, num_candidates=8, num_repeats=3, input_put_down_obj_size=False):
+    def __init__(
+        self, dims, max_height, 
+        radius, num_candidates=8, 
+        num_repeats=3, input_put_down_obj_size=False,
+        take_shelf_heights_as_input=False):
+        
         input_keys = ['som_query_results'];
         if input_put_down_obj_size:
-            input_keys.append('put_down_size')
+            input_keys.append('put_down_size');
+            
+        if take_shelf_heights_as_input:
+            input_keys.append('shelf_height_dict');
 
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE, FAILURE],
-            input_keys=['som_query_results'],
+            input_keys=input_keys,
             output_keys=[]);
 
         self.dims = dims;
@@ -370,6 +391,7 @@ class PlaceNextTo(smach.State):
         self.num_candidates = num_candidates;
         self.num_repeats=num_repeats;
         self.input_put_down_obj_size = input_put_down_obj_size;
+        self.take_shelf_heights_as_input = take_shelf_heights_as_input;
     
     def speakPhrase(self, phrase_speaking):
         action_goal = TalkRequestGoal()
@@ -385,9 +407,19 @@ class PlaceNextTo(smach.State):
     def execute(self, userdata):
         som_query_results:List[dict] = userdata.som_query_results;
 
-        first_response:SOMObject = som_query_results[0];        
+        first_response:SOMObject = som_query_results[0];
 
         self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        
+        if self.take_shelf_heights_as_input:
+            shelf_height_dict:dict = userdata.shelf_height_dict;
+            shelf_heights:List[float] = shelf_height_dict['heights'];
+            shelf_tf_names:List[str] = shelf_height_dict['tf_names'];
+            shelf_tf_name_using = shelf_tf_names[0];
+            for height, tf_name in zip(shelf_heights, shelf_tf_names):
+                if height > first_response.obj_position.position.z:
+                    break;
+                shelf_tf_name_using = tf_name;
 
         radius = self.radius;
 

@@ -127,12 +127,14 @@ def create_state_machine():
         
         shelf_names = [];
         transforms_publishing = [];
+        shelf_heights = [];
         
         for i, z_height in enumerate(shelves_z_vals):
             shelf_name = "shelf_{0}".format(i);
-            shelf_names.append(shelf_name);1
+            shelf_names.append(shelf_name);
             individual_shelf_pose:Pose = copy.deepcopy(shelves_pose);
             individual_shelf_pose.position.z = z_height;
+            shelf_heights.append(z_height);
             visualisation_manager.add_object(
                 shelf_name,
                 individual_shelf_pose,
@@ -149,6 +151,10 @@ def create_state_machine():
             transforms_publishing.append(individual_tf);
         
         transform_broadcaster.sendTransform(transforms_publishing);
+        
+        sm.userdata.shelf_height_dict = {
+            "heights":shelf_heights,
+            "tf_names":shelf_names}
     else:
         rospy.logwarn("shelves_hardcoded not found.")
 
