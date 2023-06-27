@@ -66,7 +66,14 @@ class NavigationalListener:
         self.printGrid();
         pass;
 
-
+    def coordinatesToPoint(self, i:int, j:int) -> tuple:
+        x = i*self.cell_resolution + self.origin.position.x;
+        y = j*self.cell_resolution + self.origin.position.y;
+        return x,y;
+    def pointToCoordinates(self, x:float, y:float) -> tuple:
+        i = (x-self.origin.position.x)/self.cell_resolution;
+        j = (y-self.origin.position.y)/self.cell_resolution;
+        return int(i),int(j);
     
     def printGrid(self):
         RADIUS_AWAY = 0.2;
@@ -75,18 +82,73 @@ class NavigationalListener:
         print(self.cell_resolution);
         for i in range(grid_shape[0]-1, -1, -1):
             for j in range(grid_shape[1]):
-                x = i*self.cell_resolution + self.origin.position.x;
-                y = j*self.cell_resolution + self.origin.position.y;
+                x,y = self.coordinatesToPoint(i,j);
                 if distance_between_points(current_position, Point(x, y,0)) < RADIUS_AWAY:
                     print(".", end="");
                 elif self.grid[i, j]:
                     print("X", end="");
                 else:
                     print(" ", end="");
-                    
-
             print();
         print();
+        
+    def isPointOccupied(self, point:Point) -> bool:
+        """
+        Search the grid around point for an occupied cell.
+        If one is found, return True.
+        """
+        i,j = self.pointToCoordinates(point.x, point.y);
+        
+        I_DELTAS = [0,0,1,0,-1];
+        J_DELTAS = [0,1,0,-1,0];
+        
+        for i_delta, J_DELTAS in zip(I_DELTAS, J_DELTAS):
+            if self.grid[i+i_delta, j+J_DELTAS]:
+                return True;
+        return False;
+    
+    def findClosestUnoccupiedPoint(self, goal:Point) -> Point:
+        """
+        We want to find the closest unoccupied point to the goal.
+        We also want this point to be on this side of the obstacle.
+        """
+        
+        self.getOccupancyMap();
+        
+        if self.isPointOccupied(goal):
+            return goal;
+        
+        def getDistBetweenIndices(i1:int, j1:int, i2:int, j2:int) -> float:
+            return (i1-i2)**2 + (j1-j2)**2;
+        
+        current_position = get_current_pose().position;
+        current_i, current_j = self.pointToCoordinates(current_position.x, current_position.y);
+        goal_i, goal_j = self.pointToCoordinates(goal.x, goal.y);
+        
+        index_in_indices = 0;
+        indices_to_look_at = [(goal_i, goal_j)];
+        distance_criterion = getDistBetweenIndices(current_i, current_j, goal_i, goal_j);        
+        
+        indices_looked_at = np.full(self.grid.shape, False);
+        indices_looked_at[indices_looked_at[0]] = True;
+        
+        I_DELTAS = [0,-1,0,1];
+        J_DELTAS = [-1,0,1,0];
+        
+        while True:
+            if self.grid(indices_to_look_at[index_in_indices]):
+                x, y = self.coordinatesToPoint(*indices_to_look_at[index_in_indices]);
+                return Point(x, y, 0);
+            
+            # Thus here we have to look at the neighbours of the current index s.t., these are closer to the current position than the goal.
+            for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
+                trial_index:tuple = indices_to_look_at[index_in_indices]+(i_delta, j_delta);
+                if (not indices_looked_at[trial_index]) and getDistBetweenIndices(current_i, current_j, trial_index[0], trial_index[1]) < distance_criterion:
+                    indices_looked_at[trial_index] = True;
+                    indices_to_look_at.append(trial_index);
+            
+            index_in_indices += 1;
+        
         
         
     #region Deprecated
