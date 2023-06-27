@@ -49,3 +49,21 @@ min_number_of_observations : 3
 
 table_mast_height : 0.3
 cabinet_mast_height : 0.5
+
+
+# Next thing to worry about is potentially hardcoding the shelves.
+shelf_hardcoded : {
+    normal: [0,0,1],
+    z_vals: [0],
+    # Pose of the base of the shelves
+    shelf_pose: {
+        position : {
+            x : 2.62, y : 0.36, z : 0
+        },
+        orientation : {
+            x : 0, y : 0, z : -0.821, w : 0.571
+        }
+    },
+    width : 0.5,
+    depth : 0.2
+}
