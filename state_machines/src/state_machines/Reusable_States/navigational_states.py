@@ -103,9 +103,13 @@ class NavigationalListener:
         I_DELTAS = [0,0,1,0,-1];
         J_DELTAS = [0,1,0,-1,0];
         
-        for i_delta, J_DELTAS in zip(I_DELTAS, J_DELTAS):
-            if self.grid[i+i_delta, j+J_DELTAS]:
+        for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
+            print(i+i_delta, j+j_delta);
+            print(self.grid[i+i_delta, j+j_delta]);
+            if self.grid[i+i_delta, j+j_delta]:
+                print("returning True. Point occupied")
                 return True;
+        print("Returning False. No points were occupied");
         return False;
     
     def findClosestUnoccupiedPoint(self, goal:Point) -> Tuple[Point, bool]:
@@ -138,8 +142,9 @@ class NavigationalListener:
         I_DELTAS = [0,-1,0,1];
         J_DELTAS = [-1,0,1,0];
         
+        print("Entering while loop");
         while True:
-            if self.grid(indices_to_look_at[index_in_indices]):
+            if self.grid[indices_to_look_at[index_in_indices]]:
                 x, y = self.coordinatesToPoint(*indices_to_look_at[index_in_indices]);
                 return Point(x, y, 0), False;
             
@@ -356,7 +361,7 @@ class SimpleNavigateState_v2(smach.State):
     RETRY_STAYED_IN_SAME_PLACE = 2;
     SUCCESS = 3;
 
-    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=3):
+    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
@@ -422,6 +427,7 @@ class SimpleNavigateState_v2(smach.State):
         i = 0;
         while (i < self.max_num_failure_repetitions):
             if i > 0:
+                nav_listener.getOccupancyMap();
                 new_goal, old_goal_fine = nav_listener.findClosestUnoccupiedPoint(target_pose.position);
                 if old_goal_fine:
                     print("Old goal was fine");
@@ -434,7 +440,7 @@ class SimpleNavigateState_v2(smach.State):
             rospy.loginfo('status = ' + str(status))
             if status == self.SUCCESS:
                 return SUCCESS;
-            elif status == self.RETRY:
+            else:
                 i += 1;
             
         return NAVIGATIONAL_FAILURE;
@@ -943,8 +949,8 @@ def testNavigationalListener():
 def testNavigationalFallback():
     goal = Pose();
     
-    goal.position.x = 2.62;
-    goal.position.y = 0.36;
+    goal.position.x = 3;
+    goal.position.y = 1;
     goal.position.z = 0;
     goal.orientation.x = 0;
     goal.orientation.y = 0;
@@ -960,7 +966,7 @@ def testNavigationalFallback():
             SimpleNavigateState_v2(execute_nav_commands=True),
             transitions={
                 SUCCESS:SUCCESS,
-                FAILURE:FAILURE});
+                NAVIGATIONAL_FAILURE:FAILURE});
         pass;
     
     sub_sm.execute();
