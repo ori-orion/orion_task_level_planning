@@ -18,6 +18,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 
 import math;
+from typing import Tuple, List;
 
 import nav_msgs.msg;
 
@@ -107,16 +108,18 @@ class NavigationalListener:
                 return True;
         return False;
     
-    def findClosestUnoccupiedPoint(self, goal:Point) -> Point:
+    def findClosestUnoccupiedPoint(self, goal:Point) -> Tuple[Point, bool]:
         """
         We want to find the closest unoccupied point to the goal.
         We also want this point to be on this side of the obstacle.
+        self.getOccupancyMap() needs to be called just before this, but we don't want to call it multiple times.
+        
+        The second output is whether the original goal was fine or not.
+            True -> goal was fine.
         """
         
-        self.getOccupancyMap();
-        
-        if self.isPointOccupied(goal):
-            return goal;
+        if self.isPointOccupied(goal) == False:
+            return goal, True;
         
         def getDistBetweenIndices(i1:int, j1:int, i2:int, j2:int) -> float:
             return (i1-i2)**2 + (j1-j2)**2;
@@ -138,7 +141,7 @@ class NavigationalListener:
         while True:
             if self.grid(indices_to_look_at[index_in_indices]):
                 x, y = self.coordinatesToPoint(*indices_to_look_at[index_in_indices]);
-                return Point(x, y, 0);
+                return Point(x, y, 0), False;
             
             # Thus here we have to look at the neighbours of the current index s.t., these are closer to the current position than the goal.
             for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
@@ -401,6 +404,8 @@ class SimpleNavigateState_v2(smach.State):
 
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
+        
+        nav_listener = NavigationalListener();
 
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
@@ -416,13 +421,22 @@ class SimpleNavigateState_v2(smach.State):
 
         i = 0;
         while (i < self.max_num_failure_repetitions):
+            if i > 0:
+                new_goal, old_goal_fine = nav_listener.findClosestUnoccupiedPoint(target_pose.position);
+                if old_goal_fine:
+                    print("Old goal was fine");
+                else:
+                    print("Goal blocked. Recalculating goal.");
+                target_pose.position = new_goal;
+            
             rospy.loginfo('\t\tSending nav goal.');
             status = self.executeAction(goal, target_pose, initial_pose, userdata);
             rospy.loginfo('status = ' + str(status))
             if status == self.SUCCESS:
-                return SUCCESS
+                return SUCCESS;
             elif status == self.RETRY:
                 i += 1;
+            
         return NAVIGATIONAL_FAILURE;
 
 #TODO - make a topological localisation node
