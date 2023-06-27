@@ -155,6 +155,8 @@ def create_state_machine():
         sm.userdata.shelf_height_dict = {
             "heights":shelf_heights,
             "tf_names":shelf_names}
+        
+        use_hardcoded_shelves:bool = rospy.get_param('use_hardcoded_shelves');
     else:
         rospy.logwarn("shelves_hardcoded not found.")
 
