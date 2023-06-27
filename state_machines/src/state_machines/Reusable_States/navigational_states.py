@@ -940,13 +940,40 @@ def testNavigationalListener():
     NavigationalListener(listen_to_map=True);
     pass;
 
+def testNavigationalFallback():
+    goal = Pose();
+    
+    goal.position.x = 2.62;
+    goal.position.y = 0.36;
+    goal.position.z = 0;
+    goal.orientation.x = 0;
+    goal.orientation.y = 0;
+    goal.orientation.z = -0.821;
+    goal.orientation.w = 0.571;
+    
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm.userdata.pose = goal;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "Navigate",
+            SimpleNavigateState_v2(execute_nav_commands=True),
+            transitions={
+                SUCCESS:SUCCESS,
+                FAILURE:FAILURE});
+        pass;
+    
+    sub_sm.execute();
+    
+
 if __name__ == '__main__':
     rospy.init_node('listening_to_nav');
 
-    print("Pre testNavigationalListener");
-    testNavigationalListener();
+    # print("Pre testNavigationalListener");
+    # testNavigationalListener();
+    # print("testNavigationalListener setup");
 
-    print("testNavigationalListener setup");
+    testNavigationalFallback();
 
     # testOrientRobot();    
 
