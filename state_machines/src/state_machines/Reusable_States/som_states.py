@@ -444,6 +444,7 @@ class SOMOccupancyMap:
     OCCUPIED = 1;
     NOT_SUPPORTED = 2;
     OFF_THE_EDGE = 3;
+    GOAL_USING = 4;
 
     def __init__(self, grid_resolution=0.03, time_horizon=rospy.Duration) -> None:
         """
@@ -484,7 +485,7 @@ class SOMOccupancyMap:
         query_results_unflitered:List[SOMObject] = self.object_query_srv(query).returns;
         query_results_filtered:List[SOMObject] = [];
 
-        print(query_results_unflitered);
+        # print(query_results_unflitered);
 
         #region Filtering based on the criteria we set out in the inputs.
         current_pose = get_current_pose();
@@ -503,7 +504,7 @@ class SOMOccupancyMap:
             query_results_filtered.append(obj);
         #endregion
         
-        print(query_results_filtered);
+        # print(query_results_filtered);
 
         if len(query_results_filtered) == 0:
             raise Exception("No objects seen. Cannot form the occupancy map");
@@ -512,7 +513,7 @@ class SOMOccupancyMap:
         max_y = max_x = -math.inf;
         min_x = min_y = math.inf;
         for obj in query_results_filtered:
-            print(obj.obj_position.position);
+            # print(obj.obj_position.position);
             if obj.obj_position.position.x < min_x:
                 min_x = obj.obj_position.position.x;
             if obj.obj_position.position.x > max_x:
@@ -604,6 +605,10 @@ class SOMOccupancyMap:
         if best_pair[0] == None:
             return Point(), False;
         
+        self.occupancy_map[
+            best_pair[0]:best_pair[0]+index_i_width, 
+            best_pair[1]:best_pair[1]+index_j_width] = self.GOAL_USING;
+        
         best_pair = (best_pair[0]+half_i, best_pair[1]+half_j);
         best_coord = self.coordinatesToPoint( *best_pair );
         output = Point( x=best_coord[0], y=best_coord[1], z=self.mean_z_val );
@@ -611,12 +616,17 @@ class SOMOccupancyMap:
 
 
     def printGrid(self):
+        print("Begin map");
         grid_shape = self.occupancy_map.shape;
-        print(self.cell_resolution);
+        # print(self.cell_resolution);
         for i in range(grid_shape[0]):
             for j in range(grid_shape[1]):
-                print( "X" if self.occupancy_map[i,j]==self.OCCUPIED else " ", end="");
+                if self.occupancy_map[i,j]==self.OCCUPIED:
+                    print("X", end="");
+                else:
+                    print( "." if self.occupancy_map[i,j]==self.GOAL_USING else " ", end="");
             print();
+        print("End map");
         print();
 
 
@@ -996,7 +1006,10 @@ class CheckForNewGuestSeen(smach.State):
 def testSOMOccupancyMap():
     occupancy_map = SOMOccupancyMap();
     occupancy_map.createOccupancyMap(distance_criterion=3);
-    occupancy_map.findPlacementLocation(Point(0.2,0.2,0));
+    location, location_found = occupancy_map.findPlacementLocation(Point(0.25,0.25,0));
+    occupancy_map.printGrid();
+    print(location);
+    print(location_found);
     pass;
 
 if __name__ == "__main__":
