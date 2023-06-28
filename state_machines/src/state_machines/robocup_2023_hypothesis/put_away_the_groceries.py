@@ -414,7 +414,10 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'PutAwayObject',
-            nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=False, find_same_category=True),
+            nav_and_pick_up_or_place_next_to(
+                execute_nav_commands, pick_up=False, 
+                find_same_category=True, 
+                input_obj_size_for_place=True),
             transitions={
                 SUCCESS: 'IncreaseNumber',
                 FAILURE:TASK_FAILURE,
