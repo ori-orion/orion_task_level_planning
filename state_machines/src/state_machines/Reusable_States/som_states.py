@@ -10,10 +10,11 @@ from orion_actions.srv import *;
 import rospy;
 
 import math;
+import numpy as np;
 
 from geometry_msgs.msg import Pose, PoseStamped;
 
-from typing import List;
+from typing import List, Tuple;
 
 """
 Overall interface into SOM:
@@ -429,6 +430,180 @@ class FilterSOMResultsAsPer(smach.State):
                     output.append(element);
         userdata.som_query_results = output;
         return SUCCESS;
+
+
+
+class SOMOccupancyMap:
+    """
+    We have the locations of all the objects seen. We should be able to create an 
+    occupancy map of places and then work out viable placement locations based on that.
+    """
+
+    UNOCCUPIED = 0;
+    OCCUPIED = 1;
+    NOT_SUPPORTED = 2;
+    OFF_THE_EDGE = 3;
+
+    def __init__(self, grid_resolution=0.03, time_horizon=rospy.Duration) -> None:
+        """
+        Input args:
+            grid_resolution:float/m         : 
+            time_horizon:rospy.Duration     : The time horizon over which we are querying the SOM system.
+        """
+        self.occupancy_map_created = False;
+        self.occupancy_map = None;
+        self.cell_resolution = grid_resolution;
+        self.origin:Point = Point();
+        self.time_horizon = time_horizon;
+    
+        self.object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
+        
+    def coordinatesToPoint(self, i:int, j:int) -> tuple:
+        x = i*self.cell_resolution + self.origin.x;
+        y = j*self.cell_resolution + self.origin.y;
+        return x,y;
+    def pointToCoordinates(self, x:float, y:float) -> tuple:
+        i = (x-self.origin.x)/self.cell_resolution;
+        j = (y-self.origin.y)/self.cell_resolution;
+        return int(i),int(j);
+
+    def createOccupancyMap(self, min_z=None, max_z=None, ignore_categories:list=None, xy_buffer_width=0.3, distance_criterion=1):
+        """
+        Creates the occupancy map to work out locations that might work for placement options.
+        Input args:
+            min_z:float                 : Min z val below which we ignore.
+            max_z:float                 : Max z val above which we ignore.
+            ignore_categories:List[str] : There are likely to be categories that we want to ignore.
+            xy_buffer_width:float       : How much wider do we want the space.
+        """
+        query = SOMQueryObjectsRequest();
+        query_results_unflitered:List[SOMObject] = self.object_query_srv(query).returns;
+        query_results_filtered:List[SOMObject] = [];
+
+        #region Filtering based on the criteria we set out in the inputs.
+        current_pose = get_current_pose();
+        for obj in query_results_unflitered:
+            if obj.obj_position.position.z < min_z or obj.obj_position.position.z > max_z:
+                continue;
+            if obj.category in ignore_categories:
+                continue;
+            if distance_between_poses(obj.obj_position, current_pose) > distance_criterion:
+                continue;
+
+            query_results_filtered.append(obj);
+        #endregion
+
+        if len(query_results_filtered):
+            raise Exception("No objects seen. Cannot form the occupancy map");
+
+        #region Getting the range of inputs.
+        max_y = max_x = -math.inf;
+        min_x = min_y = math.inf;
+        for obj in query_results_filtered:
+            if obj.obj_position.position.x < min_x:
+                min_x = obj.obj_position.position.x;
+            if obj.obj_position.position.x > max_x:
+                max_x = obj.obj_position.position.x;
+            if obj.obj_position.position.y < min_y:
+                min_y = obj.obj_position.position.y;
+            if obj.obj_position.position.y > max_y:
+                max_y = obj.obj_position.position.y;
+        self.origin = Point( min_x-xy_buffer_width, min_y-xy_buffer_width );
+        #endregion
+
+        occupancy_grid_shape = self.pointToCoordinates(max_x+xy_buffer_width, max_y+xy_buffer_width);
+        self.occupancy_map = np.full( occupancy_grid_shape, self.UNOCCUPIED, dtype=int );
+
+        #region Filling out the occupancy map. Working out the mean z value.
+        z_val_sum = 0;
+        for obj in query_results_filtered:
+            z_val_sum += obj.obj_position.position.z;
+
+            min_i, min_j = self.pointToCoordinates(
+                obj.obj_position.position.x-obj.size.x,
+                obj.obj_position.position.y-obj.size.y);
+            max_i, max_j = self.pointToCoordinates(
+                obj.obj_position.position.x+obj.size.x,
+                obj.obj_position.position.y+obj.size.y);
+        
+            self.occupancy_map[ min_i:max_i+1, min_j:max_j+1 ] = self.OCCUPIED;
+        self.mean_z_val = z_val_sum/len(query_results_filtered);
+        #endregion
+
+        self.printGrid();
+        pass;
+        
+    
+    def findPlacementLocation(self, obj_size:Point) -> Tuple[Point, bool]:
+        """
+        Finds a location to place an object of obj_size. 
+        Returns:
+            Point   : The placement location.
+            bool    : Whether a placement location was found.
+        """
+        HAND_HALF_WIDTH = 0.05;
+
+        index_i_width = (obj_size.x + HAND_HALF_WIDTH*2) / self.cell_resolution;
+        index_j_width = (obj_size.y + HAND_HALF_WIDTH*2) / self.cell_resolution;
+        half_i = int(index_i_width/2);
+        half_j = int(index_j_width/2);
+        occupancy_map_shape = self.occupancy_map.shape();
+
+        def checkLocFree(i,j) -> Tuple[int, int]:
+            """
+            Checks to see if a given index is free. 
+            Note that this looks from the bottomm left corner!
+            Returns:
+                output[0] : The enum for which it is.
+                output[1] : The number of not unoccupied spaces there are.
+            """
+            if i < 0 or j < 0 or i+index_i_width >= occupancy_map_shape[0] or j+index_j_width >= occupancy_map_shape[1]:
+                return self.OFF_THE_EDGE, 0;
+        
+            # If every space is UNOCCUPIED, then return self.UNOCCUPIED.
+            not_unoccupied:np.ndarray = (self.occupancy_map[i:i+index_i_width, j:j+index_j_width] != self.UNOCCUPIED);
+            not_unoccupied_sum = np.sum(not_unoccupied);
+            if not_unoccupied_sum == 0:
+                return self.UNOCCUPIED, not_unoccupied_sum;
+            return self.OCCUPIED, not_unoccupied_sum;
+    
+        ideal_i, ideal_j = int(occupancy_map_shape[0]/2), int(occupancy_map_shape[1]/2);
+        def iDist(i,j):
+            return (i-ideal_i)**2 + (j-ideal_j)**2;
+
+        spaces_to_try_shape = (occupancy_map_shape-index_i_width, occupancy_map_shape-index_j_width);
+        
+        # Now all we need is some way of checking the entire map.
+        
+        best_pair = (None, None);
+        best_score = math.inf;
+        for i in range(spaces_to_try_shape[0]):
+            for j in range(spaces_to_try_shape[1]):
+                is_free, num_occupied = checkLocFree(i,j);
+                i_distance = iDist(i,j);
+                if is_free == self.UNOCCUPIED and i_distance < best_score:
+                    best_pair = (i,j);
+                    best_score = i_distance;
+        
+        if best_pair[0] == None:
+            return Point(), False;
+        
+        best_pair = (best_pair[0]+half_i, best_pair[1]+half_j);
+        best_coord = self.coordinatesToPoint( *best_pair );
+        output = Point( x=best_coord[0], y=best_coord[1], z=self.mean_z_val );
+        return output, True;
+
+
+    def printGrid(self):
+        grid_shape = self.occupancy_map.shape;
+        print(self.cell_resolution);
+        for i in range(grid_shape[0]):
+            for j in range(grid_shape[1]):
+                print( "X" if self.occupancy_map[i,j]==self.OCCUPIED else " " );
+            print();
+        print();
+
+
 
 
 class SaveOperatorToSOM(smach.State):
