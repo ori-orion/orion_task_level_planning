@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from state_machines.Reusable_States.utils import *;
 from state_machines.Reusable_States.procedural_states import *;
 from state_machines.Reusable_States.misc_states import *;
@@ -476,25 +477,35 @@ class SOMOccupancyMap:
             ignore_categories:List[str] : There are likely to be categories that we want to ignore.
             xy_buffer_width:float       : How much wider do we want the space.
         """
+        if ignore_categories == None:
+            ignore_categories = [];
+        
         query = SOMQueryObjectsRequest();
         query_results_unflitered:List[SOMObject] = self.object_query_srv(query).returns;
         query_results_filtered:List[SOMObject] = [];
+
+        print(query_results_unflitered);
 
         #region Filtering based on the criteria we set out in the inputs.
         current_pose = get_current_pose();
         for obj in query_results_unflitered:
             if min_z != None and max_z != None:
                 if obj.obj_position.position.z < min_z or obj.obj_position.position.z > max_z:
+                    print("Ignoring obj of class by z val", obj.class_, obj.category);
                     continue;
             if obj.category in ignore_categories:
+                print("Ignoring obj of class by category", obj.class_, obj.category);
                 continue;
             if distance_between_poses(obj.obj_position, current_pose) > distance_criterion:
+                print("Ignoring obj of class by distance", obj.class_, obj.category);
                 continue;
 
             query_results_filtered.append(obj);
         #endregion
+        
+        print(query_results_filtered);
 
-        if len(query_results_filtered):
+        if len(query_results_filtered) == 0:
             raise Exception("No objects seen. Cannot form the occupancy map");
 
         #region Getting the range of inputs.
@@ -546,11 +557,11 @@ class SOMOccupancyMap:
         """
         HAND_HALF_WIDTH = 0.05;
 
-        index_i_width = (obj_size.x + HAND_HALF_WIDTH*2) / self.cell_resolution;
-        index_j_width = (obj_size.y + HAND_HALF_WIDTH*2) / self.cell_resolution;
+        index_i_width = int((obj_size.x + HAND_HALF_WIDTH*2) / self.cell_resolution);
+        index_j_width = int((obj_size.y + HAND_HALF_WIDTH*2) / self.cell_resolution);
         half_i = int(index_i_width/2);
         half_j = int(index_j_width/2);
-        occupancy_map_shape = self.occupancy_map.shape();
+        occupancy_map_shape = self.occupancy_map.shape;
 
         def checkLocFree(i,j) -> Tuple[int, int]:
             """
@@ -574,7 +585,9 @@ class SOMOccupancyMap:
         def iDist(i,j):
             return (i-ideal_i)**2 + (j-ideal_j)**2;
 
-        spaces_to_try_shape = (occupancy_map_shape-index_i_width, occupancy_map_shape-index_j_width);
+        spaces_to_try_shape = (
+            occupancy_map_shape[0]-index_i_width, 
+            occupancy_map_shape[1]-index_j_width);
         
         # Now all we need is some way of checking the entire map.
         
@@ -602,7 +615,7 @@ class SOMOccupancyMap:
         print(self.cell_resolution);
         for i in range(grid_shape[0]):
             for j in range(grid_shape[1]):
-                print( "X" if self.occupancy_map[i,j]==self.OCCUPIED else " " );
+                print( "X" if self.occupancy_map[i,j]==self.OCCUPIED else " ", end="");
             print();
         print();
 
@@ -978,3 +991,14 @@ class CheckForNewGuestSeen(smach.State):
             else:
                 rospy.loginfo("No new guest not found yet")
                 rospy.sleep(2)
+
+
+def testSOMOccupancyMap():
+    occupancy_map = SOMOccupancyMap();
+    occupancy_map.createOccupancyMap(distance_criterion=3);
+    occupancy_map.findPlacementLocation(Point(0.2,0.2,0));
+    pass;
+
+if __name__ == "__main__":
+    rospy.init_node('test_som_occupancy_map');
+    testSOMOccupancyMap();
