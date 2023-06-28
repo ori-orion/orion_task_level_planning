@@ -1,7 +1,7 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: true
+execute_navigation_commands: false
 
 # For putting down objects next to others
 find_placement_options : {

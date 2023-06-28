@@ -102,11 +102,14 @@ class NavigationalListener:
         
         delta = 2;
         
+        grid_shape = self.grid.shape;
+
         for i_delta in range(-delta,delta+1):
             for j_delta in range(-delta,delta+1):
-                if self.grid[i+i_delta, j+j_delta]:
-                    print("returning True. Point occupied")
-                    return True;
+                if i+i_delta >= 0 and i+i_delta<grid_shape[0] and j+j_delta>=0 and j+j_delta<grid_shape[1]:
+                    if self.grid[i+i_delta, j+j_delta]:
+                        print("returning True. Point occupied")
+                        return True;
         print("Returning False. No points were occupied");
         return False;
         

@@ -34,6 +34,8 @@ def sub_state_machine_pick_up_and_put_away():
     sm.userdata.pick_up_class = "apple";
     sm.userdata.place_next_to_class = "bottle";
 
+    
+
     with sm:
         # smach.StateMachine.add(
         #    'Startup',

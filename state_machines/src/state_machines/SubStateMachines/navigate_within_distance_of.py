@@ -481,7 +481,7 @@ def nav_and_pick_up_or_place_next_to(
                 "PlaceObj",
                 PlaceNextTo(
                     dims=dims, max_height=height, radius=radius,
-                    input_obj_size_for_place=input_obj_size_for_place,
+                    input_put_down_obj_size=input_obj_size_for_place,
                     take_shelf_heights_as_input=input_hardcoded_shelf_for_placement),
                 transitions={
                     SUCCESS:SUCCESS,
