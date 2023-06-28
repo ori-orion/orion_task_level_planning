@@ -17,6 +17,49 @@ import actionlib;
 
 from state_machines.SubStateMachines.include_all import *;
 
+
+class findPlacementLocationBackup(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS, FAILURE, MANIPULATION_FAILURE],
+            input_keys=['put_down_size'],
+            output_keys=[]);
+
+    def execute(self, userdata):
+        print("Creating the occupancy map.")
+        occupancy_map = SOMOccupancyMap(time_horizon=rospy.Duration(5));
+        occupancy_map.createOccupancyMap(ignore_categories=["unknown"]);
+        print("Finding a placement location");
+        loc, location_found = occupancy_map.findPlacementLocation(userdata.put_down_size);
+        
+        if location_found==False:
+            return FAILURE;
+
+        tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+        TF_NAME = "placement_location_backup";
+
+        transform = geometry_msgs.msg.TransformStamped();
+        transform.transform.translation = loc;
+        transform.transform.rotation.w = 1;
+        transform.header.stamp = rospy.Time.now();
+        transform.header.frame_id = GLOBAL_FRAME;
+        transform.child_frame_id = TF_NAME;
+        tf_broadcaster.sendTransform([transform]);
+
+        for i in range(3):
+            put_down_goal = PutObjectOnSurfaceGoal();
+            put_down_goal.goal_tf = TF_NAME;
+            put_down_goal.drop_object_by_metres = 0.03;
+            put_down_goal.object_half_height = userdata.put_down_size.z;
+            success = putObjOnSurfaceAction(put_down_goal);
+
+            if success:
+                return SUCCESS;
+    
+        return MANIPULATION_FAILURE;
+
+
+
 def sub_state_machine_pick_up_and_put_away():
 
     sm = smach.StateMachine(
