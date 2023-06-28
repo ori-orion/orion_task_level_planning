@@ -417,6 +417,7 @@ class FilterSOMResultsAsPer(smach.State):
 
     def execute(self, userdata):
         som_query_results = userdata.som_query_results;
+        userdata.som_query_results_old = som_query_results;
         filtering_by:list = userdata.filtering_by;
         output = [];
         for element in som_query_results:
