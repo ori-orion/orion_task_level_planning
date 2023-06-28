@@ -483,8 +483,9 @@ class SOMOccupancyMap:
         #region Filtering based on the criteria we set out in the inputs.
         current_pose = get_current_pose();
         for obj in query_results_unflitered:
-            if obj.obj_position.position.z < min_z or obj.obj_position.position.z > max_z:
-                continue;
+            if min_z != None and max_z != None:
+                if obj.obj_position.position.z < min_z or obj.obj_position.position.z > max_z:
+                    continue;
             if obj.category in ignore_categories:
                 continue;
             if distance_between_poses(obj.obj_position, current_pose) > distance_criterion:
