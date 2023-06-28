@@ -152,7 +152,7 @@ class LookAtPoint(smach.State):
     Inputs:
         pose:Pose   The point to look at in 3D space.
     """
-    def __init__(self, z_looking_at = 1.3, set_head_to_neutral:bool=False):
+    def __init__(self, z_looking_at = 1.3, set_head_to_neutral:bool=False, wait_duration_afterwards:rospy.Duration=rospy.Duration(0)):
         """
         Inputs:
             z_looking_at: Gives the z-parameter. If None, then it will take it from userdata.pose.
@@ -167,6 +167,7 @@ class LookAtPoint(smach.State):
 
         self.z_looking_at = z_looking_at;
         self.set_head_to_neutral = set_head_to_neutral;
+        self.wait_duration = wait_duration_afterwards;
     
     def execute(self, userdata):
         pose:Pose = userdata.pose;
@@ -194,6 +195,8 @@ class LookAtPoint(smach.State):
 
         if self.set_head_to_neutral:
             self.whole_body.move_to_joint_positions({'head_tilt_joint':0})
+
+        rospy.sleep(self.wait_duration);
         
         return SUCCESS;
 

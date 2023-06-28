@@ -188,7 +188,8 @@ def create_state_machine():
                 'put_down_category',
                 'som_query_results',
                 'tf_name',
-                'put_down_size'
+                'put_down_size',
+                'obj_pose'
             ]);
         
         with sub_sm:
@@ -272,7 +273,7 @@ def create_state_machine():
             """
             smach.StateMachine.add(
                 'GetObjectToPickUp',
-                GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name', 'size'], index=0),
+                GetPropertyAtIndex(properties_getting=['class_', 'category', 'tf_name', 'size', 'obj_position'], index=0),
                 transitions={
                     SUCCESS:'TellOperatorClassCategory',
                     'index_out_of_range':'ClearTfNameFilter'},
@@ -280,7 +281,8 @@ def create_state_machine():
                     'input_list':'som_query_results',
                     'class_':'pick_up_object_class',
                     'category':'put_down_category',
-                    'size':'put_down_size'});
+                    'size':'put_down_size',
+                    'obj_position':'obj_pose'});
             
             smach.StateMachine.add(
                 'TellOperatorClassCategory',
@@ -320,8 +322,15 @@ def create_state_machine():
             'PerformSOMAtTable',
             performSOMQueryAtTable(),
             transitions={
-                'PickUpObj':'PickUpObj',
+                'PickUpObj':'LookAtObj',
                 FAILURE:TASK_FAILURE});
+        
+        smach.StateMachine.add(
+            'LookAtObj',
+            LookAtPoint(wait_duration_afterwards=rospy.Duration(0.5)),
+            remapping={'pose':'obj_pose'},
+            transitions={
+                SUCCESS:'PickUpObj'});
 
         smach.StateMachine.add(
             'PickUpObj',
