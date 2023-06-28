@@ -18,7 +18,7 @@ import actionlib;
 from state_machines.SubStateMachines.include_all import *;
 
 
-class findPlacementLocationBackup(smach.State):
+class FindPlacementLocationBackup(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
             outcomes=[SUCCESS, FAILURE, MANIPULATION_FAILURE],
@@ -419,9 +419,17 @@ def create_state_machine():
                 SUCCESS: 'IncreaseNumber',
                 FAILURE:TASK_FAILURE,
                 'query_empty':TASK_FAILURE,
-                MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
+                MANIPULATION_FAILURE:'PlacementBackup'},
             remapping={'obj_type':'put_down_category'})
         
+        smach.StateMachine.add(
+            'PlacementBackup',
+            FindPlacementLocationBackup(),
+            transitions={
+                SUCCESS:'IncreaseNumber',
+                FAILURE:TASK_FAILURE,
+                MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'})
+
         smach.StateMachine.add(
             'AppendTfNameToTfNameFilter',
             AppendToArrState(),
