@@ -436,8 +436,19 @@ class FilterSOMResultsAsPer(smach.State):
 
 class SOMOccupancyMap:
     """
-    We have the locations of all the objects seen. We should be able to create an 
+    We have the locations of all the objects seen through SOM. We should be able to create an 
     occupancy map of places and then work out viable placement locations based on that.
+    
+    This class looks at everything seen within a certain time frame, and, using the sizes of all the objects,
+    creates an occupancy map. This occupancy map is then used to find free space which can be used to find
+    placement options. 
+    
+    There is then a class within robocup_2023_hypothesis/put_away_the_groceries.py called 
+    FindPlacementLocationBackup that uses this to find a new placement location and then 
+    put something down at this location. 
+    
+    This class, while not configured for humans, could also be used to find free space on a 
+    couch (for example). 
     """
 
     UNOCCUPIED = 0;
@@ -446,7 +457,7 @@ class SOMOccupancyMap:
     OFF_THE_EDGE = 3;
     GOAL_USING = 4;
 
-    def __init__(self, grid_resolution=0.03, time_horizon=rospy.Duration) -> None:
+    def __init__(self, grid_resolution=0.03, time_horizon:rospy.Duration=None) -> None:
         """
         Input args:
             grid_resolution:float/m         : 
@@ -456,7 +467,7 @@ class SOMOccupancyMap:
         self.occupancy_map = None;
         self.cell_resolution = grid_resolution;
         self.origin:Point = Point();
-        self.time_horizon = time_horizon;
+        self.time_horizon:rospy.Duration = time_horizon;
     
         self.object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', SOMQueryObjects);
         
@@ -482,6 +493,8 @@ class SOMOccupancyMap:
             ignore_categories = [];
         
         query = SOMQueryObjectsRequest();
+        if self.time_horizon != None:
+            query.query.last_observed_at = rospy.Time.now() - self.time_horizon;
         query_results_unflitered:List[SOMObject] = self.object_query_srv(query).returns;
         query_results_filtered:List[SOMObject] = [];
 
@@ -1005,7 +1018,9 @@ class CheckForNewGuestSeen(smach.State):
 
 def testSOMOccupancyMap():
     occupancy_map = SOMOccupancyMap();
-    occupancy_map.createOccupancyMap(distance_criterion=3);
+    occupancy_map.createOccupancyMap(
+        ignore_categories=["unknown"],
+        distance_criterion=3);
     location, location_found = occupancy_map.findPlacementLocation(Point(0.25,0.25,0));
     occupancy_map.printGrid();
     print(location);
