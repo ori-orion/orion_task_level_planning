@@ -361,6 +361,8 @@ class SimpleNavigateState_v2(smach.State):
 
     This state is given a pose and navigates there.
     If the robot stays in the same place for more than a second, then assume failed nav.
+    If the navigation has failed, we will check to see if the goal location is blocked, and 
+    then nav to a second location. 
 
     input_keys:
         pose: pose for the robot to navigate to
