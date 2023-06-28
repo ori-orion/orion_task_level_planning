@@ -119,7 +119,6 @@ class PickUpObjectState(smach.State):
             rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
             
 
-
 class PickUpObjectState_v2(smach.State):
     """
     Second iteration for picking up an object.
@@ -288,6 +287,7 @@ def putObjOnSurfaceAction(goal:PutObjectOnSurfaceGoal=None):
 
     return put_on_surface_action.get_result().result;
 
+
 class PutObjectOnSurfaceState(smach.State):
     """ Smach state for putting object on a surface in front of the robot.
 
@@ -343,6 +343,7 @@ def getPlacementOptions(
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
+
 class PlaceNextTo(smach.State):
     """
     Inputs:
@@ -368,7 +369,7 @@ class PlaceNextTo(smach.State):
     """
     def __init__(
         self, dims, max_height, 
-        radius, num_candidates=8, 
+        radius, num_candidates=16, 
         num_repeats=3, input_put_down_obj_size=False,
         take_shelf_heights_as_input=False):
         

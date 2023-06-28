@@ -8,7 +8,7 @@ find_placement_options : {
     # Looks for a plane height meters below the point given. This should thus probably be like 20cm max.
     height : 0.2,
     # Looks for placement options radius away
-    radius : 0.15,
+    radius : 0.1,
     # Assumes the object is dims in dimension.
     dims : [0.05, 0.05, 0.02]
 }
