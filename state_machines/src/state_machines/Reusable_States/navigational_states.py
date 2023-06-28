@@ -435,11 +435,11 @@ class SimpleNavigateState_v2(smach.State):
             return self.RETRY;
     
     def execute(self, userdata):
-        if self.execute_nav_commands == False:
-            return SUCCESS;
-
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
+
+        if self.DISTANCE_SAME_PLACE_THRESHOLD < distance_between_poses(initial_pose, target_pose) and self.execute_nav_commands == False:
+            return SUCCESS;
         
         nav_listener = NavigationalListener();
 
