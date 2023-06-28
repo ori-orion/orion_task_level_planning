@@ -148,7 +148,7 @@ class PickUpObjectState_v2(smach.State):
     Does none of the tf searching that the first iteration did.
     """
     # If the gripper is more closed than this, we will say it has not actually picked anything up.
-    GRIPPER_DISTANCCE_THRESHOLD = 0.01;
+    GRIPPER_DISTANCCE_THRESHOLD = 0.001;
 
     def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
                 wait_upon_completion=rospy.Duration(5)):
