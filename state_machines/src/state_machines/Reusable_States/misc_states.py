@@ -322,6 +322,20 @@ class SpinState(smach.State):
 
         return SUCCESS;
 
+
+class ExplicitRemap(smach.State):
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes = [SUCCESS],
+            input_keys=['in_key'], 
+            output_keys=['out_key']);
+    
+    def execute(self, userdata):
+        userdata.out_key = userdata.in_key;
+        return SUCCESS;
+
+
 class CreateGuestAttributesDict(smach.State):
     """ Smach state to build the guest attributes dictionary from userdata values.
 
@@ -603,3 +617,4 @@ class AnnounceGuestDetailsToOperator(smach.State):
         #     call_talk_request_action_server(phrase=talk_phrase)
 
         return SUCCESS
+

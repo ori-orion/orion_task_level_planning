@@ -293,6 +293,13 @@ def create_state_machine():
                 transitions={SUCCESS:'SortListInput_2'},
                 remapping={'setting':'filter_tf_names_out'});
             smach.StateMachine.add(
+                'ExplicitRemap',
+                ExplicitRemap(),
+                transitions={SUCCESS:'SortListInput_2'},
+                remapping={
+                    'in_key':'som_query_results_old',
+                    'out_key':'som_query_results_old_1'})       # I think this is actually necessary given the use of som_query_results_out twice below.
+            smach.StateMachine.add(
                 'SortListInput_2',
                 SortSOMResultsAsPer(
                     'category', 
@@ -304,7 +311,7 @@ def create_state_machine():
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'CreateTableQuery'},
                 remapping={
-                    'som_query_results':'som_query_results_old',
+                    'som_query_results':'som_query_results_old_1',
                     'som_query_results_out':'som_query_results'});
 
             """
