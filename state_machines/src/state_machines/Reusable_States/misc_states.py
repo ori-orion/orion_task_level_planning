@@ -244,6 +244,16 @@ class RaiseMastState(smach.State):
         if mast_height == 0:
             return SUCCESS;
 
+        userdata.body_rotated = False;
+        self.whole_body.move_to_joint_positions({
+            'arm_lift_joint':mast_height,
+            'arm_flex_joint':-100*math.pi/180,
+            'head_pan_joint':0,
+            'head_tilt_joint':-math.pi/6,
+            'wrist_flex_joint':0});
+        return SUCCESS;
+    
+        # The code for rotating the body as well.
         if self.rotate_body:
             BASE_ROTATION = math.pi/2;
             self.whole_body.move_to_neutral();
