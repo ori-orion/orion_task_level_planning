@@ -447,8 +447,8 @@ class PlaceNextTo(smach.State):
             
             print("Getting placement options around {0}".format(first_response.tf_name));
             
-            print(place_locations);
-            print(best_tf);
+            print("\t", place_locations);
+            print("\t", best_tf);
 
             if len(best_tf) == 0:
                 self.speakPhrase("No placement options were found. Retrying.");
@@ -466,6 +466,7 @@ class PlaceNextTo(smach.State):
                 goal.drop_object_by_metres = 0.03;
                 if self.input_put_down_obj_size:
                     goal.object_half_height = obj_size.z/2
+                    print("\tSetting obj_half_height to {0}".format(goal.object_half_height));
                 success = putObjOnSurfaceAction(goal);
                 if success:
                     return SUCCESS
