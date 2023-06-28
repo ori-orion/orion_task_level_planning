@@ -18,37 +18,182 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 
 import math;
+from typing import Tuple, List;
 
 import nav_msgs.msg;
 
 
 class NavigationalListener:
 
-    def __init__(self, listen_to:str = "/base_path_planner/inflated_static_obstacle_map"):
-        rospy.Subscriber(
-            listen_to,
-            nav_msgs.msg.GridCells,
-            self.occupancyMapCallback);
+    def __init__(self, listen_to:str="/dynamic_obstacle_map", listen_to_map:bool=False):
+        # /base_path_planner/inflated_static_obstacle_map -> nav_msgs.msg.GridCells
+        # /dynamic_obstacle_map -> nav_msgs/OccupancyGrid
+        if listen_to_map:
+            print("Initialising subscriber");
+            rospy.Subscriber(
+                listen_to,
+                nav_msgs.msg.OccupancyGrid,
+                self.occupancyGridCallback);
 
-        self.most_recent_map = None;
+        self.most_recent_grid_cells = None;
+        self.listen_to = listen_to;
+        self.map_bounds = None;
+        self.grid:np.ndarray = None;
+        
+    
+    def getOccupancyMap(self) -> nav_msgs.msg.OccupancyGrid:
+        data:nav_msgs.msg.OccupancyGrid = rospy.wait_for_message(self.listen_to, nav_msgs.msg.OccupancyGrid);
+        self.processOccupancyGrid(data);
+        return self.grid;
+        
 
-    def occupancyMapCallback(self, data:nav_msgs.msg.GridCells):
+    def processOccupancyGrid(self, data:nav_msgs.msg.OccupancyGrid):
+        grid_np_int = np.asarray(data.data);
+        print(np.unique(grid_np_int));
+        grid_np_int = grid_np_int.reshape((data.info.height, data.info.width));
+        self.grid = (grid_np_int >= 1);
+        self.cell_resolution = data.info.resolution;
+        self.origin = data.info.origin;
+
+
+        
+    def occupancyGridCallback(self, data:nav_msgs.msg.OccupancyGrid):
+        print(data.info);
+        print(len(data.data));
+        self.processOccupancyGrid(data);
+        
+        print(self.grid);
+        
+        self.printGrid();
+        pass;
+
+    def coordinatesToPoint(self, i:int, j:int) -> tuple:
+        x = i*self.cell_resolution + self.origin.position.x;
+        y = j*self.cell_resolution + self.origin.position.y;
+        return x,y;
+    def pointToCoordinates(self, x:float, y:float) -> tuple:
+        i = (x-self.origin.position.x)/self.cell_resolution;
+        j = (y-self.origin.position.y)/self.cell_resolution;
+        return int(i),int(j);
+    
+    def printGrid(self):
+        RADIUS_AWAY = 0.2;
+        grid_shape = self.grid.shape;
+        current_position = get_current_pose().position;
+        print(self.cell_resolution);
+        for i in range(grid_shape[0]-1, -1, -1):
+            for j in range(grid_shape[1]):
+                x,y = self.coordinatesToPoint(i,j);
+                if distance_between_points(current_position, Point(x, y,0)) < RADIUS_AWAY:
+                    print(".", end="");
+                elif self.grid[i, j]:
+                    print("X", end="");
+                else:
+                    print(" ", end="");
+            print();
+        print();
+        
+    def isPointOccupied(self, point:Point) -> bool:
+        """
+        Search the grid around point for an occupied cell.
+        If one is found, return True.
+        """
+        i,j = self.pointToCoordinates(point.x, point.y);
+        
+        delta = 2;
+        
+        for i_delta in range(-delta,delta+1):
+            for j_delta in range(-delta,delta+1):
+                if self.grid[i+i_delta, j+j_delta]:
+                    print("returning True. Point occupied")
+                    return True;
+        print("Returning False. No points were occupied");
+        return False;
+        
+        # Old code:
+        I_DELTAS = [0,0,1,0,-1];
+        J_DELTAS = [0,1,0,-1,0];
+        
+        for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
+            print(i+i_delta, j+j_delta);
+            print(self.grid[i+i_delta, j+j_delta]);
+            if self.grid[i+i_delta, j+j_delta]:
+                print("returning True. Point occupied")
+                return True;
+        print("Returning False. No points were occupied");
+        return False;
+    
+    def findClosestUnoccupiedPoint(self, goal:Point) -> Tuple[Point, bool]:
+        """
+        We want to find the closest unoccupied point to the goal.
+        We also want this point to be on this side of the obstacle.
+        self.getOccupancyMap() needs to be called just before this, but we don't want to call it multiple times.
+        
+        The second output is whether the original goal was fine or not.
+            True -> goal was fine.
+        """
+        
+        if self.isPointOccupied(goal) == False:
+            return goal, True;
+        
+        def getDistBetweenIndices(i1:int, j1:int, i2:int, j2:int) -> float:
+            return (i1-i2)**2 + (j1-j2)**2;
+        
+        current_position = get_current_pose().position;
+        current_i, current_j = self.pointToCoordinates(current_position.x, current_position.y);
+        goal_i, goal_j = self.pointToCoordinates(goal.x, goal.y);
+        
+        index_in_indices = 0;
+        indices_to_look_at = [(goal_i, goal_j)];
+        distance_criterion = getDistBetweenIndices(current_i, current_j, goal_i, goal_j);        
+        
+        indices_looked_at = np.full(self.grid.shape, False);
+        indices_looked_at[indices_looked_at[0]] = True;
+        
+        I_DELTAS = [0,-1,0,1];
+        J_DELTAS = [-1,0,1,0];
+        
+        print("Entering while loop");
+        while len(indices_to_look_at) > index_in_indices:
+            if self.grid[indices_to_look_at[index_in_indices]]:
+                x, y = self.coordinatesToPoint(*indices_to_look_at[index_in_indices]);
+                return Point(x, y, 0), False;
+            
+            # Thus here we have to look at the neighbours of the current index s.t., these are closer to the current position than the goal.
+            for i_delta, j_delta in zip(I_DELTAS, J_DELTAS):
+                trial_index:tuple = (indices_to_look_at[index_in_indices][0]+i_delta, indices_to_look_at[index_in_indices][1]+j_delta);
+                if (not indices_looked_at[trial_index]) and getDistBetweenIndices(current_i, current_j, trial_index[0], trial_index[1]) < distance_criterion:
+                       indices_looked_at[trial_index] = True;
+                       indices_to_look_at.append(trial_index);
+            
+            index_in_indices += 1;
+        
+        return goal, False;
+        
+    #region Deprecated
+    # Deprecated.
+    def gridCellsCallback(self, data:nav_msgs.msg.GridCells):
         print("Nav callback:")
         print("\theader      = ", data.header);
         print("\tcell_width  = ", data.cell_width);
         print("\tcell_height = ", data.cell_height);
         print("\tlen(cells)  = ", len(data.cells));
 
-        self.most_recent_map = data;
-
+        self.most_recent_grid_cells = data;
+        
+        self.getMapBounds();
+        self.getGrid();
+        self.printGrid();
+    
+    # Deprecated
     def isPointOccluded(self, point:Point) -> bool:
-        if self.most_recent_map == None:
+        if self.most_recent_grid_cells == None:
             return True;
 
-        w = self.most_recent_map.cell_width;
-        h = self.most_recent_map.cell_height;
+        w = self.most_recent_grid_cells.cell_width;
+        h = self.most_recent_grid_cells.cell_height;
         
-        for point_cell in self.most_recent_map.cells:
+        for point_cell in self.most_recent_grid_cells.cells:
             point_cell:Point;
 
             # Assuming a 2D map.
@@ -56,6 +201,49 @@ class NavigationalListener:
                 return True;
         
         return False;
+    
+    # Deprecated
+    def getMapBounds(self) -> tuple:
+        if self.most_recent_grid_cells == None:
+            return None;
+
+        min_x = math.inf;
+        min_y = math.inf;
+        max_x = -math.inf;
+        max_y = -math.inf;
+
+        for point_cell in self.most_recent_grid_cells.cells:
+            point_cell:Point;
+
+            min_x = min(min_x, point_cell.x);
+            min_y = min(min_y, point_cell.y);
+            max_x = max(max_x, point_cell.x);
+            max_y = max(max_y, point_cell.y);
+            
+        self.map_bounds = (min_x, min_y, max_x, max_y);
+
+        return self.map_bounds;
+    
+    # Deprecated
+    def getGrid(self):
+        if self.map_bounds == None:
+            self.getMapBounds();
+            
+        min_x, min_y, max_x, max_y = self.map_bounds;
+        w = self.most_recent_grid_cells.cell_width;
+        h = self.most_recent_grid_cells.cell_height;
+        self.grid = np.full((int((max_x-min_x)/w) + 2, int((max_y-min_y)/h) + 2), False);
+        
+        for point_cell in self.most_recent_grid_cells.cells:
+            point_cell:Point;
+
+            x = int((point_cell.x - min_x)/w);
+            y = int((point_cell.y - min_y)/h);
+
+            self.grid[x, y] = True;
+            
+        return self.grid;
+    #endregion
 
 
 
@@ -186,7 +374,7 @@ class SimpleNavigateState_v2(smach.State):
     RETRY_STAYED_IN_SAME_PLACE = 2;
     SUCCESS = 3;
 
-    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=3):
+    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
@@ -195,6 +383,23 @@ class SimpleNavigateState_v2(smach.State):
 
         self.execute_nav_commands = execute_nav_commands;
         self.max_num_failure_repetitions = max_num_failure_repetitions;
+        
+        
+    def checkSamePlaceLoop(self, target_pose) -> int:
+        prev_current_pose = get_current_pose();
+        while True:
+            self.navigate_action_client.wait_for_result(rospy.Duration(1));
+            print("Checking goal dist", end="\t");
+            if distance_between_poses(prev_current_pose, target_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
+                return self.SUCCESS;
+            current_pose = get_current_pose();
+            print("Checking if moved", end="\t");
+            if distance_between_poses(current_pose, prev_current_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
+                print("Not moved");
+                return self.RETRY_STAYED_IN_SAME_PLACE;
+            print("Moved");
+            prev_current_pose = current_pose;
+        
 
     def executeAction(self, goal, target_pose:Pose, initial_pose:Pose, userdata) -> bool:
         """
@@ -207,19 +412,17 @@ class SimpleNavigateState_v2(smach.State):
 
         # We want to be able to check to see if the robot has moved or not
         # (to check to see if path planning has failed.)
-        self.navigate_action_client.wait_for_result(rospy.Duration(2));
+        
         rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
 
         current_pose = get_current_pose();
         rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose)=" + str(distance_between_poses(current_pose, target_pose)));
         rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose)=" + str(distance_between_poses(current_pose, initial_pose)));
-        if (distance_between_poses(current_pose, target_pose) > self.DISTANCE_SAME_PLACE_THRESHOLD and 
-            distance_between_poses(current_pose, initial_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD):
-
-            rospy.logerr('\t\tStayed in the same place for too long => FAILURE.')
-            rospy.loginfo('status = ' + str(self.navigate_action_client.get_state()))
+        loop_result = self.checkSamePlaceLoop(target_pose);
+        if loop_result == self.RETRY_STAYED_IN_SAME_PLACE:
+            self.navigate_action_client.cancel_all_goals();
             return self.RETRY_STAYED_IN_SAME_PLACE;
-
+        
         self.navigate_action_client.wait_for_result();
         status = self.navigate_action_client.get_state();
         self.navigate_action_client.cancel_all_goals()
@@ -234,6 +437,8 @@ class SimpleNavigateState_v2(smach.State):
 
         target_pose:Pose = userdata.pose;
         initial_pose = get_current_pose();
+        
+        nav_listener = NavigationalListener();
 
         # Navigating without top nav
         rospy.loginfo('Navigating without top nav')
@@ -249,13 +454,23 @@ class SimpleNavigateState_v2(smach.State):
 
         i = 0;
         while (i < self.max_num_failure_repetitions):
+            if i > 0:
+                nav_listener.getOccupancyMap();
+                new_goal, old_goal_fine = nav_listener.findClosestUnoccupiedPoint(target_pose.position);
+                if old_goal_fine:
+                    print("Old goal was fine");
+                else:
+                    print("Goal blocked. Recalculating goal.");
+                target_pose.position = new_goal;
+            
             rospy.loginfo('\t\tSending nav goal.');
             status = self.executeAction(goal, target_pose, initial_pose, userdata);
             rospy.loginfo('status = ' + str(status))
             if status == self.SUCCESS:
-                return SUCCESS
-            elif status == self.RETRY:
+                return SUCCESS;
+            else:
                 i += 1;
+            
         return NAVIGATIONAL_FAILURE;
 
 #TODO - make a topological localisation node
@@ -737,11 +952,8 @@ class SearchForGuestNavToNextNode(smach.State):
         del userdata.nodes_not_searched[0]
         return 'searched'
 
-if __name__ == '__main__':
-    rospy.init_node('listening_to_nav');
 
-    # NavigationalListener();
-
+def testOrientRobot():
     sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
 
     with sub_sm:
@@ -757,5 +969,49 @@ if __name__ == '__main__':
     sub_sm.userdata.orient_towards.position.x = 4;
     sub_sm.userdata.orient_towards.position.y = 0;
     sub_sm.execute();
+    
+def testNavigationalListener():
+    NavigationalListener(listen_to_map=True);
+    pass;
+
+def testNavigationalFallback():
+    """
+    Goal is in collision within the hsrb_megaweb2015world map.
+    """
+    goal = Pose();
+    
+    goal.position.x = 3;
+    goal.position.y = 1;
+    goal.position.z = 0;
+    goal.orientation.x = 0;
+    goal.orientation.y = 0;
+    goal.orientation.z = -0.821;
+    goal.orientation.w = 0.571;
+    
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm.userdata.pose = goal;
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "Navigate",
+            SimpleNavigateState_v2(execute_nav_commands=True),
+            transitions={
+                SUCCESS:SUCCESS,
+                NAVIGATIONAL_FAILURE:FAILURE});
+        pass;
+    
+    sub_sm.execute();
+    
+
+if __name__ == '__main__':
+    rospy.init_node('listening_to_nav');
+
+    # print("Pre testNavigationalListener");
+    # testNavigationalListener();
+    # print("testNavigationalListener setup");
+
+    testNavigationalFallback();
+
+    # testOrientRobot();    
 
     rospy.spin();
