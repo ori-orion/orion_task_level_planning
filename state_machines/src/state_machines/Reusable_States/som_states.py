@@ -510,7 +510,8 @@ class SOMOccupancyMap:
                 min_y = obj.obj_position.position.y;
             if obj.obj_position.position.y > max_y:
                 max_y = obj.obj_position.position.y;
-        self.origin = Point( min_x-xy_buffer_width, min_y-xy_buffer_width );
+        self.origin = Point( min_x-xy_buffer_width, min_y-xy_buffer_width, 0 );
+        print(self.origin);
         #endregion
 
         occupancy_grid_shape = self.pointToCoordinates(max_x+xy_buffer_width, max_y+xy_buffer_width);
