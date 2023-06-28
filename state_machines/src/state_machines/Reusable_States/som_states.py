@@ -501,6 +501,7 @@ class SOMOccupancyMap:
         max_y = max_x = -math.inf;
         min_x = min_y = math.inf;
         for obj in query_results_filtered:
+            print(obj.obj_position.position);
             if obj.obj_position.position.x < min_x:
                 min_x = obj.obj_position.position.x;
             if obj.obj_position.position.x > max_x:
