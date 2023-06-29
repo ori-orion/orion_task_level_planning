@@ -15,7 +15,7 @@ import rospy;
 import smach_ros;
 import actionlib;
 import std_srvs.srv;
-import orion_actions.msg;
+import manipulation.srv;
 
 from state_machines.SubStateMachines.include_all import *;
 
@@ -80,12 +80,55 @@ class FindShelfBackup(smach.State):
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
+        self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+    
     def execute(self, userdata):
+        PLACEMENT_TF_NAME = "placement_tf_TLP"
+
         rospy.logwarn("Using the backup for finding placement locations. Something has failed along the way.");
         shelf_height_dict:dict = userdata.shelf_height_dict;
 
         heights = shelf_height_dict["heights"];
         shelf_names:List[str] = shelf_height_dict["tf_names"];
+
+
+        find_placement_on_empty_service = rospy.ServiceProxy(
+            "/FindPlacementOnEmptySurface", manipulation.srv.FindPlacementOnEmptySurface);
+        central_tf = shelf_names[ int(len(shelf_names)/2) ];
+
+        trans_stamped = self._tf_buffer.lookup_transform("head_rgbd_sensor_rgb_frame", central_tf, rospy.Time(), timeout=timeout)
+        rgbd_goal_transform = trans_stamped.transform;
+
+        res:manipulation.srv.FindPlacementOnEmptySurfaceResponse = self.find_placement_service(
+            userdata.put_down_size,     # dimension of object
+            0.3,                        # max height from surface
+            rgbd_goal_transform,
+            10.0,                       # EPS plane search angle tolerance in degrees
+            0.5,                        # Box crop size to search for plane in. Axis aligned w/ head frame.
+            0.2                         # Minimum height of the surface to place on.
+        )
+        
+        transform_name = "";
+
+        if res.success:
+            t = geometry_msgs.msg.Transform()
+            t.translation.x =   res.position[0];
+            t.translation.y =   res.position[1];
+            t.translation.z =   res.position[2];
+            t.rotation.x =      0;
+            t.rotation.y =      0;
+            t.rotation.z =      0;
+            t.rotation.w =      1;
+            t_stamped = geometry_msgs.msg.TransformStamped();
+            t_stamped.header.stamp = rospy.Time.now()
+            t_stamped.header.frame_id = "map";
+            t_stamped.child_frame_id = PLACEMENT_TF_NAME;
+            t_stamped.transform = t;
+            
+            self.tf_broadcaster.sendTransform(t_stamped);
+        
+
+        
 
         region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
 
