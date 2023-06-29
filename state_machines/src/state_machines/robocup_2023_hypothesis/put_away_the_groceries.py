@@ -81,6 +81,7 @@ class FindShelfBackup(smach.State):
             output_keys=[]);
     
     def execute(self, userdata):
+        rospy.logwarn("Using the backup for finding placement locations. Something has failed along the way.");
         shelf_height_dict:dict = userdata.shelf_height_dict;
 
         heights = shelf_height_dict["heights"];
@@ -101,10 +102,15 @@ class FindShelfBackup(smach.State):
         put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
         put_obj_on_surface_goal.drop_object_by_metres = 0.03;
         put_obj_on_surface_goal.object_half_height = userdata.put_down_size.z/2;
-        for i in range(3):
+        for i in range(len(shelf_names)):
             success = putObjOnSurfaceAction(put_obj_on_surface_goal);
             if success:
                 return SUCCESS;
+            else:
+                min_index += 1;
+                min_index %= len(shelf_names);
+                put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
+
 
         # If everything has failed, drop the item?
 
@@ -468,9 +474,9 @@ def create_state_machine():
             'PickUpObj',
             nav_and_pick_up_or_place_next_to(execute_nav_commands, pick_up=True, som_query_already_performed=True),
             transitions={
-                SUCCESS:'NavToCabinet',
-                FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE,
+                SUCCESS:             'NavToCabinet',
+                FAILURE:             'AppendTfNameToTfNameFilter',
+                'query_empty':       'AppendTfNameToTfNameFilter',
                 MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'},
             remapping={'obj_type':'pick_up_object_class'});
 
@@ -533,8 +539,8 @@ def create_state_machine():
             AppendToArrState(),
             transitions={SUCCESS:'IncreaseNumber'},
             remapping={
-                'appending_to':'filter_tf_names_out',
-                'appending_with':'tf_name'}); 
+                'appending_to':  'filter_tf_names_out',
+                'appending_with':'tf_name'});
 
         smach.StateMachine.add(
             'IncreaseNumber',
