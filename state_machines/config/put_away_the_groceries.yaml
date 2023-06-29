@@ -3,6 +3,10 @@ params_loaded: True
 
 execute_navigation_commands: false
 
+
+
+use_grasping_synthesis: true
+
 # For putting down objects next to others
 find_placement_options : {
     # Looks for a plane height meters below the point given. This should thus probably be like 20cm max.
