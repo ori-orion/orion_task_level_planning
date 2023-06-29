@@ -14,6 +14,8 @@ Notes:
 import rospy;
 import smach_ros;
 import actionlib;
+import std_srvs.srv;
+import orion_actions.msg;
 
 from state_machines.SubStateMachines.include_all import *;
 
@@ -72,12 +74,18 @@ Cases:
 class FindShelfBackup(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
-            outcomes=[SUCCESS, FAILURE, MANIPULATION_FAILURE],
-            input_keys=['put_down_size'],
+            outcomes=[SUCCESS],
+            input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
-    def execute(self, ud):
-        return super().execute(ud)
+    def execute(self, userdata):
+
+
+        
+
+        # If everything has failed, drop the item?
+
+        return SUCCESS;
     
 
 
@@ -222,6 +230,29 @@ def create_state_machine():
             "heights":shelf_heights,
             "tf_names":shelf_names}
         
+        som_region_delete_all = rospy.ServiceProxy( "/som/object_regions/delete_entries", std_srvs.srv.Empty );
+        som_region_delete_all( std_srvs.srv.EmptyRequest() );
+        som_region_add_basic = rospy.ServiceProxy( "/som/object_regions/input", SOMAddRegion );
+        som_region_basic_query = rospy.ServiceProxy( "/som/object_regions/basic_query", SOMQueryRegions )
+
+        for i in range(len(shelf_heights)):
+            region_adding = SOMAddRegionRequest();
+            region_adding.adding.dimension.x = shelves_width;
+            region_adding.adding.dimension.y = shelves_depth;
+            region_adding.adding.dimension.z = shelf_heights[i+1]-shelf_heights[i]-0.01 if i+1<len(shelf_heights) else 0.3;
+            # region_adding.adding.corner_loc = copy.deepcopy( shelves_pose );
+            region_adding.adding.corner_loc.translation = copy.deepcopy( shelves_pose.position );
+            region_adding.adding.corner_loc.rotation = copy.deepcopy( shelves_pose.orientation );
+            region_adding.adding.corner_loc.translation.x -= shelves_width/2;
+            region_adding.adding.corner_loc.translation.y -= shelves_depth/2;
+            region_adding.adding.corner_loc.translation.z = shelf_heights[i];
+            region_adding.adding.name = shelf_names[i];
+
+            print(region_adding);
+
+            som_region_add_basic( region_adding );
+        print(som_region_basic_query( SOMQueryRegionsRequest() ));
+        
         use_hardcoded_shelves:bool = rospy.get_param('use_hardcoded_shelves');
     else:
         rospy.logwarn("shelves_hardcoded not found.")
@@ -311,15 +342,15 @@ def create_state_machine():
             smach.StateMachine.add(
                 'ClearTfNameFilter',
                 SetToEmptyList(),
-                transitions={SUCCESS:'SortListInput_2'},
+                transitions={SUCCESS:'ExplicitRemap'},
                 remapping={'setting':'filter_tf_names_out'});
             smach.StateMachine.add(
                 'ExplicitRemap',
                 ExplicitRemap(),
                 transitions={SUCCESS:'SortListInput_2'},
                 remapping={
-                    'in_key':'som_query_results_old',
-                    'out_key':'som_query_results_old_1'})       # I think this is actually necessary given the use of som_query_results_out twice below.
+                    'in_key':'som_query_results',
+                    'out_key':'som_query_results_1'})       # I think this is actually necessary given the use of som_query_results_out twice below.
             smach.StateMachine.add(
                 'SortListInput_2',
                 SortSOMResultsAsPer(
@@ -332,7 +363,7 @@ def create_state_machine():
                     SUCCESS:'GetObjectToPickUp',
                     'list_empty':'CreateTableQuery'},
                 remapping={
-                    'som_query_results':'som_query_results_old_1',
+                    'som_query_results':'som_query_results_1',
                     'som_query_results_out':'som_query_results'});
 
             """
