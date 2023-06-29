@@ -18,6 +18,10 @@ import actionlib;
 from state_machines.SubStateMachines.include_all import *;
 
 
+"""
+In the case where we want to place something amidst other items.
+For this we need to know where the other items are.
+"""
 class FindPlacementLocationBackup(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
@@ -58,6 +62,23 @@ class FindPlacementLocationBackup(smach.State):
     
         return MANIPULATION_FAILURE;
 
+
+"""
+This is then the final backup. If all placement options have failed, we go here.
+Cases:
+    - If no object matching the catgegory has been found.
+    - If no placement options are found at all.
+"""
+class FindShelfBackup(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS, FAILURE, MANIPULATION_FAILURE],
+            input_keys=['put_down_size'],
+            output_keys=[]);
+    
+    def execute(self, ud):
+        return super().execute(ud)
+    
 
 
 def sub_state_machine_pick_up_and_put_away():
