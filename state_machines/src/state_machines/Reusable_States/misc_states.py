@@ -284,7 +284,15 @@ class MoveToNeutralState(smach.State):
         self.whole_body = self.robot.try_get('whole_body');
     
     def execute(self, userdata):
-        self.whole_body.move_to_neutral();
+        for i in range(3):
+            try:
+                self.whole_body.move_to_neutral();
+                return SUCCESS;
+            except Exception as e:
+                rospy.logwarn("Exception raised within self.whole_body.move_to_neutral().")
+                print(e);
+                rospy.loginfo("Retrying in 2s");
+                rospy.sleep(2);
         return SUCCESS;
     pass;
 

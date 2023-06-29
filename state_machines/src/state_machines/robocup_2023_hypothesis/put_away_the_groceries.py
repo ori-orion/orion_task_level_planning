@@ -19,6 +19,8 @@ import orion_actions.msg;
 
 from state_machines.SubStateMachines.include_all import *;
 
+from typing import List;
+
 
 """
 In the case where we want to place something amidst other items.
@@ -79,8 +81,20 @@ class FindShelfBackup(smach.State):
             output_keys=[]);
     
     def execute(self, userdata):
+        shelf_height_dict:dict = userdata.shelf_height_dict;
 
+        heights = shelf_height_dict["heights"];
+        shelf_names:List[str] = shelf_height_dict["tf_names"];
 
+        region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
+
+        num_items = [];
+        for shelf_name in shelf_names:
+            query = SOMRegionQueryRequest();
+            query.region_name = shelf_name;
+            query_returns:SOMRegionQueryResponse = region_query_srv( query );
+            num_items.append( len(query_returns.returns) );
+        
         
 
         # If everything has failed, drop the item?
@@ -230,6 +244,8 @@ def create_state_machine():
             "heights":shelf_heights,
             "tf_names":shelf_names}
         
+        # input();
+        
         som_region_delete_all = rospy.ServiceProxy( "/som/object_regions/delete_entries", std_srvs.srv.Empty );
         som_region_delete_all( std_srvs.srv.EmptyRequest() );
         som_region_add_basic = rospy.ServiceProxy( "/som/object_regions/input", SOMAddRegion );
@@ -243,15 +259,20 @@ def create_state_machine():
             # region_adding.adding.corner_loc = copy.deepcopy( shelves_pose );
             region_adding.adding.corner_loc.translation = copy.deepcopy( shelves_pose.position );
             region_adding.adding.corner_loc.rotation = copy.deepcopy( shelves_pose.orientation );
-            region_adding.adding.corner_loc.translation.x -= shelves_width/2;
-            region_adding.adding.corner_loc.translation.y -= shelves_depth/2;
+            # We need a rotation in here somewhere. It should be - :(
+            roll, pitch, yaw = euler_from_quaternion( [shelves_pose.orientation.x, shelves_pose.orientation.y, shelves_pose.orientation.z, shelves_pose.orientation.w ] );
+            print(roll, pitch, yaw);
+            translation_x = math.cos(yaw)*shelves_width - math.sin(yaw)*shelves_depth;
+            translation_y = math.sin(yaw)*shelves_width + math.cos(yaw)*shelves_depth;
+            region_adding.adding.corner_loc.translation.x += translation_x/2;
+            region_adding.adding.corner_loc.translation.y -= translation_y/2;
             region_adding.adding.corner_loc.translation.z = shelf_heights[i];
             region_adding.adding.name = shelf_names[i];
 
-            print(region_adding);
+            # print(region_adding);
 
             som_region_add_basic( region_adding );
-        print(som_region_basic_query( SOMQueryRegionsRequest() ));
+        # print(som_region_basic_query( SOMQueryRegionsRequest() ));
         
         use_hardcoded_shelves:bool = rospy.get_param('use_hardcoded_shelves');
     else:
