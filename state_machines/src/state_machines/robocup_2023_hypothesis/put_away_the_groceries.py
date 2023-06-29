@@ -95,7 +95,16 @@ class FindShelfBackup(smach.State):
             query_returns:SOMRegionQueryResponse = region_query_srv( query );
             num_items.append( len(query_returns.returns) );
         
-        
+        min_index = np.argmin( np.asarray(num_items) );
+
+        put_obj_on_surface_goal = PutObjectOnSurfaceGoal();
+        put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
+        put_obj_on_surface_goal.drop_object_by_metres = 0.03;
+        put_obj_on_surface_goal.object_half_height = userdata.put_down_size.z/2;
+        for i in range(3):
+            success = putObjOnSurfaceAction(put_obj_on_surface_goal);
+            if success:
+                return SUCCESS;
 
         # If everything has failed, drop the item?
 
@@ -499,9 +508,9 @@ def create_state_machine():
                 find_same_category=True, 
                 input_obj_size_for_place=True),
             transitions={
-                SUCCESS: 'IncreaseNumber',
-                FAILURE:TASK_FAILURE,
-                'query_empty':TASK_FAILURE,
+                SUCCESS:             'IncreaseNumber',
+                FAILURE:             'FindEmptyShelfAndPlace',
+                'query_empty':       'FindEmptyShelfAndPlace',
                 MANIPULATION_FAILURE:'PlacementBackup'},
             remapping={'obj_type':'put_down_category'})
         
@@ -509,9 +518,15 @@ def create_state_machine():
             'PlacementBackup',
             FindPlacementLocationBackup(),
             transitions={
-                SUCCESS:'IncreaseNumber',
-                FAILURE:TASK_FAILURE,
-                MANIPULATION_FAILURE:'AppendTfNameToTfNameFilter'})
+                SUCCESS:             'IncreaseNumber',
+                FAILURE:             'FindEmptyShelfAndPlace',
+                MANIPULATION_FAILURE:'FindEmptyShelfAndPlace'})
+
+        # Failsafe
+        smach.StateMachine.add(
+            'FindEmptyShelfAndPlace',
+            FindShelfBackup(),
+            transitions={SUCCESS:'AppendTfNameToTfNameFilter'});
 
         smach.StateMachine.add(
             'AppendTfNameToTfNameFilter',
@@ -540,6 +555,8 @@ def create_state_machine():
             remapping={
                 'left': 'objects_placed'
             });
+    
+
 
 
     return sm
