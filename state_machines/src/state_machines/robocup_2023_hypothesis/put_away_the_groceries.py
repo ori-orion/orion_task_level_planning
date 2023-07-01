@@ -482,6 +482,11 @@ def create_state_machine():
 
 
     with sm:
+        smach.StateMachine.add(
+            'Startup',
+            create_wait_for_startup(),
+            transitions={SUCCESS:'MoveToNeutral'});
+
         # NOTE: Startup state machine.
         # NOTE: Needs changing to nav-to-pose
         # smach.StateMachine.add(
