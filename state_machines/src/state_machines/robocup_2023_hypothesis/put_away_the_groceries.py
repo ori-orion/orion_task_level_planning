@@ -112,6 +112,7 @@ class FindShelfBackup(smach.State):
         )
         
         transform_name = "";
+        using_regions = False;
 
         if res.success:
             t = geometry_msgs.msg.Transform()
@@ -128,31 +129,34 @@ class FindShelfBackup(smach.State):
             t_stamped.child_frame_id = PLACEMENT_TF_NAME;
             t_stamped.transform = t;
             
+            transform_name = PLACEMENT_TF_NAME;
+            
             self.tf_broadcaster.sendTransform(t_stamped);
         
+        else:
+            region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
 
-        
-
-        region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
-
-        num_items = [];
-        for shelf_name in shelf_names:
-            query = SOMRegionQueryRequest();
-            query.region_name = shelf_name;
-            query_returns:SOMRegionQueryResponse = region_query_srv( query );
-            num_items.append( len(query_returns.returns) );
-        
-        min_index = np.argmin( np.asarray(num_items) );
+            num_items = [];
+            for shelf_name in shelf_names:
+                query = SOMRegionQueryRequest();
+                query.region_name = shelf_name;
+                query_returns:SOMRegionQueryResponse = region_query_srv( query );
+                num_items.append( len(query_returns.returns) );
+            
+            min_index = np.argmin( np.asarray(num_items) );
+            using_regions = True;
+            transform_name = shelf_names[min_index];
+            
 
         put_obj_on_surface_goal = PutObjectOnSurfaceGoal();
-        put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
+        put_obj_on_surface_goal.goal_tf = transform_name;
         put_obj_on_surface_goal.drop_object_by_metres = 0.03;
         put_obj_on_surface_goal.object_half_height = userdata.put_down_size.z/2;
         for i in range(len(shelf_names)):
             success = putObjOnSurfaceAction(put_obj_on_surface_goal);
             if success:
                 return SUCCESS;
-            else:
+            elif using_regions:
                 min_index += 1;
                 min_index %= len(shelf_names);
                 put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
