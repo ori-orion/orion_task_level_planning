@@ -36,7 +36,10 @@ class FindPlacementLocationBackup(smach.State):
     def execute(self, userdata):
         print("Creating the occupancy map.")
         occupancy_map = SOMOccupancyMap(time_horizon=rospy.Duration(5));
-        occupancy_map.createOccupancyMap(ignore_categories=["unknown"]);
+        try:
+            occupancy_map.createOccupancyMap(ignore_categories=["unknown"]);
+        except:
+            return FAILURE;
         print("Finding a placement location");
         loc, location_found = occupancy_map.findPlacementLocation(userdata.put_down_size);
         
