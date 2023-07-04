@@ -39,6 +39,8 @@ def trackMotion():
     # whole_body = robot.try_get("whole_body")
     omni_base = robot.try_get("omni_base")
     
+    print(dir(omni_base));
+    
     while True:
         delta_x = 0;
         delta_y = 0;
@@ -70,7 +72,7 @@ def trackMotion():
         try:
             omni_base.follow_trajectory(
                 [geometry.pose(x=delta_x, y=delta_y, ek=delta_theta)], 
-                time_from_starts=[0.1], 
+                time_from_starts=[0.4], 
                 ref_frame_id='base_footprint');
         except:
             pass;
