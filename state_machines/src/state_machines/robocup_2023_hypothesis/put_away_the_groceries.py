@@ -15,7 +15,7 @@ import rospy;
 import smach_ros;
 import actionlib;
 import std_srvs.srv;
-import orion_actions.msg;
+import manipulation.srv;
 
 from state_machines.SubStateMachines.include_all import *;
 
@@ -36,7 +36,10 @@ class FindPlacementLocationBackup(smach.State):
     def execute(self, userdata):
         print("Creating the occupancy map.")
         occupancy_map = SOMOccupancyMap(time_horizon=rospy.Duration(5));
-        occupancy_map.createOccupancyMap(ignore_categories=["unknown"]);
+        try:
+            occupancy_map.createOccupancyMap(ignore_categories=["unknown"]);
+        except:
+            return FAILURE;
         print("Finding a placement location");
         loc, location_found = occupancy_map.findPlacementLocation(userdata.put_down_size);
         
@@ -80,33 +83,80 @@ class FindShelfBackup(smach.State):
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
+        self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+    
     def execute(self, userdata):
+        PLACEMENT_TF_NAME = "placement_tf_TLP"
+
         rospy.logwarn("Using the backup for finding placement locations. Something has failed along the way.");
         shelf_height_dict:dict = userdata.shelf_height_dict;
 
         heights = shelf_height_dict["heights"];
         shelf_names:List[str] = shelf_height_dict["tf_names"];
 
-        region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
 
-        num_items = [];
-        for shelf_name in shelf_names:
-            query = SOMRegionQueryRequest();
-            query.region_name = shelf_name;
-            query_returns:SOMRegionQueryResponse = region_query_srv( query );
-            num_items.append( len(query_returns.returns) );
+        find_placement_on_empty_service = rospy.ServiceProxy(
+            "/FindPlacementOnEmptySurface", manipulation.srv.FindPlacementOnEmptySurface);
+        central_tf = shelf_names[ int(len(shelf_names)/2) ];
+
+        trans_stamped = self._tf_buffer.lookup_transform("head_rgbd_sensor_rgb_frame", central_tf, rospy.Time(), timeout=timeout)
+        rgbd_goal_transform = trans_stamped.transform;
+
+        res:manipulation.srv.FindPlacementOnEmptySurfaceResponse = self.find_placement_service(
+            userdata.put_down_size,     # dimension of object
+            0.3,                        # max height from surface
+            rgbd_goal_transform,
+            10.0,                       # EPS plane search angle tolerance in degrees
+            0.5,                        # Box crop size to search for plane in. Axis aligned w/ head frame.
+            0.2                         # Minimum height of the surface to place on.
+        )
         
-        min_index = np.argmin( np.asarray(num_items) );
+        transform_name = "";
+        using_regions = False;
+
+        if res.success:
+            t = geometry_msgs.msg.Transform()
+            t.translation.x =   res.position[0];
+            t.translation.y =   res.position[1];
+            t.translation.z =   res.position[2];
+            t.rotation.x =      0;
+            t.rotation.y =      0;
+            t.rotation.z =      0;
+            t.rotation.w =      1;
+            t_stamped = geometry_msgs.msg.TransformStamped();
+            t_stamped.header.stamp = rospy.Time.now()
+            t_stamped.header.frame_id = "map";
+            t_stamped.child_frame_id = PLACEMENT_TF_NAME;
+            t_stamped.transform = t;
+            
+            transform_name = PLACEMENT_TF_NAME;
+            
+            self.tf_broadcaster.sendTransform(t_stamped);
+        
+        else:
+            region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
+
+            num_items = [];
+            for shelf_name in shelf_names:
+                query = SOMRegionQueryRequest();
+                query.region_name = shelf_name;
+                query_returns:SOMRegionQueryResponse = region_query_srv( query );
+                num_items.append( len(query_returns.returns) );
+            
+            min_index = np.argmin( np.asarray(num_items) );
+            using_regions = True;
+            transform_name = shelf_names[min_index];
+            
 
         put_obj_on_surface_goal = PutObjectOnSurfaceGoal();
-        put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
+        put_obj_on_surface_goal.goal_tf = transform_name;
         put_obj_on_surface_goal.drop_object_by_metres = 0.03;
         put_obj_on_surface_goal.object_half_height = userdata.put_down_size.z/2;
         for i in range(len(shelf_names)):
             success = putObjOnSurfaceAction(put_obj_on_surface_goal);
             if success:
                 return SUCCESS;
-            else:
+            elif using_regions:
                 min_index += 1;
                 min_index %= len(shelf_names);
                 put_obj_on_surface_goal.goal_tf = shelf_names[min_index];
@@ -432,6 +482,11 @@ def create_state_machine():
 
 
     with sm:
+        smach.StateMachine.add(
+            'Startup',
+            create_wait_for_startup(),
+            transitions={SUCCESS:'MoveToNeutral'});
+
         # NOTE: Startup state machine.
         # NOTE: Needs changing to nav-to-pose
         # smach.StateMachine.add(

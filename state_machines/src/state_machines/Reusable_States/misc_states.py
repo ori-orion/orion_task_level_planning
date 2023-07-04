@@ -275,7 +275,7 @@ class MoveToNeutralState(smach.State):
     """
     Sets the robot's pose to neutral.
     """
-    def __init__(self, mast_height=None):    
+    def __init__(self):    
         smach.State.__init__(
             self,
             outcomes=[SUCCESS]);
