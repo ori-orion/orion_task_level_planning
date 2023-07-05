@@ -80,7 +80,7 @@ shelves_hardcoded : {
     # Pose of the base of the shelves
     shelf_pose: {
         position : {
-            x : 2.62, y : 0.36, z : 0
+            x : 7.3, y : 0.86, z : 0.5
         },
         orientation : {
             x : 0, y : 0, z : -0.821, w : 0.571
