@@ -289,7 +289,7 @@ class MoveToNeutralState(smach.State):
     def execute(self, userdata):
         for i in range(3):
             try:
-                self.whole_body.move_to_neutral();
+                self.whole_body.move_to_go();
                 return SUCCESS;
             except Exception as e:
                 rospy.logwarn("Exception raised within self.whole_body.move_to_neutral().")

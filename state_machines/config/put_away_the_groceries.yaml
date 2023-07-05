@@ -1,7 +1,7 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: false
+execute_navigation_commands: true
 
 
 
@@ -13,7 +13,7 @@ find_placement_options : {
     # Looks for a plane height meters below the point given. This should thus probably be like 20cm max.
     height : 0.2,
     # Looks for placement options radius away
-    radius : 0.1,
+    radius : 0.07,
     # Assumes the object is dims in dimension.
     dims : [0.05, 0.05, 0.02]
 }
