@@ -15,7 +15,7 @@ from actionlib_msgs.msg import GoalStatus
 
 from geometry_msgs.msg import Pose, PoseStamped, Point
 
-from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
+# from ori_topological_navigation_msgs.msg import TraverseToNodeAction, TraverseToNodeGoal, PoseOverlay, TraverseToNodeResult
 
 import math;
 from typing import Tuple, List;
@@ -481,92 +481,92 @@ class SimpleNavigateState_v2(smach.State):
 #       watif for one message and then set variable.
 
 
-class TopologicalNavigateState(smach.State):
-    """ State for navigating along the topological map.
+# class TopologicalNavigateState(smach.State):
+#     """ State for navigating along the topological map.
 
-    This state is given a topological map ID and navigates there.
+#     This state is given a topological map ID and navigates there.
 
-    input_keys:
-        node_id: (string) the topological node for the robot to navigate to
-        number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
-        failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
-    output_keys:
-        number_of_failures: the updated failure counter upon state exit
-        prev_node_nav_to    The node we just navigated to.
-    """
+#     input_keys:
+#         node_id: (string) the topological node for the robot to navigate to
+#         number_of_failures: an external counter keeping track of the cumulative failure count (incremented in this state upon failure & reset upon success and repreat failure)
+#         failure_threshold: the number of cumulative failures required to return the repeat_failure outcome
+#     output_keys:
+#         number_of_failures: the updated failure counter upon state exit
+#         prev_node_nav_to    The node we just navigated to.
+#     """
     
-    # If the robot is staying in the same location while the robot is trying to go to a node,
-    # then we should preempt and retry. The preemption check is done at 1 second intervals. 
-    # This is then the maximum distance it can have travelled in that time for us to preempt
-    # the goal.  
-    MAX_DISTANCE_TOPO_HALTED = 0.05;
+#     # If the robot is staying in the same location while the robot is trying to go to a node,
+#     # then we should preempt and retry. The preemption check is done at 1 second intervals. 
+#     # This is then the maximum distance it can have travelled in that time for us to preempt
+#     # the goal.  
+#     MAX_DISTANCE_TOPO_HALTED = 0.05;
 
-    def __init__(self, execute_nav_commands, stop_repeat_navigation:bool = False):
-        """
-        stop_repeat_navigation:bool  - If we have just navigated to a node, we may get asked to go there in the near 
-            future. In some cases, there is no point in this. (Say you are searching a room and have found something, 
-            and then nav to the room node again). 
-            If True then it will prevent us from navigating to the same node twice in a row.
-            Otherwise it will navigate to the node as per normal.
-        """
-        self.stop_repeat_navigation = stop_repeat_navigation;
-        self.execute_nav_commands = execute_nav_commands;
+#     def __init__(self, execute_nav_commands, stop_repeat_navigation:bool = False):
+#         """
+#         stop_repeat_navigation:bool  - If we have just navigated to a node, we may get asked to go there in the near 
+#             future. In some cases, there is no point in this. (Say you are searching a room and have found something, 
+#             and then nav to the room node again). 
+#             If True then it will prevent us from navigating to the same node twice in a row.
+#             Otherwise it will navigate to the node as per normal.
+#         """
+#         self.stop_repeat_navigation = stop_repeat_navigation;
+#         self.execute_nav_commands = execute_nav_commands;
 
-        smach.State.__init__(self,
-                                outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
-                                input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
-                                output_keys=['number_of_failures', 'prev_node_nav_to']);
+#         smach.State.__init__(self,
+#                                 outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
+#                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
+#                                 output_keys=['number_of_failures', 'prev_node_nav_to']);
 
-    def get_robot_pose(self) -> Pose:
-        robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
-        return robot_pose.pose;
+#     def get_robot_pose(self) -> Pose:
+#         robot_pose:PoseStamped = rospy.wait_for_message('/global_pose', PoseStamped);
+#         return robot_pose.pose;
 
-    def execute(self, userdata):
-        if self.stop_repeat_navigation==True and userdata.node_id == userdata.prev_node_nav_to:
-            rospy.loginfo("Repeat navigation to the same node prevented.")
-            return SUCCESS
+#     def execute(self, userdata):
+#         if self.stop_repeat_navigation==True and userdata.node_id == userdata.prev_node_nav_to:
+#             rospy.loginfo("Repeat navigation to the same node prevented.")
+#             return SUCCESS
 
-        if self.execute_nav_commands == False:
-            return SUCCESS;
+#         if self.execute_nav_commands == False:
+#             return SUCCESS;
 
-        # Navigating with top nav
-        rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
+#         # Navigating with top nav
+#         rospy.loginfo('Navigating with top nav to node "{}"'.format(userdata.node_id))
 
-        # create action goal and call action server
-        goal = TraverseToNodeGoal(node_id=userdata.node_id)
+#         # create action goal and call action server
+#         goal = TraverseToNodeGoal(node_id=userdata.node_id)
 
-        topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
-        topological_navigate_action_client.wait_for_server()
-        topological_navigate_action_client.send_goal(goal)
+#         topological_navigate_action_client = actionlib.SimpleActionClient('traverse_to_node',  TraverseToNodeAction)
+#         topological_navigate_action_client.wait_for_server()
+#         topological_navigate_action_client.send_goal(goal)
 
-        # old_robot_pose = self.get_robot_pose();
-        # while topological_navigate_action_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
-        #     rospy.sleep(1);
-        #     new_robot_pose = self.get_robot_pose();
-        #     dist_between_poses = distance_between_poses(old_robot_pose, new_robot_pose);
-        #     if dist_between_poses < TopologicalNavigateState.MAX_DISTANCE_TOPO_HALTED:
-        #         rospy.loginfo("Preempting and rerunning topological nav goal.")                
-        #         topological_navigate_action_client.cancel_all_goals();
-        #         topological_navigate_action_client.send_goal(goal);
+#         # old_robot_pose = self.get_robot_pose();
+#         # while topological_navigate_action_client.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
+#         #     rospy.sleep(1);
+#         #     new_robot_pose = self.get_robot_pose();
+#         #     dist_between_poses = distance_between_poses(old_robot_pose, new_robot_pose);
+#         #     if dist_between_poses < TopologicalNavigateState.MAX_DISTANCE_TOPO_HALTED:
+#         #         rospy.loginfo("Preempting and rerunning topological nav goal.")                
+#         #         topological_navigate_action_client.cancel_all_goals();
+#         #         topological_navigate_action_client.send_goal(goal);
         
-        topological_navigate_action_client.wait_for_result()
-        result:TraverseToNodeResult = topological_navigate_action_client.get_result()
+#         topological_navigate_action_client.wait_for_result()
+#         result:TraverseToNodeResult = topological_navigate_action_client.get_result()
 
-        # rospy.loginfo('result = ' + str(result.success))
+#         # rospy.loginfo('result = ' + str(result.success))
 
-        # Process action result
-        #   Note: result.success returns True if node_id was reached
-        if result.success:
-            userdata.number_of_failures = 0;
-            userdata.prev_node_nav_to = userdata.node_id;
-            return SUCCESS
-        else:
-            userdata.number_of_failures += 1
-            if userdata.number_of_failures >= userdata.failure_threshold:
-                 # reset number of failures because we've already triggered the repeat failure outcome
-                userdata.number_of_failures = 0
-                return REPEAT_FAILURE
-            return FAILURE
+#         # Process action result
+#         #   Note: result.success returns True if node_id was reached
+#         if result.success:
+#             userdata.number_of_failures = 0;
+#             userdata.prev_node_nav_to = userdata.node_id;
+#             return SUCCESS
+#         else:
+#             userdata.number_of_failures += 1
+#             if userdata.number_of_failures >= userdata.failure_threshold:
+#                  # reset number of failures because we've already triggered the repeat failure outcome
+#                 userdata.number_of_failures = 0
+#                 return REPEAT_FAILURE
+#             return FAILURE
 
 # class GetClosestNodeState(smach.State):
 #     """
