@@ -37,8 +37,7 @@ def getKeyPressed():
 def trackMotion():
     robot = hsrb_interface.Robot()
     # whole_body = robot.try_get("whole_body")
-    omni_base = robot.try_get("omni_base")
-    
+    omni_base = robot.try_get("omni_base");
     print(dir(omni_base));
     
     while True:
