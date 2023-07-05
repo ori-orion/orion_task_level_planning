@@ -363,7 +363,7 @@ class WaitForWristWrench(smach.State):
     Can be a replacement for the hotword detector.
     """
 
-    FORCE_THRESHOLD = 0.8;
+    FORCE_THRESHOLD = 40;
     WAIT_BETWEEN_IT = 0.1;
     
     def __init__(self):
