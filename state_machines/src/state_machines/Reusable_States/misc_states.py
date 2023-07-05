@@ -6,6 +6,7 @@ from orion_actions.msg import *;
 from orion_actions.srv import *;
 from orion_spin.msg import SpinAction, SpinGoal;
 from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
+from geometry_msgs.msg import WrenchStamped;
 
 import rospy;
 
@@ -352,6 +353,44 @@ class ExplicitRemap(smach.State):
     def execute(self, userdata):
         userdata.out_key = userdata.in_key;
         return SUCCESS;
+
+
+class WaitForForceSensor(smach.State):
+    """
+    Waiting for a force to be applied to the wrist before moving off.
+    Can be a replacement for the hotword detector.
+    """
+
+    FORCE_THRESHOLD = 0.8;
+    WAIT_BETWEEN_IT = 0.1;
+    
+    def __init__(self):
+        smach.State.__init__(
+            self, 
+            outcomes=[SUCCESS],
+            input_keys=[], 
+            output_keys=[]);
+        
+        self.mag = 0;
+    
+    
+    def wrist_wrench_raw_sub(self, input_msg:WrenchStamped):
+        mag_sqared = input_msg.wrench.force.x**2 + input_msg.wrench.force.y**2 + input_msg.wrench.force.z**2;
+        self.mag = math.sqrt(mag_sqared);
+        
+    
+    def execute(self, userdata):
+        
+        sub = rospy.Subscriber('/hsrb/wrist_wrench/raw', self.wrist_wrench_raw_sub, WrenchStamped);
+        while(True):
+            if self.mag > self.FORCE_THRESHOLD:
+                break;
+            rospy.sleep(0.1);
+        
+        sub.unregister();
+        
+        return SUCCESS;
+    
 
 
 class CreateGuestAttributesDict(smach.State):
