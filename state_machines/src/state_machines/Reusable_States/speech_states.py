@@ -109,9 +109,10 @@ class SpeakState(smach.State):
     Note that if self.phrase==None, then we take the input directly from input_keys['phrase'].
     """
     def __init__(self, phrase=None):
-        smach.State.__init__(self,
-                                outcomes=[SUCCESS],
-                                input_keys=['phrase'])
+        smach.State.__init__(
+            self,
+            outcomes=[SUCCESS],
+            input_keys=['phrase'])
 
         self.phrase = phrase;
 

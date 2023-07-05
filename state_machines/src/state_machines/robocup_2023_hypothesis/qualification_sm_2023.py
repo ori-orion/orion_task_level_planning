@@ -62,15 +62,21 @@ def construct_qualification_sm():
             'WAIT_FOR_WRIST_WRENCH',
             WaitForWristWrench(),
             transitions={
-                'success':'NAV_TO_EXIT'});        
+                'success':'Speak'});        
 
         smach.StateMachine.add(
             'WAIT_FOR_HOTWORD',
             WaitForHotwordState(),
             transitions={
-                SUCCESS:'NAV_TO_EXIT', 
+                SUCCESS:'Speak', 
                 'failure':'WAIT_FOR_HOTWORD'},
             remapping={'timeout':'hotword_timeout'});
+        
+        smach.StateMachine.add(
+            'Speak',
+            SpeakState('Thank you, moving to the exit.'),
+            transitions={
+                SUCCESS:'NAV_TO_EXIT'});
 
         smach.StateMachine.add(
             'NAV_TO_EXIT',
@@ -79,15 +85,6 @@ def construct_qualification_sm():
                 SUCCESS:TASK_SUCCESS, 
                 NAVIGATIONAL_FAILURE:TASK_FAILURE},
             remapping={'pose':'exit_pose'});
-
-        # smach.StateMachine.add(
-        #     'NAV_TO_START',
-        #     SimpleNavigateState(),
-        #     transitions={
-        #         'success':'task_success', 
-        #         'failure':'NAV_TO_START', 
-        #         'repeat_failure':'task_failure'},
-        #     remapping={'pose':'start_pose'});
 
     return sm;
 
