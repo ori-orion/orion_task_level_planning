@@ -356,10 +356,7 @@ class ExplicitRemap(smach.State):
         userdata.out_key = userdata.in_key;
         return SUCCESS;
 
-mag = 0;
-def wrist_wrench_raw_sub(input_msg:WrenchStamped):
-    mag_sqared = input_msg.wrench.force.x**2 + input_msg.wrench.force.y**2 + input_msg.wrench.force.z**2;
-    mag = math.sqrt(mag_sqared);
+
 class WaitForWristWrench(smach.State):
     """
     Waiting for a force to be applied to the wrist before moving off.
@@ -376,19 +373,24 @@ class WaitForWristWrench(smach.State):
             input_keys=[], 
             output_keys=[]);
         
+        self.mag = 0;
+    
+    
+    def wrist_wrench_raw_sub(self, input_msg:WrenchStamped):
+        mag_sqared = input_msg.wrench.force.x**2 + input_msg.wrench.force.y**2 + input_msg.wrench.force.z**2;
+        self.mag = math.sqrt(mag_sqared);
+        
     
     def execute(self, userdata):
-        
-        global mag;
-
-        sub = rospy.Subscriber('/hsrb/wrist_wrench/raw', wrist_wrench_raw_sub, WrenchStamped);
+        sub = rospy.Subscriber('/hsrb/wrist_wrench/raw', WrenchStamped, self.wrist_wrench_raw_sub);
         while(True):
-            if mag > self.FORCE_THRESHOLD:
+            if self.mag > self.FORCE_THRESHOLD:
                 break;
             rospy.sleep(0.1);
         
         sub.unregister();
-        mag = 0;
+        self.mag = 0;
+        
         return SUCCESS;
     
 
