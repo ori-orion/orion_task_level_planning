@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from state_machines.Reusable_States.utils import *;
 
 import smach;
@@ -675,3 +677,25 @@ class AnnounceGuestDetailsToOperator(smach.State):
 
         return SUCCESS
 
+
+def testForceSensorState():
+    """
+    Goal is in collision within the hsrb_megaweb2015world map.
+    """
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "WaitForForceSensor",
+            WaitForWristWrench(),
+            transitions={
+                SUCCESS:SUCCESS});
+        pass;
+    
+    sub_sm.execute();
+    print("Force given through force sensor.")
+    pass;
+
+if __name__ == '__main__':
+    rospy.init_node('misc_states_test');
+    testForceSensorState();
