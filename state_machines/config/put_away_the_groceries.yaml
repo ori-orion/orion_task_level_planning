@@ -76,7 +76,7 @@ cabinet_mast_height : 0
 use_hardcoded_shelves : true
 shelves_hardcoded : {
     normal: [0,0,1],
-    z_vals: [0.2,0.5,1,1.5],
+    z_vals: [0.45,0.735,1.06,1.41,1.70],
     # Pose of the base of the shelves
     shelf_pose: {
         position : {
