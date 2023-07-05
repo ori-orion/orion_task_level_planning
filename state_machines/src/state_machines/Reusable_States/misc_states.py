@@ -379,6 +379,7 @@ class WaitForWristWrench(smach.State):
     def wrist_wrench_raw_sub(self, input_msg:WrenchStamped):
         mag_sqared = input_msg.wrench.force.x**2 + input_msg.wrench.force.y**2 + input_msg.wrench.force.z**2;
         self.mag = math.sqrt(mag_sqared);
+        print(self.mag);
         
     
     def execute(self, userdata):
@@ -389,6 +390,7 @@ class WaitForWristWrench(smach.State):
             rospy.sleep(0.1);
         
         sub.unregister();
+        print("Force detected");
         self.mag = 0;
         
         return SUCCESS;
