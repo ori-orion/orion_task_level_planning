@@ -1,22 +1,24 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: False
+execute_navigation_commands: True
 
 
 centre_of_room_pose : {
-    position : {
-        x: 2.5111008074317773, y: -0.48333842910596714, z: 0.0
+    position : { 
+        x: 2.4235374704625143, y: -3.926008228174271, z: 0.0
     },
     orientation : { 
-        x: 0.0, y: 0.0, z: -0.5956153167242297, w: 0.8032698142489206
+        x: 0.0, y: 0.0, z: -0.4958023988333317, w: 0.8684353639224475
     }
+
 }
 exit_pose : {
     position : { 
-        x: 1.0937732843990842, y: -4.0252958020467045, z: 0.0
+        x: -0.15214762798552267, y: -4.071523772196013, z: 0.0
     },
     orientation : { 
-        x: 0.0, y: 0.0, z: -0.9998889727031646, w: 0.01490108273281565
+        x: 0.0, y: 0.0, z: 0.9894463900419869, w: 0.14489941764161884
     }
+
 }
