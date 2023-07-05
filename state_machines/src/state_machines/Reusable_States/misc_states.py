@@ -387,7 +387,7 @@ class WaitForWristWrench(smach.State):
         else:
             mag_sqared = (input_msg.wrench.force.x-self.x_offset)**2 + (input_msg.wrench.force.y-self.y_offset)**2 + (input_msg.wrench.force.z-self.z_offset)**2;
             self.mag = math.sqrt(mag_sqared);
-            print(self.mag);
+            # print(self.mag);
 
         
     
