@@ -1,7 +1,7 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: True
+execute_navigation_commands: False
 
 
 centre_of_room_pose : {

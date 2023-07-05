@@ -35,6 +35,8 @@ def construct_qualification_sm():
             rospy.get_param('exit_pose'),
             Pose());
 
+    execute_nav_commands = rospy.get_param('execute_navigation_commands');
+
     sm.userdata.hotword_timeout = 3;
 
     sm.userdata.number_of_failures = 0;
@@ -52,7 +54,7 @@ def construct_qualification_sm():
 
         smach.StateMachine.add(
             'NAV_TO_CENTRE_OF_ROOM',
-            SimpleNavigateState_v2(True),
+            SimpleNavigateState_v2(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:'WAIT_FOR_WRIST_WRENCH',
                 NAVIGATIONAL_FAILURE:'WAIT_FOR_WRIST_WRENCH'},
@@ -80,7 +82,7 @@ def construct_qualification_sm():
 
         smach.StateMachine.add(
             'NAV_TO_EXIT',
-            SimpleNavigateState_v2(True),
+            SimpleNavigateState_v2(execute_nav_commands=execute_nav_commands),
             transitions={
                 SUCCESS:TASK_SUCCESS, 
                 NAVIGATIONAL_FAILURE:TASK_FAILURE},
