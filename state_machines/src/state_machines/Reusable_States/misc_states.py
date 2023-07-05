@@ -363,7 +363,7 @@ class WaitForWristWrench(smach.State):
     Can be a replacement for the hotword detector.
     """
 
-    FORCE_THRESHOLD = 40;
+    FORCE_THRESHOLD = 5;
     WAIT_BETWEEN_IT = 0.1;
     
     def __init__(self):
@@ -374,12 +374,21 @@ class WaitForWristWrench(smach.State):
             output_keys=[]);
         
         self.mag = 0;
+        self.first_run = True;
+        self.x_offset = self.y_offset = self.z_offset = 0;
     
     
     def wrist_wrench_raw_sub(self, input_msg:WrenchStamped):
-        mag_sqared = input_msg.wrench.force.x**2 + input_msg.wrench.force.y**2 + input_msg.wrench.force.z**2;
-        self.mag = math.sqrt(mag_sqared);
-        print(self.mag);
+        if self.first_run:
+            self.x_offset = input_msg.wrench.force.x;
+            self.y_offset = input_msg.wrench.force.y;
+            self.z_offset = input_msg.wrench.force.z;
+            self.first_run = False;
+        else:
+            mag_sqared = (input_msg.wrench.force.x-self.x_offset)**2 + (input_msg.wrench.force.y-self.y_offset)**2 + (input_msg.wrench.force.z-self.z_offset)**2;
+            self.mag = math.sqrt(mag_sqared);
+            print(self.mag);
+
         
     
     def execute(self, userdata):
@@ -392,6 +401,7 @@ class WaitForWristWrench(smach.State):
         sub.unregister();
         print("Force detected");
         self.mag = 0;
+        self.first_run = True;
         
         return SUCCESS;
     
