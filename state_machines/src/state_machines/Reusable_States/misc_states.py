@@ -355,7 +355,7 @@ class ExplicitRemap(smach.State):
         return SUCCESS;
 
 
-class WaitForForceSensor(smach.State):
+class WaitForWristWrench(smach.State):
     """
     Waiting for a force to be applied to the wrist before moving off.
     Can be a replacement for the hotword detector.

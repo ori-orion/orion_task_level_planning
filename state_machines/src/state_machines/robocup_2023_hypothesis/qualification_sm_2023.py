@@ -54,15 +54,21 @@ def construct_qualification_sm():
             'NAV_TO_CENTRE_OF_ROOM',
             SimpleNavigateState_v2(True),
             transitions={
-                SUCCESS:'WAIT_FOR_HOTWORD',
-                NAVIGATIONAL_FAILURE:'WAIT_FOR_HOTWORD'},
+                SUCCESS:'WAIT_FOR_WRIST_WRENCH',
+                NAVIGATIONAL_FAILURE:'WAIT_FOR_WRIST_WRENCH'},
             remapping={'pose':'centre_of_room_pose'});
+
+        smach.StateMachine.add(
+            'WAIT_FOR_WRIST_WRENCH',
+            WaitForWristWrench(),
+            transitions={
+                'success':'NAV_TO_EXIT'});        
 
         smach.StateMachine.add(
             'WAIT_FOR_HOTWORD',
             WaitForHotwordState(),
             transitions={
-                'success':'NAV_TO_EXIT', 
+                SUCCESS:'NAV_TO_EXIT', 
                 'failure':'WAIT_FOR_HOTWORD'},
             remapping={'timeout':'hotword_timeout'});
 
