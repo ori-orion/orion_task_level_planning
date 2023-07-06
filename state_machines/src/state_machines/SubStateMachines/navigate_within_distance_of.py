@@ -350,10 +350,8 @@ class PlaceSpeechBackup(smach.State):
         elif num == 6:
             return "sixth";
         return "{0}th".format(num);
-
-    def execute(self, userdata):
-        self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
-        
+    
+    def actionWhenThereAreObjects(self, userdata):
         som_query_results:List[SOMObject] = userdata.som_query_results;
         first_response:SOMObject = som_query_results[0];
 
@@ -372,11 +370,47 @@ class PlaceSpeechBackup(smach.State):
             ("I need your help. I want to put this object on the {0} "
              + "shelf from the bottom, including the bottom one, next to the {1}, but "
              + "but I can't find a placement location. Please grab the " 
-             + "top of the object in my gripper. I will release my hold in "
-             + "five seconds.").format(self.getNumber(shelf_index), first_response.class_));
+             + "top of the object in my gripper and, when I release, place it next to the {1}. "
+             + "I will release my hold in five seconds.").format(self.getNumber(shelf_index), first_response.class_));
         
+    def actionWhenThereAreNoObjects(self, userdata):
         
+        shelf_index = 4;
+        
+        region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );
 
+        shelf_height_dict:dict = userdata.shelf_height_dict;
+
+        heights = shelf_height_dict["heights"];
+        shelf_names:List[str] = shelf_height_dict["tf_names"];
+
+        num_items = [];
+        for shelf_name in shelf_names:
+            query = SOMRegionQueryRequest();
+            query.region_name = shelf_name;
+            query_returns:SOMRegionQueryResponse = region_query_srv( query );
+            num_items.append( len(query_returns.returns) );
+            
+        min_index = np.argmin( np.asarray(num_items) );
+        shelf_index = min_index + 2;
+        
+        
+        self.speakPhrase(
+            ("I can't find anything on the shelves matching the category. "
+             + "I think that the {0} shelf has a space. Please grab the top of "
+             + "the object in my gripper and, when I release, place it on the {0} shelf").format(shelf_index));
+        pass;
+
+
+    def execute(self, userdata):
+        self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        
+        som_query_results:List[SOMObject] = userdata.som_query_results;
+        if len(som_query_results) != 0:
+            self.actionWhenThereAreObjects();
+        else:
+            self.actionWhenThereAreNoObjects();
+        
         robot_local = hsrb_interface.Robot();
         gripper = robot_local.try_get('gripper');
         whole_body = robot_local.try_get('whole_body');
@@ -387,7 +421,7 @@ class PlaceSpeechBackup(smach.State):
         gripper.command(1.2);
         
         rospy.sleep(2);
-
+        
         return SUCCESS;
 
 
