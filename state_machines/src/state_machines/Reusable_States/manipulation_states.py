@@ -429,7 +429,7 @@ class PlaceNextTo(smach.State):
         put_down_dims = self.dims;
         if self.input_put_down_obj_size:
             obj_size:Point = userdata.put_down_size;
-            put_down_dims = ( obj_size.x, obj_size.y, self.dims[2] );
+            put_down_dims = ( self.dims[0], self.dims[1], self.dims[2] );
         print( "\tPut down dims:", put_down_dims );
 
         placement_option_found = False;
