@@ -377,7 +377,7 @@ class SimpleNavigateState_v2(smach.State):
     RETRY_STAYED_IN_SAME_PLACE = 2;
     SUCCESS = 3;
 
-    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
+    def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=6):
         smach.State.__init__(
             self,
             outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],

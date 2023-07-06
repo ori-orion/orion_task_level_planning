@@ -336,6 +336,16 @@ class SpinState(smach.State):
 
     def execute(self, userdata):
         if self.bypass_spin:
+            try:
+                self.robot = hsrb_interface.Robot();
+                self.whole_body = self.robot.try_get('whole_body');
+                self.omni_base = self.robot.try_get('omni_base');
+            
+                self.whole_body.move_to_joint_positions({
+                    'head_tilt_joint':0,
+                    'head_pan_joint':0});
+            except Exception as e:
+                rospy.logerr("Spin bypass failed: {0}".format(e));
             rospy.sleep(3);
             return SUCCESS;
         
@@ -722,7 +732,22 @@ def testForceSensorState():
     sub_sm.execute();
     print("Force given through force sensor.")
     pass;
+def testOrionSpin():
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "OrionSpinTest",
+            SpinState(),
+            transitions={
+                SUCCESS:SUCCESS});
+        pass;
+    
+    sub_sm.execute();
+    pass;
+
 
 if __name__ == '__main__':
     rospy.init_node('misc_states_test');
-    testForceSensorState();
+    # testForceSensorState();
+    testOrionSpin();

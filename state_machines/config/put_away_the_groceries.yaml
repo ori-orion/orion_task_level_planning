@@ -6,23 +6,23 @@ execute_navigation_commands: true
 
 
 use_grasping_synthesis : false
-use_collision_mapping : false
+use_collision_mapping : true
 
 # For putting down objects next to others
 find_placement_options : {
     # Looks for a plane height meters below the point given. This should thus probably be like 20cm max.
     height : 0.2,
     # Looks for placement options radius away
-    radius : 0.07,
+    radius : 0.04,
     # Assumes the object is dims in dimension.
-    dims : [0.05, 0.05, 0.02]
+    dims : [0.03, 0.03, 0]
 }
 
 table_pose : {
     # Bordeaux
     position : {
         # x: 6.898829284925901, y: -0.3345450406571554, z: 0.0
-        x: 7.132535664637315, y: -0.22092364986656335, z: 0.0
+        x: 7.28, y: -0.51, z: 0.0
     },
     orientation : { 
         x: 0.0, y: 0.0, z: 0.9941701850029624, w: 0.1078222762288735

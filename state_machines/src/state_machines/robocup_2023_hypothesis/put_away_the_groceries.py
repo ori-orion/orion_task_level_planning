@@ -17,6 +17,10 @@ Stuff todo:
     fix bug
     reduce radius on placement.
     Ask the operator to place the object if no placement options found.
+
+    Move further back.
+    Tfs
+    obj height.
 """
 
 import rospy;
@@ -588,11 +592,16 @@ def create_state_machine():
                 input_hardcoded_shelf_for_placement=True),
             transitions={
                 SUCCESS:             'IncreaseNumber',
-                FAILURE:             'FindEmptyShelfAndPlace',
-                'query_empty':       'FindEmptyShelfAndPlace',
-                MANIPULATION_FAILURE:'PlacementBackup'},
+                FAILURE:             'PlaceSpeechBackup',  #'FindEmptyShelfAndPlace',
+                'query_empty':       'PlaceSpeechBackup',  #'FindEmptyShelfAndPlace',
+                MANIPULATION_FAILURE:'PlaceSpeechBackup'},  #'PlacementBackup'},
             remapping={'obj_type':'put_down_category'})
         
+        smach.StateMachine.add(
+            "PlaceSpeechBackup",
+            PlaceSpeechBackup(),
+            transitions={SUCCESS:"AppendTfNameToTfNameFilter"})
+
         smach.StateMachine.add(
             'PlacementBackup',
             FindPlacementLocationBackup(),
