@@ -356,6 +356,7 @@ def create_state_machine():
     # Keeps track of the tf strings that have been picked up/attempted to
     # be picked up so as to not get stuck in an infinite loop.
     sm.userdata.filter_tf_names_out = [];
+    sm.userdata.class_name_filter = rospy.get_param('class_name_filter')
 
     
     def performSOMQueryAtTable():
@@ -373,7 +374,8 @@ def create_state_machine():
         sub_sm = smach.StateMachine(
             outcomes=["PickUpObj", FAILURE],
             input_keys=[
-                'filter_tf_names_out'],
+                'filter_tf_names_out',
+                'class_name_filter'],
             output_keys=[
                 'pick_up_object_class',
                 'put_down_category',
@@ -414,9 +416,14 @@ def create_state_machine():
                 'PerformQuery',
                 PerformSOMQuery(distance_filter=2),
                 transitions={
-                    SUCCESS: 'SortListInput'},
+                    SUCCESS: 'FilterOutObjNames'},
                 remapping={})
 
+            smach.StateMachine.add(
+                'FilterOutObjNames',
+                FilterSOMResultsAsPer('class_'),
+                transitions={SUCCESS:'FilterOutTfs'},
+                remapping={'filtering_by':'class_name_filter'})
             smach.StateMachine.add(
                 'FilterOutTfs',
                 FilterSOMResultsAsPer('tf_name'),

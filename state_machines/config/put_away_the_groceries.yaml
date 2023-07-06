@@ -62,6 +62,11 @@ categories_to_pick_up : [
     "tableware", 
     "cleaning_stuff"]
 
+class_name_filter : [
+    'banana', 'bananas',
+    'strawberry'
+]
+
 # There will be false positives within the vision system. However, we will count ourselves very unlucky if
 # we get multiple false positives of the same field. Thus, when we query into the SOM system, we will be 
 # looking for a minimum number of observations, given below. On the SOM side, this is input by simply setting
