@@ -552,6 +552,8 @@ def nav_and_pick_up_or_place_next_to(
                 WaitForSecs(2),
                 transitions={SUCCESS:"PlaceObj"});
 
+            print("Using hardcoded shelf heights: {0}".format(input_hardcoded_shelf_for_placement));
+
             smach.StateMachine.add(
                 "PlaceObj",
                 PlaceNextTo(
@@ -561,8 +563,14 @@ def nav_and_pick_up_or_place_next_to(
                     num_repeats=1),
                 transitions={
                     SUCCESS:SUCCESS,
-                    MANIPULATION_FAILURE:MANIPULATION_FAILURE,
-                    FAILURE:MANIPULATION_FAILURE});
+                    MANIPULATION_FAILURE:"PlacementSpeechBackup",
+                    FAILURE:"PlacementSpeechBackup"});
+            
+            smach.StateMachine.add(
+                "PlacementSpeechBackup",
+                PlaceSpeechBackup(take_shelf_heights_as_input=input_hardcoded_shelf_for_placement),
+                transitions={
+                    SUCCESS:SUCCESS});
 
     return sub_sm;
 
