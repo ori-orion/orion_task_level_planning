@@ -17,6 +17,10 @@ Stuff todo:
     fix bug
     reduce radius on placement.
     Ask the operator to place the object if no placement options found.
+
+    Move further back.
+    Tfs
+    obj height.
 """
 
 import rospy;

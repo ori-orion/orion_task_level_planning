@@ -334,7 +334,7 @@ class PlaceSpeechBackup(smach.State):
 
         self.speak_action_client.wait_for_server()
         self.speak_action_client.send_goal(action_goal)
-        # self.speak_action_client.wait_for_result()
+        self.speak_action_client.wait_for_result()
 
     def getNumber(self, num):
         if num == 1:
