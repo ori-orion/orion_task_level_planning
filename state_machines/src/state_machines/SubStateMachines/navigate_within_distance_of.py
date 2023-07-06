@@ -375,10 +375,14 @@ class PlaceSpeechBackup(smach.State):
              + "top of the object in my gripper. I will release my hold in "
              + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_));
         
-        rospy.sleep(3);
+        
 
         robot_local = hsrb_interface.Robot();
         gripper = robot_local.try_get('gripper');
+        whole_body = robot_local.try_get('whole_body');
+        whole_body.move_to_neutral();
+        
+        rospy.sleep(3);
         gripper.command(1.2);
         
         rospy.sleep(5);
