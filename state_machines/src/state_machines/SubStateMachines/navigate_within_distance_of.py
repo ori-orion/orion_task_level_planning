@@ -364,9 +364,10 @@ class PlaceSpeechBackup(smach.State):
         
         self.speakPhrase(
             ("I need your help. I want to put this object on the {0} "
-             + "shelf but can't find a placement location. Please grab the " 
+             + "shelf from the bottom, including the bottom one, next to the {0}, but "
+             + "can't find a placement location. Please grab the " 
              + "top of the object in my gripper. I will release my hold in "
-             + "3 seconds.").format(self.getNumber(shelf_index)))
+             + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_))
 
         return SUCCESS;
 
