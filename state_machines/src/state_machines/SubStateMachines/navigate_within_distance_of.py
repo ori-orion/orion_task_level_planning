@@ -373,7 +373,7 @@ class PlaceSpeechBackup(smach.State):
              + "shelf from the bottom, including the bottom one, next to the {1}, but "
              + "but I can't find a placement location. Please grab the " 
              + "top of the object in my gripper. I will release my hold in "
-             + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_));
+             + "five seconds.").format(self.getNumber(shelf_index), first_response.class_));
         
         
 
@@ -382,7 +382,8 @@ class PlaceSpeechBackup(smach.State):
         whole_body = robot_local.try_get('whole_body');
         whole_body.move_to_neutral();
         
-        rospy.sleep(3);
+        rospy.sleep(5);
+        
         gripper.command(1.2);
         
         rospy.sleep(2);
