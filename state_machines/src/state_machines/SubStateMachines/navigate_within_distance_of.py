@@ -18,6 +18,12 @@ Sub state machines and their purposes:
 import smach; 
 from state_machines.Reusable_States.include_all import *;
 
+from hsrb_interface import robot as _robot;
+_robot.enable_interactive()
+
+
+
+
 def navigate_within_distance_of_pose_input(execute_nav_commands):
     """
     Basically the core of this set of sub-state machines.
@@ -364,10 +370,15 @@ class PlaceSpeechBackup(smach.State):
         
         self.speakPhrase(
             ("I need your help. I want to put this object on the {0} "
-             + "shelf from the bottom, including the bottom one, next to the {0}, but "
-             + "can't find a placement location. Please grab the " 
+             + "shelf from the bottom, including the bottom one, next to the {1}, but "
+             + "I can't find a placement location. Please grab the " 
              + "top of the object in my gripper. I will release my hold in "
-             + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_))
+             + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_));
+        
+        rospy.sleep(3);
+
+        robot = hsrb_interface.Robot();
+        gripper = robot.try_get('gripper');
 
         return SUCCESS;
 
