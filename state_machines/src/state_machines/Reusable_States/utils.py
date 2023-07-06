@@ -11,6 +11,10 @@ from interactive_markers.interactive_marker_server import InteractiveMarkerServe
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 
+import hsrb_interface;
+import hsrb_interface.geometry as geometry
+hsrb_interface.robot.enable_interactive();
+
 TASK_SUCCESS = 'task_success';
 TASK_FAILURE = 'task_failure';
 SUCCESS = 'success';
@@ -295,7 +299,7 @@ class SmachBaseClass(smach.State):
             input_keys=input_keys,
             output_keys=output_keys);
         
-    def Speak(self, phrase_speaking, wait_to_terminate=True):
+    def speak(self, phrase_speaking, wait_to_terminate=True):
         if not hasattr(self, "speak_action_client"):
             self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
         action_goal = TalkRequestGoal()
@@ -308,4 +312,20 @@ class SmachBaseClass(smach.State):
         if wait_to_terminate:
             self.speak_action_client.wait_for_result();
         
+    def getRobotInterface(self):
+        if not hasattr(self, "robot_local"):
+            self.robot_local = hsrb_interface.Robot();
+            self.whole_body = self.robot_local.try_get('whole_body');
+            self.omni_base = self.robot_local.try_get('omni_base');
+            self.gripper = self.robot_local.try_get('gripper');
+            
+    def getGripperDistance(self):
+        self.getRobotInterface();
+        return self.gripper.get_distance();
     
+    def moveToNeutral(self):
+        self.getRobotInterface();
+        self.whole_body.move_to_neutral();
+    def moveToGo(self):
+        self.getRobotInterface();
+        self.whole_body.move_to_go();
