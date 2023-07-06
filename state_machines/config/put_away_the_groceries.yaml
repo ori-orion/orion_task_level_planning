@@ -88,9 +88,9 @@ shelves_hardcoded : {
             x : 7.3, y : 0.86, z : 0.5
         },
         orientation : {
-            x : 0, y : 0, z : -0.821, w : 0.571
+            x : 0, y : 0, z: 0.9956340984489936, w: 0.09334206985952051
         }
     },
-    width : 0.5,
-    depth : 0.2
+    width : 0.8,
+    depth : 0.27
 }

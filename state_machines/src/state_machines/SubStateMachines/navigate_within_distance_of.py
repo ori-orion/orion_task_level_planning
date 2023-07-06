@@ -611,6 +611,10 @@ def test_pipeline():
     
     sub_sm.execute();
 
+def test_placement_backup():
+    
+    pass;
+
 if __name__ == '__main__':
     # test_search_for_entity();
     test_pipeline();

@@ -91,9 +91,9 @@ class FindShelfBackup(smach.State):
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
+        self.buffer = tf2_ros.Buffer();
         self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
-        self.listener = tf2_ros.TransformListener();
-        self.tf_buffer = self.listener.buffer;
+        self.listener = tf2_ros.TransformListener(self.buffer);
     
     def execute(self, userdata):
         PLACEMENT_TF_NAME = "placement_tf_TLP"
@@ -584,7 +584,8 @@ def create_state_machine():
             nav_and_pick_up_or_place_next_to(
                 execute_nav_commands, pick_up=False, 
                 find_same_category=True, 
-                input_obj_size_for_place=True),
+                input_obj_size_for_place=True,
+                input_hardcoded_shelf_for_placement=True),
             transitions={
                 SUCCESS:             'IncreaseNumber',
                 FAILURE:             'FindEmptyShelfAndPlace',
