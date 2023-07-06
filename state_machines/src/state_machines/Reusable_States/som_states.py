@@ -122,13 +122,14 @@ class PerformSOMQuery(smach.State):
     Outputs:
         som_query_results:List[<response_type>] : The response in the form of a raw array.
     """
-    def __init__(self, distance_filter:float=0):
+    def __init__(self, distance_filter:float=0, z_filter_above:float = 0.15):
         smach.State.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query'],
             output_keys=['som_query_results']);
             
         self.distance_filter = distance_filter;
+        self.z_filter_above = z_filter_above;
 
     def execute(self, userdata):
 
@@ -160,7 +161,12 @@ class PerformSOMQuery(smach.State):
                 if distance_between_poses(current_pose, element.obj_position) < self.distance_filter:
                     output_carry.append(element);
             output = output_carry
-            pass;
+        if self.z_filter_above != None:
+            output_carry = [];
+            for element in output:
+                if element.obj_position.position.z > self.z_filter_above:
+                    output_carry.append(element);
+            output = output_carry;
 
         userdata.som_query_results = output;
         rospy.loginfo('\t\t' + str(len(output)) + " entities found matching the query.")
