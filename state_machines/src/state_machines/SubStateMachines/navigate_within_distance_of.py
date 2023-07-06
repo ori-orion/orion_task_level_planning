@@ -407,9 +407,9 @@ class PlaceSpeechBackup(smach.State):
         
         som_query_results:List[SOMObject] = userdata.som_query_results;
         if len(som_query_results) != 0:
-            self.actionWhenThereAreObjects();
+            self.actionWhenThereAreObjects(userdata);
         else:
-            self.actionWhenThereAreNoObjects();
+            self.actionWhenThereAreNoObjects(userdata);
         
         robot_local = hsrb_interface.Robot();
         gripper = robot_local.try_get('gripper');
