@@ -314,7 +314,14 @@ class SpinState(smach.State):
     OFFSET_BY_90 = 1;
     TAKE_OFFSET_FROM_USERDATA = 2;
 
-    def __init__(self, spin_height:float=1, only_look_forwards:bool=False, offset_instruction:int=OFFSET_BY_0):
+    def __init__(
+            self, 
+            spin_height:float=1, 
+            only_look_forwards:bool=False, 
+            offset_instruction:int=OFFSET_BY_0,
+            bypass_spin=True):
+        
+
         input_keys = ['body_rotated'] if offset_instruction==self.TAKE_OFFSET_FROM_USERDATA else [];
         smach.State.__init__(
             self, 
@@ -325,19 +332,27 @@ class SpinState(smach.State):
         self.spin_height = spin_height;
         self.only_look_forwards:bool = only_look_forwards;
         self.offset_instruction = offset_instruction;
+        self.bypass_spin = bypass_spin;
 
     def execute(self, userdata):
+        if self.bypass_spin:
+            rospy.sleep(3);
+            return SUCCESS;
+        
+
         client = actionlib.SimpleActionClient('spin', SpinAction);
         client.wait_for_server();
         goal = SpinGoal();
         goal.only_look_forwards = self.only_look_forwards;
         goal.height_to_look_at = self.spin_height;
+
         if self.offset_instruction == self.OFFSET_BY_0:
             goal.spin_offset = 0;
         elif self.offset_instruction == self.OFFSET_BY_90:
             goal.spin_offset = -90;
         elif self.offset_instruction == self.TAKE_OFFSET_FROM_USERDATA:
             goal.spin_offset = 0 if userdata.body_rotated==False else -90;
+        
         client.send_goal(goal);
         client.wait_for_result();
 

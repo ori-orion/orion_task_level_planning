@@ -353,7 +353,6 @@ class PlaceSpeechBackup(smach.State):
 
         shelf_height_dict:dict = userdata.shelf_height_dict;
         shelf_heights:List[float] = shelf_height_dict['heights'];
-        shelf_tf_names:List[str] = shelf_height_dict['tf_names']
         shelf_index = 0;
         for i in range(len(shelf_heights)):
             if shelf_heights[i] > first_response.obj_position.position.z:
