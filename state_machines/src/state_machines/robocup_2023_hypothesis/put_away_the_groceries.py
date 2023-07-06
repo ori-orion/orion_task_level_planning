@@ -175,7 +175,7 @@ class FindShelfBackup(smach.State):
         # If everything has failed, drop the item?
 
         return SUCCESS;
-    
+
 
 
 def sub_state_machine_pick_up_and_put_away():

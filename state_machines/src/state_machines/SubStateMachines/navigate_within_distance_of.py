@@ -311,6 +311,67 @@ def nav_within_reaching_distance_of(
     return sub_sm;
 
 
+class PlaceSpeechBackup(smach.State):
+    def __init__(self, take_shelf_heights_as_input=True):
+        smach.State.__init__(self, 
+            outcomes=[SUCCESS],
+            input_keys=['som_query_results', 'shelf_height_dict'], 
+            output_keys=[]);
+        if take_shelf_heights_as_input==False:
+            rospy.logerr("PlaceSpeechBackup will try to access shelf heights. This cannot be included in this state machine.")
+
+    def speakPhrase(self, phrase_speaking):
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = phrase_speaking
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+
+        self.speak_action_client.wait_for_server()
+        self.speak_action_client.send_goal(action_goal)
+        # self.speak_action_client.wait_for_result()
+
+    def getNumber(self, num):
+        if num == 1:
+            return "first";
+        elif num == 2:
+            return "second";
+        elif num == 3:
+            return "third";
+        elif num == 4:
+            return "fourth";
+        elif num == 5:
+            return "fifth";
+        elif num == 6:
+            return "sixth";
+        return "{0}th".format(num);
+
+    def execute(self, userdata):
+        self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        
+        som_query_results:List[SOMObject] = userdata.som_query_results;
+        first_response:SOMObject = som_query_results[0];
+
+        shelf_height_dict:dict = userdata.shelf_height_dict;
+        shelf_heights:List[float] = shelf_height_dict['heights'];
+        shelf_tf_names:List[str] = shelf_height_dict['tf_names']
+        shelf_index = 0;
+        for i in range(len(shelf_heights)):
+            if shelf_heights[i] > first_response.obj_position.position.z:
+                break;
+            shelf_index = i;
+        
+        # The shelves are 0 indexed, not 1 indexed, and we haven't stored the bottom most shelf.
+        shelf_index += 2;
+        
+        self.speakPhrase(
+            ("I need your help. I want to put this object on the {0} "
+             + "shelf but can't find a placement location. Please grab the " 
+             + "top of the object in my gripper. I will release my hold in "
+             + "3 seconds.").format(self.getNumber(shelf_index)))
+
+        return SUCCESS;
+
+
 def nav_and_pick_up_or_place_next_to(
         execute_nav_commands, 
         pick_up:bool, 

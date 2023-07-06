@@ -406,7 +406,7 @@ class PlaceNextTo(smach.State):
         
 
     def execute(self, userdata):
-        som_query_results:List[dict] = userdata.som_query_results;
+        som_query_results:List[SOMObject] = userdata.som_query_results;
 
         first_response:SOMObject = som_query_results[0];
 
