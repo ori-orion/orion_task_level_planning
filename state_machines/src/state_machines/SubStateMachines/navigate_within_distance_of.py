@@ -377,8 +377,11 @@ class PlaceSpeechBackup(smach.State):
         
         rospy.sleep(3);
 
-        robot = hsrb_interface.Robot();
-        gripper = robot.try_get('gripper');
+        robot_local = hsrb_interface.Robot();
+        gripper = robot_local.try_get('gripper');
+        gripper.command(1.2);
+        
+        rospy.sleep(5);
 
         return SUCCESS;
 
