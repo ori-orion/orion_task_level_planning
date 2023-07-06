@@ -371,7 +371,7 @@ class PlaceSpeechBackup(smach.State):
         self.speakPhrase(
             ("I need your help. I want to put this object on the {0} "
              + "shelf from the bottom, including the bottom one, next to the {1}, but "
-             + "I can't find a placement location. Please grab the " 
+             + "but I can't find a placement location. Please grab the " 
              + "top of the object in my gripper. I will release my hold in "
              + "3 seconds.").format(self.getNumber(shelf_index), first_response.class_));
         
@@ -385,7 +385,7 @@ class PlaceSpeechBackup(smach.State):
         rospy.sleep(3);
         gripper.command(1.2);
         
-        rospy.sleep(5);
+        rospy.sleep(2);
 
         return SUCCESS;
 
@@ -620,7 +620,7 @@ def test_placement_backup():
     som_query_results = [];
     classes = ["apple"];
     categories = ["fruit"];
-    z_vals = [0.5];
+    z_vals = [1];
     for i in range(len(classes)):
         appending = SOMObject();
         appending.class_ = classes[i];
