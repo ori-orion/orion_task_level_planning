@@ -611,10 +611,38 @@ def test_pipeline():
     
     sub_sm.execute();
 
-def test_placement_backup():
+def test_placement_backup():    
+    #region Priming som
+    som_query_results = [];
+    classes = ["apple"];
+    categories = ["fruit"];
+    z_vals = [0.5];
+    for i in range(len(classes)):
+        appending = SOMObject();
+        appending.class_ = classes[i];
+        appending.category = categories[i];
+        appending.obj_position.position.z = z_vals[i];
+        som_query_results.append(appending);
+    #endregion
     
-    pass;
+    rospy.init_node('placement_backup_test');
+    
+    sm = smach.StateMachine(outcomes = [TASK_SUCCESS]);
+    
+    sm.userdata.som_query_results = som_query_results;
+    sm.userdata.shelf_height_dict = {
+        "heights":[0.45,0.735,1.06,1.41,1.70]}
+    
+    with sm:
+        smach.StateMachine.add(
+            "PlaceSpeechBackup",
+            PlaceSpeechBackup(),
+            transitions={SUCCESS:TASK_SUCCESS});
+    
+    sm.execute();
+    
 
 if __name__ == '__main__':
     # test_search_for_entity();
-    test_pipeline();
+    # test_pipeline();
+    test_placement_backup();
