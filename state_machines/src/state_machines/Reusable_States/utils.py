@@ -1,3 +1,4 @@
+import smach;
 import numpy as np;
 import math;
 
@@ -268,3 +269,43 @@ class RvizVisualisationManager:
         self.im_server.insert(int_marker, self.handle_viz_input)
         self.im_server.applyChanges();
         return
+
+
+class SmachBaseClass(smach.State):
+    
+    JOINT_ARM_FLEX = 'arm_flex_joint';
+    JOINT_ARM_LIFT = 'arm_lift_joint';
+    JOINT_ARM_ROLL = 'arm_roll_joint';
+    JOINT_HEAD_PAN = 'head_pan_joint';
+    JOINT_HEAD_TILT = 'head_tilt_joint';
+    JOINT_WRIST_FLEX = 'wrist_flex_joint';
+    JOINT_WRIST_ROLL = 'wrist_roll_joint';
+
+    
+    def __init__(self, outcomes=None, input_keys=None, output_keys=None):
+        if outcomes == None:
+            outcomes = [SUCCESS];
+        if input_keys == None:
+            input_keys = [];
+        if output_keys == None:
+            output_keys = [];
+        smach.State.__init__(
+            self,
+            outcomes=outcomes,
+            input_keys=input_keys,
+            output_keys=output_keys);
+        
+    def Speak(self, phrase_speaking, wait_to_terminate=True):
+        if not hasattr(self, "speak_action_client"):
+            self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = phrase_speaking
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+
+        self.speak_action_client.wait_for_server()
+        self.speak_action_client.send_goal(action_goal)
+        if wait_to_terminate:
+            self.speak_action_client.wait_for_result();
+        
+    
