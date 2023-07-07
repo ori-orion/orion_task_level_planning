@@ -15,7 +15,7 @@ import hsrb_interface;
 import hsrb_interface.geometry as geometry
 hsrb_interface.robot.enable_interactive();
 
-from typing import Dict;
+from typing import Dict, List;
 
 TASK_SUCCESS = 'task_success';
 TASK_FAILURE = 'task_failure';
@@ -336,8 +336,8 @@ class SmachBaseClass(smach.State):
         self.whole_body.move_to_joint_positions(moving_to);
     def moveBaseThroughTrajectory(
             self, 
-            trajectory_moving_through, 
-            timeouts_from_start,
+            trajectory_moving_through:List[hsrb_interface.geometry.pose], 
+            timeouts_from_start:List[float],
             reference_frame='base_footprint'):
         
         self.getRobotInterface();

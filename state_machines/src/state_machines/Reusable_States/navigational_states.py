@@ -879,13 +879,13 @@ class SearchForGuestNavToNextNode(SmachBaseClass):
         # now remove the node from the nodes_not_searched list, because we have now searched it
         del userdata.nodes_not_searched[0]
         return 'searched'
-
+smach.StateMachine
 
 def testOrientRobot():
-    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
 
     with sub_sm:
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             "OrientTowards",
             OrientRobot(),
             transitions={
@@ -916,11 +916,11 @@ def testNavigationalFallback():
     goal.orientation.z = -0.821;
     goal.orientation.w = 0.571;
     
-    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
     sub_sm.userdata.pose = goal;
 
     with sub_sm:
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             "Navigate",
             SimpleNavigateState_v2(execute_nav_commands=True),
             transitions={

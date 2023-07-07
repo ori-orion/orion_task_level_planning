@@ -751,7 +751,7 @@ class CreatePhraseStartSearchForPeopleState(SmachBaseClass):
 def askFromSelectionTest():
     from procedural_states import IncrementValue;
 
-    sm = SmachBaseClassMachine(
+    sm = smach.StateMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=[],
         output_keys=[]);
@@ -761,7 +761,7 @@ def askFromSelectionTest():
     sm.userdata.index = 0;
 
     with sm:
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'TalkToGuest1',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -773,13 +773,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'IncrementGuestIndex1',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'TalkToGuest2'},
             remapping={'val':'index'});
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'TalkToGuest2',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -791,13 +791,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'IncrementGuestIndex2',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'TalkToGuest3'},
             remapping={'val':'index'});
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'TalkToGuest3',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -809,13 +809,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'IncrementGuestIndex3',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'ReportBack'},
             remapping={'val':'index'});
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'ReportBack',
             ReportBackToOperator(),
             transitions={SUCCESS:SUCCESS});

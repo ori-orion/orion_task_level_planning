@@ -235,7 +235,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
         som_query_results:List[SOMObject|Human] - The results from the query. 
     """
 
-    sub_sm = SmachBaseClassMachine(
+    sub_sm = smach.StateMachine(
         outcomes=['object_seen', 'object_not_seen', FAILURE],
         input_keys=['class_'],
         output_keys=['item_not_found', 'som_query_results']);
@@ -243,7 +243,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
     sub_sm.userdata.index = 0;
 
     with sub_sm:
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'CreateQuery',
             CreateSOMQuery(
                 query_type=CreateSOMQuery.OBJECT_QUERY, 
@@ -252,7 +252,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
             transitions={
                 SUCCESS:'AddEntryToSOMQuery'});
         
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'AddEntryToSOMQuery',
             AddSOMEntry(
                 field_adding_default="class_"),
@@ -262,20 +262,20 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
             remapping={'value' :'class_'});
         
         if wait_before_querying:
-            SmachBaseClassMachine.add(
+            smach.StateMachine.add(
                 'WaitALittle',
                 WaitForSecs(time_interval),
                 transitions={
                     SUCCESS:'QuerySom'},
                 remapping={});
         
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'QuerySom',
             PerformSOMQuery(),
             transitions={
                 SUCCESS:'CheckIfFound'});
 
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             'CheckIfFound',
             GetListEmpty(),
             transitions={

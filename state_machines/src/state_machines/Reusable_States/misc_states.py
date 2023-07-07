@@ -258,16 +258,15 @@ class RaiseMastState(SmachBaseClass):
             BASE_ROTATION = math.pi/2;
             self.moveToNeutral();
             self.moveToJointPositions({
-                'arm_lift_joint':mast_height,
-                'arm_flex_joint':-0.1*math.pi/2,
-                'head_pan_joint':-BASE_ROTATION});
-            self.omni_base.follow_trajectory(
+                self.JOINT_ARM_LIFT :mast_height,
+                self.JOINT_ARM_FLEX :-0.1*math.pi/2,
+                self.JOINT_HEAD_PAN :-BASE_ROTATION});
+            self.moveBaseThroughTrajectory(
                 [geometry.pose(ek=BASE_ROTATION)],
-                time_from_starts=[10],
-                ref_frame_id='base_footprint');
+                timeouts_from_start=[10]);
             userdata.body_rotated = True;
         else:
-            self.whole_body.move_to_joint_positions({self.MAST_JOINT_NAME:mast_height})
+            self.moveToJointPositions({self.MAST_JOINT_NAME:mast_height})
         return SUCCESS;
     pass;
 
@@ -279,14 +278,11 @@ class MoveToNeutralState(SmachBaseClass):
         SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS]);
-
-        self.robot = hsrb_interface.Robot();
-        self.whole_body = self.robot.try_get('whole_body');
     
     def execute(self, userdata):
         for i in range(3):
             try:
-                self.whole_body.move_to_go();
+                self.moveToGo();
                 return SUCCESS;
             except Exception as e:
                 rospy.logwarn("Exception raised within self.whole_body.move_to_neutral().")
@@ -691,10 +687,10 @@ def testForceSensorState():
     """
     Goal is in collision within the hsrb_megaweb2015world map.
     """
-    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS]);
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
 
     with sub_sm:
-        SmachBaseClassMachine.add(
+        smach.StateMachine.add(
             "WaitForForceSensor",
             WaitForWristWrench(),
             transitions={
