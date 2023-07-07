@@ -225,9 +225,6 @@ class RaiseMastState(SmachBaseClass):
             input_keys=input_keys,
             output_keys=['body_rotated']);
 
-        self.robot = hsrb_interface.Robot();
-        self.whole_body = self.robot.try_get('whole_body');
-        self.omni_base = self.robot.try_get('omni_base');
         self.mast_height = mast_height;
         self.rotate_body = rotate_body;
     
@@ -248,19 +245,19 @@ class RaiseMastState(SmachBaseClass):
             return SUCCESS;
 
         userdata.body_rotated = False;
-        self.whole_body.move_to_joint_positions({
-            'arm_lift_joint':mast_height,
-            'arm_flex_joint':-100*math.pi/180,
-            'head_pan_joint':0,
-            'head_tilt_joint':-math.pi/6,
-            'wrist_flex_joint':0});
+        self.moveToJointPositions({
+            self.JOINT_ARM_LIFT   :mast_height,
+            self.JOINT_ARM_FLEX   :-100*math.pi/180,
+            self.JOINT_HEAD_PAN   :0,
+            self.JOINT_HEAD_TILT  :-math.pi/6,
+            self.JOINT_WRIST_FLEX :0});
         return SUCCESS;
     
         # The code for rotating the body as well.
         if self.rotate_body:
             BASE_ROTATION = math.pi/2;
-            self.whole_body.move_to_neutral();
-            self.whole_body.move_to_joint_positions({
+            self.moveToNeutral();
+            self.moveToJointPositions({
                 'arm_lift_joint':mast_height,
                 'arm_flex_joint':-0.1*math.pi/2,
                 'head_pan_joint':-BASE_ROTATION});

@@ -15,6 +15,8 @@ import hsrb_interface;
 import hsrb_interface.geometry as geometry
 hsrb_interface.robot.enable_interactive();
 
+from typing import Dict;
+
 TASK_SUCCESS = 'task_success';
 TASK_FAILURE = 'task_failure';
 SUCCESS = 'success';
@@ -318,7 +320,7 @@ class SmachBaseClass(smach.State):
             self.omni_base = self.robot_local.try_get('omni_base');
             self.gripper = self.robot_local.try_get('gripper');
             
-    def getGripperDistance(self):
+    def getGripperDistance(self) -> float:
         self.getRobotInterface();
         return self.gripper.get_distance();
     
@@ -328,3 +330,18 @@ class SmachBaseClass(smach.State):
     def moveToGo(self):
         self.getRobotInterface();
         self.whole_body.move_to_go();
+        
+    def moveToJointPositions(self, moving_to:Dict[str:float]):
+        self.getRobotInterface();
+        self.whole_body.move_to_joint_positions(moving_to);
+    def moveBaseThroughTrajectory(
+        self, 
+        trajectory_moving_through, 
+        timeouts_from_start,
+        reference_frame='base_footprint'):
+        
+        self.getRobotInterface();
+        self.omni_base.follow_trajectory(
+            trajectory_moving_through,
+            time_from_starts=timeouts_from_start,
+            ref_frame_id='base_footprint');

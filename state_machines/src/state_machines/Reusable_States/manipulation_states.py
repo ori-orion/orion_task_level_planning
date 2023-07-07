@@ -174,9 +174,6 @@ class PickUpObjectState_v2(SmachBaseClass):
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
-        
-        robot = hsrb_interface.Robot();
-        self.gripper = robot.try_get("gripper")
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
@@ -193,9 +190,10 @@ class PickUpObjectState_v2(SmachBaseClass):
             print("status", status);
             print("Failure mode=", failure_mode)
             if result:
-                print("Gripper distance", self.gripper.get_distance());
+                gripper_distance = self.getGripperDistance();
+                print("Gripper distance", gripper_distance);
 
-                if self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
+                if gripper_distance > self.GRIPPER_DISTANCCE_THRESHOLD:
                     rospy.sleep(self.wait_upon_completion);
                     return SUCCESS;
                 
@@ -394,15 +392,15 @@ class PlaceNextTo(SmachBaseClass):
         self.input_put_down_obj_size = input_put_down_obj_size;
         self.take_shelf_heights_as_input = take_shelf_heights_as_input;
     
-    def speakPhrase(self, phrase_speaking):
-        action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = phrase_speaking
-        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+    # def speak(self, phrase_speaking):
+    #     action_goal = TalkRequestGoal()
+    #     action_goal.data.language = Voice.kEnglish  # enum for value: 1
+    #     action_goal.data.sentence = phrase_speaking
+    #     rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
 
-        self.speak_action_client.wait_for_server()
-        self.speak_action_client.send_goal(action_goal)
-        # self.speak_action_client.wait_for_result()
+    #     self.speak_action_client.wait_for_server()
+    #     self.speak_action_client.send_goal(action_goal)
+    # #     # self.speak_action_client.wait_for_result()
         
 
     def execute(self, userdata):
@@ -424,7 +422,7 @@ class PlaceNextTo(SmachBaseClass):
 
         radius = self.radius;
 
-        self.speakPhrase("Attempting to find a placement location.");
+        self.speak("Attempting to find a placement location.", wait_to_terminate=False);
 
         put_down_dims = self.dims;
         if self.input_put_down_obj_size:
@@ -452,10 +450,10 @@ class PlaceNextTo(SmachBaseClass):
             print("\t", best_tf);
 
             if len(best_tf) == 0:
-                self.speakPhrase("No placement options were found. Retrying.");
+                self.speak("No placement options were found. Retrying.", wait_to_terminate=False);
                 radius *= 1.3;
             else:
-                self.speakPhrase("A placement option was found. Executing now.");
+                self.speak("A placement option was found. Executing now.", wait_to_terminate=False);
                 placement_option_found = True;
                 break;
 
