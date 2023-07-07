@@ -41,6 +41,9 @@ These sub systems are as follows:
  - Training
  - Miscellaneous
 
+The other thing to note is that we use config files extensively.
+These can all be found under `/orion_task_level_planning/state_machines/config` and the names often match the name of the state machine in question.
+
 
 ### Manipulation
 
