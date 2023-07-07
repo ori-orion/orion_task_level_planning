@@ -19,6 +19,121 @@ Nav to table
 Thus the overall state machine can be represented as a graph where each node is a given action (Pick up an object, navigate, perform SOM query, look round, ...) and the arrows go from state to state. The path that is taken then depends on the outcome from the particular state. 
 All of our states are given within `orion_task_level_planning/state_machines/src/state_machines/ReusableStates`. They are then categorised by subsystem, in a manner that should be relatively intuitive. (An overview of this will be given later).
 
+## Sub State Machines
+
 We then have the ideas of sub-state machines.
 These act in a similar manner to functions, in that they are structures that can be reused multiple times.
-![Example state machine](/state_machines/src/state_machines/robocup_2023_hypothesis/Put away the groceries 2.png)
+
+For example, see `orion_task_level_planning/state_machines/src/state_machines/robocup_2023_hypothesis/Put away the groceries 2.png`
+Every box in this is a sub state machine. 
+Our sub state machines can be found within `orion_task_level_planning/state_machines/src/state_machines/SubStateMachines`
+
+## Our architecture.
+
+As previously mentioned, we have broken down the system into multiple sub systems. 
+These sub systems are as follows:
+ - Manipulation
+ - Navigation
+ - Perception
+ - Procedural
+ - SOM
+ - Speech
+ - Training
+ - Miscellaneous
+
+
+### Manipulation
+
+- Picking up an object (`PickUpObjectState_v2`).
+    - Note that here, `PickUpObjectState_v2` should be used instead of `PickUpObjectState` which is deprecated. The newer state attempts retrys within the state and has more checks for success. It also returns `MANIPULATION_FAILURE` rather than `FAILURE` which can be useful for constructing the state machine.
+- Putting an object down (`PutObjectOnSurfaceState` and `PlaceNextTo`).
+- Handing an object to a human (`HandoverObjectToOperatorState`).
+- Receiving an object from a human (`ReceiveObjectFromOperatorState`).
+- Pointing at an object (`PointAtEntity`).
+
+5 states
+
+### Navigation
+
+- Getting the current location of the robot (`GetRobotLocationState`).
+- Navigating using `tmc_move_base` (`SimpleNavigateState_v2`).
+    - Here `SimpleNavigateState_v2` should be used instead of `SimpleNavigateState` which is deprecated. The reasoning is basically the same as above, where `NAVIGATIONAL_FAILURE` is returned instead of `FAILURE`.
+    - Note that the `SimpleNavigateState_v2` will see if the robot is not moving, and if this is the case, it will try to replan a goal. If this goal is blocked, it will read in the occupancy map (using `NavigationalListener`) to find the closest point that is free.
+- Navigating using the ORI navigational packages (`TopologicalNavigateState`).
+
+3 states
+
+### Perception
+
+This is where facial recognition would go, but this is not working at present.
+
+### Procedural
+
+These states are supprisingly useful. They are as follows:
+- Checking to see if `left < right` (`LessThanState`)
+- Executing `appending_to.append(appending_with)` (`AppendToArrState`)
+- Executing `val += increment_by` (`IncrementValue`)
+- Executing `return input_list[index].property` (`GetPropertyAtIndex`)
+    - This can return multiple properties, and can often be used to get specific parameters from the results of a given SOM query.
+- Working out if a list is empty or not (`GetListEmpty`).
+- Setting a given variable to an empty list (`SetToEmptyList`). 
+
+6 states
+
+### SOM
+
+This pertains to accessing the objects in the memory system. The states allow for
+- Creating a SOM query (`CreateSOMQuery`).
+- Adding a parameter to the SOM query to refine the search (`AddSOMEntry`).
+- Performing the query (`PerformSOMQuery`).
+- Sorting the entries with respect to a given list (`SortSOMResultsAsPer`).
+    - SOM entries are automatically sorted by the time the objects were last seen upon being outputted from SOM. 
+    - This allows us to sort based on a different criterion.
+    - For example, say you want all the entries of category `fruits` to be first, then of `drinks` etc. You would then use this state with the input argument of `order_of_preference=["fruits", "drinks",...]`. 
+- Filtering out certain entries (`FilterSOMResultsAsPer`).
+    - Let's say you've tried and failed to pick up an apple with tf `apple_0`. You could then filter out all instances of objects with entry `tf_name == apple_0` from the outputs by using this state.
+    - For this, we would want this state with the arguments `filter_by=tf_name`, and the userdata including `filtering_by=["apple_0",...]`. 
+    - Note that if you wanted to only get entries with `tf_name=="apple_0"`, you would need to set `filter_out=False`.
+
+There then a few states that pertain to the (old) find my mates task. These save details of humans to SOM for querying later. These haven't been tested fully.
+
+Finally, there is a standalone class for creating an occupancy map using the entries found within SOM called `SOMOccupancyMap` (allowing us to, for instance, find potential placement locations, or empty chairs. This works fairly well, and might be useful. However, it is specific to objects at present.)
+
+5 states
+
+### Speech
+
+- Saying an arbitrary phrase (`SpeakState`).
+- Speaking and listening for a response (`SpeakAndListenState`).
+- Asking specifically for a person's name (`AskPersonNameState`).
+- Waiting for a hotword (`WaitForHotwordState`).
+- Asking from a selection of questions (`AskFromSelection` and `ReportBackToOperator`).
+    - See documentation within `speech_states.py`
+- Saying a phrase with userdata fields added automatically.
+    - This is extremely useful. There is an example of this within `orion_task_level_planning/state_machines/src/state_machines/robocup_2023_hypothesis/put_away_the_groceries.py`. Within this file, search for the state `TellOperatorClassCategory`.
+
+6 states
+
+### Training
+
+These states are mainly used in the training state machines `orion_task_level_planning/state_machines/src/state_machines/Training`.
+- Printing to the console (`PrintToConsole`).
+- Reading in from the console (`ReadInFromConsole`).
+
+2 states
+
+### Miscellaneous
+
+This is the set of states that don't seem to fit into any given category.
+- Getting the current time (`GetTime`).
+- Waiting for a set number of seconds (`WaitForSecs`).
+- Checking to see if the door is open for the competition (`CheckDoorIsOpenState`).
+- Raising the mast (`RaiseMastState`).
+- Moving to neutral (`MoveToNeutralState`).
+- Spinning the head around (`SpinState`).
+- Remapping between variables (`ExplicitRemap`).
+    - Despite having the remapping argument, this can still be useful if there are variables that you want to pass as input into a state that outputs a variable of the same name, but you need to remap upon input.
+- Waiting for someone to touch the hand (`WaitForWristWrench`).
+    - This could do with a little fine tuning. You need to push harder than necessary for this.
+
+8 states
