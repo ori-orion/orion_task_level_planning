@@ -289,7 +289,7 @@ class MoveToNeutralState(smach.State):
     def execute(self, userdata):
         for i in range(3):
             try:
-                self.whole_body.move_to_neutral();
+                self.whole_body.move_to_go();
                 return SUCCESS;
             except Exception as e:
                 rospy.logwarn("Exception raised within self.whole_body.move_to_neutral().")
@@ -387,7 +387,7 @@ class WaitForWristWrench(smach.State):
         else:
             mag_sqared = (input_msg.wrench.force.x-self.x_offset)**2 + (input_msg.wrench.force.y-self.y_offset)**2 + (input_msg.wrench.force.z-self.z_offset)**2;
             self.mag = math.sqrt(mag_sqared);
-            print(self.mag);
+            # print(self.mag);
 
         
     

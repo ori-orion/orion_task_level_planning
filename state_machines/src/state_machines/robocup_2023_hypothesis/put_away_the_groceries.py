@@ -83,7 +83,9 @@ class FindShelfBackup(smach.State):
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
+        self.tf_buffer = tf2_ros.Buffer();
         self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+        # self.tf_listener = tf2_ros.
     
     def execute(self, userdata):
         PLACEMENT_TF_NAME = "placement_tf_TLP"
