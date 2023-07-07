@@ -335,13 +335,13 @@ class SmachBaseClass(smach.State):
         self.getRobotInterface();
         self.whole_body.move_to_joint_positions(moving_to);
     def moveBaseThroughTrajectory(
-        self, 
-        trajectory_moving_through, 
-        timeouts_from_start,
-        reference_frame='base_footprint'):
+            self, 
+            trajectory_moving_through, 
+            timeouts_from_start,
+            reference_frame='base_footprint'):
         
         self.getRobotInterface();
         self.omni_base.follow_trajectory(
             trajectory_moving_through,
             time_from_starts=timeouts_from_start,
-            ref_frame_id='base_footprint');
+            ref_frame_id=reference_frame);
