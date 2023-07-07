@@ -28,7 +28,7 @@ For example, see `orion_task_level_planning/state_machines/src/state_machines/ro
 Every box in this is a sub state machine. 
 Our sub state machines can be found within `orion_task_level_planning/state_machines/src/state_machines/SubStateMachines`
 
-## Our architecture.
+## Our architecture - the states
 
 As previously mentioned, we have broken down the system into multiple sub systems. 
 These sub systems are as follows:
@@ -112,7 +112,7 @@ Finally, there is a standalone class for creating an occupancy map using the ent
 - Waiting for a hotword (`WaitForHotwordState`).
 - Asking from a selection of questions (`AskFromSelection` and `ReportBackToOperator`).
     - See documentation within `speech_states.py`
-- Saying a phrase with userdata fields added automatically.
+- Saying a phrase with userdata fields added automatically (`SayArbitraryPhrase`).
     - This is extremely useful. There is an example of this within `orion_task_level_planning/state_machines/src/state_machines/robocup_2023_hypothesis/put_away_the_groceries.py`. Within this file, search for the state `TellOperatorClassCategory`.
 
 6 states
@@ -143,3 +143,38 @@ This is the set of states that don't seem to fit into any given category.
     - This could do with a little fine tuning. You need to push harder than necessary for this.
 
 11 states
+
+## Our architecture - the sub state machines.
+
+We then have the sub state machines for more developed and refined functionality.
+
+These are as follows:
+
+### create_sub_state_machines.py
+
+A lot of these are using older states, so, if you want to use these, it is recommended to rewrite some of the functionality, especially using the `SayArbitraryPhrase` state.
+
+- `create_learn_guest_sub_state_machine`
+- `create_search_for_guest_sub_state_machine`
+- `create_topo_nav_state_machine`
+- `create_point_to_all_guests`
+- `create_get_guest_details`
+- `create_intro_to_operator`
+
+### navigate_within_distance_of.py
+
+This is mainly for local navigation. You want to navigate to a pose from which you can pick up an object or from which you can talk to someone.
+
+- `navigate_within_distance_of_pose_input`
+    - Navigate within a certain 
+- `navigate_within_distance_of_som_input`
+- `search_for_entity`
+- `nav_within_reaching_distance_of`
+- `nav_and_pick_up_or_place_next_to`
+
+### startup.py
+
+- `create_wait_for_startup`
+    - This waits for the door to open, waits a little bit of time, and then returns `SUCCESS`.
+    - For starting each round in the competition.
+
