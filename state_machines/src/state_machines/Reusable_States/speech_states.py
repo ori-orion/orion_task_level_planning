@@ -98,7 +98,7 @@ AGE_STRS = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nin
 SPEAK_THROUGH_CONSOLE = False;
 
 
-class SpeakState(smach.State):
+class SpeakState(SmachBaseClass):
     """ Smach state for the robot to speak a phrase.
 
     This class has the robot say something and return success.
@@ -109,7 +109,7 @@ class SpeakState(smach.State):
     Note that if self.phrase==None, then we take the input directly from input_keys['phrase'].
     """
     def __init__(self, phrase=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=['phrase'])
@@ -144,7 +144,7 @@ class SpeakState(smach.State):
         return SUCCESS
 
 
-class SpeakAndListenState(smach.State):
+class SpeakAndListenState(SmachBaseClass):
     """ Smach state for speaking and then listening for a response.
 
     This state will calll the speak and listen action server,
@@ -164,7 +164,7 @@ class SpeakAndListenState(smach.State):
     """
 
     def __init__(self, question=None):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS,FAILURE,REPEAT_FAILURE],
                                 input_keys=['question', 'candidates','params','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['operator_response', 'number_of_failures'])
@@ -215,7 +215,7 @@ class SpeakAndListenState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-class AskPersonNameState(smach.State):
+class AskPersonNameState(SmachBaseClass):
     """ Smach state for the robot to ask for the person's name, executed by the ask_person_name action server.
 
     This state will call the ask_person_name action server,
@@ -232,7 +232,7 @@ class AskPersonNameState(smach.State):
     """
 
     def __init__(self, timeout=None, question=None):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS,FAILURE,REPEAT_FAILURE],
                                 input_keys=['question','timeout','number_of_failures','failure_threshold'],
                                 output_keys=['recognised_name', 'number_of_failures'])
@@ -279,7 +279,7 @@ class AskPersonNameState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-class WaitForHotwordState(smach.State):
+class WaitForHotwordState(SmachBaseClass):
     """ Smach state for waiting for the hotword detector to publish a detection message.
 
     Terminates with SUCCESS outcome if hotword detection message is received within the timeout (if used),
@@ -290,7 +290,7 @@ class WaitForHotwordState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = [SUCCESS, FAILURE],
                                 input_keys=['timeout'])
 
@@ -309,7 +309,7 @@ class WaitForHotwordState(smach.State):
 
 
 #region Ask From Selection framework
-class AskFromSelection(smach.State):
+class AskFromSelection(SmachBaseClass):
     """
     A state for asking a selection of questions.
     Outcomes: [SUCCESS, "no_response"]
@@ -349,7 +349,7 @@ class AskFromSelection(smach.State):
     ];
 
     def __init__(self, questions = None, append_result_to_array=True):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
             outcomes=[SUCCESS, "no_response"],
             input_keys=["responses_arr", "output_speech_arr"],
             output_keys=[
@@ -532,9 +532,9 @@ class AskFromSelection(smach.State):
             return "no_response";
 
 
-class AskFromSelectionHardCoded(smach.State):
+class AskFromSelectionHardCoded(SmachBaseClass):
     def __init__(self, append_result_to_array):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
             outcomes=[SUCCESS, "no_response"],
             input_keys=["responses_arr", "output_speech_arr", "index"],
             output_keys=[
@@ -595,14 +595,14 @@ class AskFromSelectionHardCoded(smach.State):
         return SUCCESS;
 
 
-class ReportBackToOperator(smach.State):
+class ReportBackToOperator(SmachBaseClass):
     """
     So the AskFromSelection state returns a set of things to say. We then need to say them.
     We will assume the guests are ordered from left to right. 
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
             outcomes=[SUCCESS],
             input_keys=["responses_arr", "output_speech_arr"],
             output_keys=[]);
@@ -648,9 +648,9 @@ class ReportBackToOperator(smach.State):
 
 
 #region Create Phrase stuff.
-class SayArbitraryPhrase(smach.State):
+class SayArbitraryPhrase(SmachBaseClass):
     def __init__(self, phrase:str, userdata_using:List[str]):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=userdata_using);
@@ -678,7 +678,7 @@ class SayArbitraryPhrase(smach.State):
 # This seems to set `userdata.phrase` for subsequent speaking.
 # Note that the `SpeakState` then speaks the phrase. Thus `SpeakState` should probably normally follow
 # one of these.
-class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
+class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(SmachBaseClass):
     """ Smach state to create the phrase to announce the retreival of an item to a named operator
 
     This class always returns success.
@@ -690,7 +690,7 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS],
                                 input_keys=['operator_name', 'object_name'],
                                 output_keys=['phrase'])
@@ -701,7 +701,7 @@ class CreatePhraseAnnounceRetrievedItemToNamedOperatorState(smach.State):
         # Can only succeed
         return SUCCESS
 
-class CreatePhraseAskForHelpPickupObjectState(smach.State):
+class CreatePhraseAskForHelpPickupObjectState(SmachBaseClass):
     """ Smach state to create the phrase to ask for help to pick up an object
 
     This class always returns success.
@@ -712,7 +712,7 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS],
                                 input_keys=['object_name'],
                                 output_keys=['phrase'])
@@ -724,7 +724,7 @@ class CreatePhraseAskForHelpPickupObjectState(smach.State):
         # Can only succeed
         return SUCCESS
 
-class CreatePhraseStartSearchForPeopleState(smach.State):
+class CreatePhraseStartSearchForPeopleState(SmachBaseClass):
     """ Smach state to create the phrase to announce the start of the search for people
 
     This class always returns success.
@@ -735,7 +735,7 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
         phrase: the returned phrase
     """
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS],
                                 input_keys=['operator_name'],
                                 output_keys=['phrase'])
@@ -751,7 +751,7 @@ class CreatePhraseStartSearchForPeopleState(smach.State):
 def askFromSelectionTest():
     from procedural_states import IncrementValue;
 
-    sm = smach.StateMachine(
+    sm = SmachBaseClassMachine(
         outcomes=[SUCCESS, FAILURE],
         input_keys=[],
         output_keys=[]);
@@ -761,7 +761,7 @@ def askFromSelectionTest():
     sm.userdata.index = 0;
 
     with sm:
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'TalkToGuest1',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -773,13 +773,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'IncrementGuestIndex1',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'TalkToGuest2'},
             remapping={'val':'index'});
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'TalkToGuest2',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -791,13 +791,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'IncrementGuestIndex2',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'TalkToGuest3'},
             remapping={'val':'index'});
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'TalkToGuest3',
             # AskFromSelection(append_result_to_array=True),
             AskFromSelectionHardCoded(append_result_to_array=True),
@@ -809,13 +809,13 @@ def askFromSelectionTest():
                 "output_speech_arr" : "output_speech_arr"
             });
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'IncrementGuestIndex3',
             IncrementValue(increment_by=1),
             transitions={SUCCESS:'ReportBack'},
             remapping={'val':'index'});
 
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             'ReportBack',
             ReportBackToOperator(),
             transitions={SUCCESS:SUCCESS});

@@ -7,12 +7,12 @@ import smach;
 
 # import rospy;
 
-class PrintToConsole(smach.State):
+class PrintToConsole(SmachBaseClass):
     """ 
     """
 
     def __init__(self, phrase=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes = [SUCCESS, FAILURE],
             input_keys=["var"], output_keys=[])
@@ -26,12 +26,12 @@ class PrintToConsole(smach.State):
             print(self.phrase);
         return SUCCESS;
 
-class ReadInFromConsole(smach.State):
+class ReadInFromConsole(SmachBaseClass):
     """ 
     """
 
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes = [SUCCESS, FAILURE],
             input_keys=[], output_keys=["var"])

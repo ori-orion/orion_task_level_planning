@@ -8,9 +8,9 @@ from typing import List
 TRUE_STR = 'true';
 FALSE_STR = 'false';
 
-class LessThanState(smach.State):
+class LessThanState(SmachBaseClass):
     def __init__(self, left=None, right=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[TRUE_STR, FALSE_STR],
             input_keys=['left', 'right']);
@@ -25,9 +25,9 @@ class LessThanState(smach.State):
         else:
             return FALSE_STR;
 
-class AppendToArrState(smach.State):
+class AppendToArrState(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=['appending_to', 'appending_with'],
@@ -39,9 +39,9 @@ class AppendToArrState(smach.State):
         userdata.appending_to = appending_to;
         return SUCCESS;
 
-class IncrementValue(smach.State):
+class IncrementValue(SmachBaseClass):
     def __init__(self, increment_by=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=['val', 'increment_by'],
@@ -57,7 +57,7 @@ class IncrementValue(smach.State):
         
         return SUCCESS;
 
-class GetPropertyAtIndex(smach.State):
+class GetPropertyAtIndex(SmachBaseClass):
     """
     Gets a (set) property at a given index in the array.
     Inputs:
@@ -69,7 +69,7 @@ class GetPropertyAtIndex(smach.State):
     """
     def __init__(self, properties_getting:List[str], index:int=None):
         
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, 'index_out_of_range'],
             input_keys=['input_list', 'index'],
@@ -94,7 +94,7 @@ class GetPropertyAtIndex(smach.State):
             setattr(userdata, property, getattr(entry, property));
         return SUCCESS;
 
-class GetListEmpty(smach.State):
+class GetListEmpty(SmachBaseClass):
     """
     Returns whether a list is empty or not.
     input_keys:
@@ -106,7 +106,7 @@ class GetListEmpty(smach.State):
         list_empty       - len(input_list) == 0
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=['list_not_empty', 'list_empty'],
             input_keys=['input_list'],
@@ -121,12 +121,12 @@ class GetListEmpty(smach.State):
             userdata.list_empty = False;
             return 'list_not_empty';
 
-class SetToEmptyList(smach.State):
+class SetToEmptyList(SmachBaseClass):
     """
     Sets the value of userdata.setting to an emtpy array.
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=[],

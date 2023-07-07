@@ -176,14 +176,14 @@ class NavigationalListener:
 
 
 
-class GetRobotLocationState(smach.State):
+class GetRobotLocationState(SmachBaseClass):
     """ Smach state for getting the robot's current location.
 
     This state will get the robot's current location and return it in the userdata dict.
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = ['stored'],
                                 output_keys=['robot_location'])
 
@@ -196,7 +196,7 @@ class GetRobotLocationState(smach.State):
 
 
 #region navigation states
-class SimpleNavigateState(smach.State):
+class SimpleNavigateState(SmachBaseClass):
     """ 
     DEPRECATED in favour of SimpleNavigateState_v2
     State for navigating directly to a location on the map.
@@ -216,7 +216,7 @@ class SimpleNavigateState(smach.State):
     DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
 
     def __init__(self, execute_nav_commands:bool):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
             input_keys=['pose', 'number_of_failures', 'failure_threshold'],
@@ -280,7 +280,7 @@ class SimpleNavigateState(smach.State):
 
 # Associated with SimpleNavigate_v2 state.
 NAVIGATIONAL_FAILURE = "navigational_failure"
-class SimpleNavigateState_v2(smach.State):
+class SimpleNavigateState_v2(SmachBaseClass):
     """ State for navigating directly to a location on the map.
     Version 2 of the navigation stuff. Removes the retrying being a part of the state machine.
 
@@ -303,7 +303,7 @@ class SimpleNavigateState_v2(smach.State):
     SUCCESS = 3;
 
     def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
             input_keys=['pose'],
@@ -406,7 +406,7 @@ class SimpleNavigateState_v2(smach.State):
 #       watif for one message and then set variable.
 
 
-class TopologicalNavigateState(smach.State):
+class TopologicalNavigateState(SmachBaseClass):
     """ State for navigating along the topological map.
 
     This state is given a topological map ID and navigates there.
@@ -437,7 +437,7 @@ class TopologicalNavigateState(smach.State):
         self.stop_repeat_navigation = stop_repeat_navigation;
         self.execute_nav_commands = execute_nav_commands;
 
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
                                 output_keys=['number_of_failures', 'prev_node_nav_to']);
@@ -493,7 +493,7 @@ class TopologicalNavigateState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-# class GetClosestNodeState(smach.State):
+# class GetClosestNodeState(SmachBaseClass):
 #     """
 #     Inputs:
 #         goal_pose:Pose:     The pose we want to navigate to.
@@ -501,7 +501,7 @@ class TopologicalNavigateState(smach.State):
 #         closest_node:str:   The node we will go via.
 #     """
 #     def __init__(self):
-#         smach.State.__init__(self, 
+#         SmachBaseClass.__init__(self, 
 #                                 outcomes=[SUCCESS],
 #                                 input_keys=['goal_pose'],
 #                                 output_keys=['closest_node']);
@@ -511,7 +511,7 @@ class TopologicalNavigateState(smach.State):
 #         userdata.closest_node = get_closest_node(goal_pose.position);
 #         return SUCCESS;
 
-class NavigateDistanceFromGoalSafely(smach.State):
+class NavigateDistanceFromGoalSafely(SmachBaseClass):
     """
     We want to be able to navigate to a human and sit 1m away from them without colliding into anything.
 
@@ -523,7 +523,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     DISTANCE_FROM_POSE = 0.9;
 
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS, "skip_navigation"],
             input_keys=['pose'],
@@ -582,7 +582,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
         return SUCCESS;
 
-class OrientRobot(smach.State):
+class OrientRobot(SmachBaseClass):
     """
     Orients the robot towards a goal point.
 
@@ -590,7 +590,7 @@ class OrientRobot(smach.State):
         userdata.orient_towards:Pose
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS, FAILURE],
             input_keys=['orient_towards']);
@@ -651,7 +651,7 @@ class OrientRobot(smach.State):
             return FAILURE;
 #endregion
 
-class GetNextNavLoc(smach.State):
+class GetNextNavLoc(SmachBaseClass):
     """
     This is set up specifically for the find my mates task.
     So the overall goal here is to work out where to go to next.
@@ -671,7 +671,7 @@ class GetNextNavLoc(smach.State):
     DISTANCE_FROM_HUMAN = 0.3;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', FAILURE],
+        SmachBaseClass.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', FAILURE],
                                 input_keys=['closest_human', 'robot_location'],
                                 output_keys=['pose_to_nav_to']);
 
@@ -741,7 +741,7 @@ class GetNextNavLoc(smach.State):
         else:
             return 'nav_to_node';
 
-class SetSafePoseFromObject(smach.State):
+class SetSafePoseFromObject(SmachBaseClass):
     """
     Adjust a pose in to be a fixed distance from the point of interest.
     Inputs:
@@ -754,7 +754,7 @@ class SetSafePoseFromObject(smach.State):
     DISTANCE_FROM_POSE = 1;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=[SUCCESS],
+        SmachBaseClass.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['pose', 'robot_location'],
                                 output_keys=['pose_out']);
 
@@ -797,7 +797,7 @@ class SetSafePoseFromObject(smach.State):
             
         return SUCCESS;
 
-class SearchForGuestNavToNextNode(smach.State):
+class SearchForGuestNavToNextNode(SmachBaseClass):
     """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
 
     Returns 'searched' if arrived at next node, 'exhausted_search' if no more nodes are available to visit, `failure` if navigation fails.
@@ -810,7 +810,7 @@ class SearchForGuestNavToNextNode(smach.State):
     """
 
     def __init__(self, execute_nav_commands):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=['searched', 'exhausted_search', FAILURE, 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'failure_threshold'],
@@ -882,10 +882,10 @@ class SearchForGuestNavToNextNode(smach.State):
 
 
 def testOrientRobot():
-    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS, FAILURE]);
 
     with sub_sm:
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             "OrientTowards",
             OrientRobot(),
             transitions={
@@ -916,11 +916,11 @@ def testNavigationalFallback():
     goal.orientation.z = -0.821;
     goal.orientation.w = 0.571;
     
-    sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);
+    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS, FAILURE]);
     sub_sm.userdata.pose = goal;
 
     with sub_sm:
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             "Navigate",
             SimpleNavigateState_v2(execute_nav_commands=True),
             transitions={
