@@ -284,7 +284,6 @@ class SmachBaseClass(smach.State):
     JOINT_HEAD_TILT = 'head_tilt_joint';
     JOINT_WRIST_FLEX = 'wrist_flex_joint';
     JOINT_WRIST_ROLL = 'wrist_roll_joint';
-
     
     def __init__(self, outcomes=None, input_keys=None, output_keys=None):
         if outcomes == None:
