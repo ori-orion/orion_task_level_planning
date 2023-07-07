@@ -306,6 +306,7 @@ class SmachBaseClass(smach.State):
         action_goal = TalkRequestGoal()
         action_goal.data.language = Voice.kEnglish  # enum for value: 1
         action_goal.data.sentence = phrase_speaking
+        
         rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
 
         self.speak_action_client.wait_for_server()

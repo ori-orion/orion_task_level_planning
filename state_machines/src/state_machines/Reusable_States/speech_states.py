@@ -125,20 +125,8 @@ class SpeakState(SmachBaseClass):
         if SPEAK_THROUGH_CONSOLE:
             print("SpeakState:", phrase_speaking);
             return SUCCESS;
-
-        action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = phrase_speaking
-
-        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
-        speak_action_client = actionlib.SimpleActionClient('/talk_request_action',
-                                        TalkRequestAction)
-
-        speak_action_client.wait_for_server()
-        speak_action_client.send_goal(action_goal)
-        speak_action_client.wait_for_result()
-
-        # rospy.loginfo("Speaking complete")
+        
+        self.speak(phrase_speaking);
 
         # Can only succeed
         return SUCCESS
@@ -323,6 +311,16 @@ class AskFromSelection(SmachBaseClass):
         output_speech_arr   - The array of output speeches that we are appending to.
 
     Note that the ..._arr variables are only accessed if self.append_result_to_array==True
+    
+    Overall idea:
+        A given question is represented by a tuple.
+        These are formatted as per ([tag], [question], [candidates?]).
+        There are then nested lists. 
+        The outer list gives a sequence for the questions.
+        If a given entry of the outer list is itself a list, then the next question will be chosen at random from these.
+        Otherwise it is just the tuple given.
+        Finally, the last phrase is chosen at random from END_PHRASES.
+        
     """
 
     NO_RESPONSE_RESPONSES = [
@@ -514,16 +512,7 @@ class AskFromSelection(SmachBaseClass):
         if SPEAK_THROUGH_CONSOLE:
             print("AskFromSelection:", end_phrase);
         else:
-            action_goal = TalkRequestGoal()
-            action_goal.data.language = Voice.kEnglish  # enum for value: 1
-            action_goal.data.sentence = end_phrase;
-
-            rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))            
-
-            speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
-            speak_action_client.wait_for_server()
-            speak_action_client.send_goal(action_goal)
-            speak_action_client.wait_for_result()
+            self.speak(end_phrase);
         #endregion
                 
         if len(output_dict.keys()) > 0:
