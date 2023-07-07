@@ -20,3 +20,5 @@ Thus the overall state machine can be represented as a graph where each node is 
 All of our states are given within `orion_task_level_planning/state_machines/src/state_machines/ReusableStates`. They are then categorised by subsystem, in a manner that should be relatively intuitive. (An overview of this will be given later).
 
 We then have the ideas of sub-state machines.
+These act in a similar manner to functions, in that they are structures that can be reused multiple times.
+[Example state machine](src/state_machines/robocup_2023_hypothesis/Put away the groceries 2.png)
