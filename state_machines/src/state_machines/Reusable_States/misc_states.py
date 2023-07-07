@@ -96,16 +96,10 @@ class CheckDoorIsOpenState(SmachBaseClass):
 class LookUpState(SmachBaseClass):
     def __init__(self, height=1.2):
         SmachBaseClass.__init__(self, outcomes=[SUCCESS]);
-
         self.height = height;
 
-        self.robot = hsrb_interface.Robot();
-        self.whole_body = self.robot.try_get('whole_body');
-
     def execute(self, userdata):
-        self.whole_body.gaze_point(
-            point=hsrb_interface.geometry.Vector3(1, 0, self.height), 
-            ref_frame_id="base_link");
+        self.lookAtPoint(hsrb_interface.geometry.Vector3(1, 0, self.height));
 
         return SUCCESS;
 
@@ -121,9 +115,6 @@ class LookAtHuman(SmachBaseClass):
             self, 
             outcomes=[SUCCESS],
             input_keys=['closest_human']);
-
-        self.robot = hsrb_interface.Robot();
-        self.whole_body = self.robot.try_get('whole_body');
     
     def execute(self, userdata):
         closest_human:Human = userdata.closest_human;
@@ -132,19 +123,13 @@ class LookAtHuman(SmachBaseClass):
         
         # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
         try:
-            self.whole_body.gaze_point(
-                point=point_look_at,
-                ref_frame_id="map");
+            self.lookAtPoint(point_look_at, reference_frame="map");
         except:
             point_look_at = hsrb_interface.geometry.Vector3(human_loc.x, human_loc.y, 0.8);
             try:
-                self.whole_body.gaze_point(
-                    point=point_look_at,
-                    ref_frame_id="map");
+                self.lookAtPoint(point_look_at, reference_frame="map");
             except:
-                self.whole_body.gaze_point(
-                    point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
-                    ref_frame_id="base_link");
+                self.lookAtPoint(hsrb_interface.geometry.Vector3(1, 0, 0.8), reference_frame="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
         return SUCCESS;
 
@@ -181,23 +166,17 @@ class LookAtPoint(SmachBaseClass):
         
         # NOTE: A very 'elegant' solution (that really needs to be changed at some point)!
         try:
-            self.whole_body.gaze_point(
-                point=point_look_at,
-                ref_frame_id="map");
+            self.lookAtPoint(point_look_at, reference_frame="map");
         except:
             point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, 1.2);
             try:
-                self.whole_body.gaze_point(
-                    point=point_look_at,
-                    ref_frame_id="map");
+                self.lookAtPoint(point_look_at, reference_frame="map");
             except:
-                self.whole_body.gaze_point(
-                    point=hsrb_interface.geometry.Vector3(1, 0, 0.8), 
-                    ref_frame_id="base_link");
+                self.lookAtPoint(hsrb_interface.geometry.Vector3(1, 0, 0.8), reference_frame="base_link");
             rospy.logwarn("Error with gaze_point directly at the human.");
 
         if self.set_head_to_neutral:
-            self.whole_body.move_to_joint_positions({'head_tilt_joint':0})
+            self.moveToJointPositions({self.JOINT_HEAD_TILT:0})
 
         rospy.sleep(self.wait_duration);
         

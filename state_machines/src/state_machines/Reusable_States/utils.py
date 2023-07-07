@@ -346,3 +346,9 @@ class SmachBaseClass(smach.State):
             trajectory_moving_through,
             time_from_starts=timeouts_from_start,
             ref_frame_id=reference_frame);
+        
+    def lookAtPoint(self, looking_at:hsrb_interface.geometry.Vector3, reference_frame:str="base_link"):
+        self.getRobotInterface();
+        self.whole_body.gaze_point(
+            point=looking_at, 
+            ref_frame_id=reference_frame);
