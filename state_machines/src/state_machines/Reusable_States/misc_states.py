@@ -23,14 +23,14 @@ import hsrb_interface.geometry as geometry
 hsrb_interface.robot.enable_interactive();
 
 #region Temporal states
-class GetTime(smach.State):
+class GetTime(SmachBaseClass):
     """ Smach state for current time using ROS clock.
 
     This state will get the current time and return it in the userdata dict.
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = [SUCCESS],
                                 output_keys=['current_time'])
 
@@ -41,13 +41,13 @@ class GetTime(smach.State):
         rospy.loginfo("Retreived current time: %i sec, %i ns", now.secs, now.nsecs)
         return SUCCESS
 
-class WaitForSecs(smach.State):
+class WaitForSecs(SmachBaseClass):
     """
     Waits for a given number of seconds, parameterised by an input argument.
     num_secs can be either of type int/float or of rospy.Duration (given that rospy.sleep(.) supports both of those types). 
     """
     def __init__(self, num_secs:float):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes = [SUCCESS]);
         self.num_secs = num_secs;
@@ -58,7 +58,7 @@ class WaitForSecs(smach.State):
 #endregion
 
 
-class CheckDoorIsOpenState(smach.State):
+class CheckDoorIsOpenState(SmachBaseClass):
     """ State for robot to check if the door is open. TODO: THE ACTION SERVER NEEDS TESTING!
 
     This is a common start signal for tasks.
@@ -70,7 +70,7 @@ class CheckDoorIsOpenState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['open', 'closed'])
+        SmachBaseClass.__init__(self, outcomes=['open', 'closed'])
 
     def execute(self, userdata):
         is_door_open_goal = DoorCheckGoal()
@@ -93,9 +93,9 @@ class CheckDoorIsOpenState(smach.State):
             return 'closed'
 
 #region Look at states
-class LookUpState(smach.State):
+class LookUpState(SmachBaseClass):
     def __init__(self, height=1.2):
-        smach.State.__init__(self, outcomes=[SUCCESS]);
+        SmachBaseClass.__init__(self, outcomes=[SUCCESS]);
 
         self.height = height;
 
@@ -109,7 +109,7 @@ class LookUpState(smach.State):
 
         return SUCCESS;
 
-class LookAtHuman(smach.State):
+class LookAtHuman(SmachBaseClass):
     """
     Look at the last human observed.
     
@@ -117,7 +117,7 @@ class LookAtHuman(smach.State):
         closest_human:(Human|None)
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS],
             input_keys=['closest_human']);
@@ -148,7 +148,7 @@ class LookAtHuman(smach.State):
             rospy.logwarn("Error with gaze_point directly at the human.");
         return SUCCESS;
 
-class LookAtPoint(smach.State):
+class LookAtPoint(SmachBaseClass):
     """
     Look at the last human observed.
     
@@ -160,7 +160,7 @@ class LookAtPoint(smach.State):
         Inputs:
             z_looking_at: Gives the z-parameter. If None, then it will take it from userdata.pose.
         """
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS],
             input_keys=['pose']);
@@ -206,7 +206,7 @@ class LookAtPoint(smach.State):
 #endregion
 
 
-class RaiseMastState(smach.State):
+class RaiseMastState(SmachBaseClass):
     """
     Raises the mast to a given height.
 
@@ -219,7 +219,7 @@ class RaiseMastState(smach.State):
     def __init__(self, mast_height=None, rotate_body=True):
         input_keys = ['mast_height'] if mast_height==None else [];
             
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS],
             input_keys=input_keys,
@@ -274,12 +274,12 @@ class RaiseMastState(smach.State):
         return SUCCESS;
     pass;
 
-class MoveToNeutralState(smach.State):
+class MoveToNeutralState(SmachBaseClass):
     """
     Sets the robot's pose to neutral.
     """
     def __init__(self):    
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS]);
 
@@ -300,7 +300,7 @@ class MoveToNeutralState(smach.State):
     pass;
 
 
-class SpinState(smach.State):
+class SpinState(SmachBaseClass):
     """
     Gets the robots head to spin around, probably in an attempt to find something.
 
@@ -316,7 +316,7 @@ class SpinState(smach.State):
 
     def __init__(self, spin_height:float=1, only_look_forwards:bool=False, offset_instruction:int=OFFSET_BY_0):
         input_keys = ['body_rotated'] if offset_instruction==self.TAKE_OFFSET_FROM_USERDATA else [];
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes = [SUCCESS],
             input_keys=input_keys, 
@@ -344,9 +344,9 @@ class SpinState(smach.State):
         return SUCCESS;
 
 
-class ExplicitRemap(smach.State):
+class ExplicitRemap(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes = [SUCCESS],
             input_keys=['in_key'], 
@@ -357,7 +357,7 @@ class ExplicitRemap(smach.State):
         return SUCCESS;
 
 
-class WaitForWristWrench(smach.State):
+class WaitForWristWrench(SmachBaseClass):
     """
     Waiting for a force to be applied to the wrist before moving off.
     Can be a replacement for the hotword detector.
@@ -367,7 +367,7 @@ class WaitForWristWrench(smach.State):
     WAIT_BETWEEN_IT = 0.1;
     
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS],
             input_keys=[], 
@@ -407,14 +407,14 @@ class WaitForWristWrench(smach.State):
     
 
 
-class CreateGuestAttributesDict(smach.State):
+class CreateGuestAttributesDict(SmachBaseClass):
     """ Smach state to build the guest attributes dictionary from userdata values.
 
     This state will return the built dictionary it in the userdata dict.
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = [SUCCESS],
                                 input_keys=['guest_attributes','name','gender','pronouns','face_id','face_attributes'],
                                 output_keys=['guest_attributes'])
@@ -432,7 +432,7 @@ class CreateGuestAttributesDict(smach.State):
         # rospy.loginfo("Created guest_attributes dict: {}".format(userdata.guest_attributes))
         return SUCCESS
 
-class ShouldIContinueGuestSearchState(smach.State):
+class ShouldIContinueGuestSearchState(SmachBaseClass):
     """ State determines whether we should continue or go back.
 
     input_keys:
@@ -444,7 +444,7 @@ class ShouldIContinueGuestSearchState(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = ['yes', 'no'],
                                 input_keys=['max_search_duration',
                                             'expected_num_guests',
@@ -469,7 +469,7 @@ class ShouldIContinueGuestSearchState(smach.State):
         rospy.loginfo("I'll keep searching! Time: {}/{} sec, Found: {}/{} guests".format(time_elapsed.to_sec(), userdata.max_search_duration, num_guests_found,userdata.expected_num_guests))
         return "yes";
 
-class AnnounceGuestDetailsToOperator(smach.State):
+class AnnounceGuestDetailsToOperator(SmachBaseClass):
     """ State for the robot to give the operator info about mates
 
     Always succeeds.
@@ -483,7 +483,7 @@ class AnnounceGuestDetailsToOperator(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=[SUCCESS],
+        SmachBaseClass.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['guest_som_human_ids', 'guest_som_obj_ids'])
 
         self.couch_left = Point();
@@ -694,10 +694,10 @@ def testForceSensorState():
     """
     Goal is in collision within the hsrb_megaweb2015world map.
     """
-    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
+    sub_sm = SmachBaseClassMachine(outcomes=[SUCCESS]);
 
     with sub_sm:
-        smach.StateMachine.add(
+        SmachBaseClassMachine.add(
             "WaitForForceSensor",
             WaitForWristWrench(),
             transitions={
