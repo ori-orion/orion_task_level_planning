@@ -1,3 +1,4 @@
+import smach;
 import numpy as np;
 import math;
 
@@ -9,6 +10,12 @@ from visualization_msgs.msg import Marker, MarkerArray, InteractiveMarker, Inter
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
+
+import hsrb_interface;
+import hsrb_interface.geometry as geometry
+hsrb_interface.robot.enable_interactive();
+
+from typing import Dict, List;
 
 TASK_SUCCESS = 'task_success';
 TASK_FAILURE = 'task_failure';
@@ -268,3 +275,73 @@ class RvizVisualisationManager:
         self.im_server.insert(int_marker, self.handle_viz_input)
         self.im_server.applyChanges();
         return
+
+
+class SmachBaseClass(smach.State):
+    
+    JOINT_ARM_FLEX = 'arm_flex_joint';
+    JOINT_ARM_LIFT = 'arm_lift_joint';
+    JOINT_ARM_ROLL = 'arm_roll_joint';
+    JOINT_HEAD_PAN = 'head_pan_joint';
+    JOINT_HEAD_TILT = 'head_tilt_joint';
+    JOINT_WRIST_FLEX = 'wrist_flex_joint';
+    JOINT_WRIST_ROLL = 'wrist_roll_joint';
+    
+    def __init__(self, outcomes=None, input_keys=None, output_keys=None):
+        if outcomes == None:
+            outcomes = [SUCCESS];
+        if input_keys == None:
+            input_keys = [];
+        if output_keys == None:
+            output_keys = [];
+        smach.State.__init__(
+            self,
+            outcomes=outcomes,
+            input_keys=input_keys,
+            output_keys=output_keys);
+        
+    def speak(self, phrase_speaking, wait_to_terminate=True):
+        if not hasattr(self, "speak_action_client"):
+            self.speak_action_client = actionlib.SimpleActionClient('/talk_request_action', TalkRequestAction)
+        action_goal = TalkRequestGoal()
+        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.sentence = phrase_speaking
+        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+
+        self.speak_action_client.wait_for_server()
+        self.speak_action_client.send_goal(action_goal)
+        if wait_to_terminate:
+            self.speak_action_client.wait_for_result();
+        
+    def getRobotInterface(self):
+        if not hasattr(self, "robot_local"):
+            self.robot_local = hsrb_interface.Robot();
+            self.whole_body = self.robot_local.try_get('whole_body');
+            self.omni_base = self.robot_local.try_get('omni_base');
+            self.gripper = self.robot_local.try_get('gripper');
+            
+    def getGripperDistance(self) -> float:
+        self.getRobotInterface();
+        return self.gripper.get_distance();
+    
+    def moveToNeutral(self):
+        self.getRobotInterface();
+        self.whole_body.move_to_neutral();
+    def moveToGo(self):
+        self.getRobotInterface();
+        self.whole_body.move_to_go();
+        
+    def moveToJointPositions(self, moving_to:Dict[str:float]):
+        self.getRobotInterface();
+        self.whole_body.move_to_joint_positions(moving_to);
+    def moveBaseThroughTrajectory(
+            self, 
+            trajectory_moving_through:List[hsrb_interface.geometry.pose], 
+            timeouts_from_start:List[float],
+            reference_frame='base_footprint'):
+        
+        self.getRobotInterface();
+        self.omni_base.follow_trajectory(
+            trajectory_moving_through,
+            time_from_starts=timeouts_from_start,
+            ref_frame_id=reference_frame);

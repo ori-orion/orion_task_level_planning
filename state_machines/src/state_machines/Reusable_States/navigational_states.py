@@ -172,93 +172,18 @@ class NavigationalListener:
             index_in_indices += 1;
         
         return goal, False;
-        
-    #region Deprecated
-    # Deprecated.
-    def gridCellsCallback(self, data:nav_msgs.msg.GridCells):
-        print("Nav callback:")
-        print("\theader      = ", data.header);
-        print("\tcell_width  = ", data.cell_width);
-        print("\tcell_height = ", data.cell_height);
-        print("\tlen(cells)  = ", len(data.cells));
-
-        self.most_recent_grid_cells = data;
-        
-        self.getMapBounds();
-        self.getGrid();
-        self.printGrid();
-    
-    # Deprecated
-    def isPointOccluded(self, point:Point) -> bool:
-        if self.most_recent_grid_cells == None:
-            return True;
-
-        w = self.most_recent_grid_cells.cell_width;
-        h = self.most_recent_grid_cells.cell_height;
-        
-        for point_cell in self.most_recent_grid_cells.cells:
-            point_cell:Point;
-
-            # Assuming a 2D map.
-            if (point_cell.x - w < point.x < point_cell.x + w) and (point_cell.y - h < point.y < point_cell.y + h):
-                return True;
-        
-        return False;
-    
-    # Deprecated
-    def getMapBounds(self) -> tuple:
-        if self.most_recent_grid_cells == None:
-            return None;
-
-        min_x = math.inf;
-        min_y = math.inf;
-        max_x = -math.inf;
-        max_y = -math.inf;
-
-        for point_cell in self.most_recent_grid_cells.cells:
-            point_cell:Point;
-
-            min_x = min(min_x, point_cell.x);
-            min_y = min(min_y, point_cell.y);
-            max_x = max(max_x, point_cell.x);
-            max_y = max(max_y, point_cell.y);
-            
-        self.map_bounds = (min_x, min_y, max_x, max_y);
-
-        return self.map_bounds;
-    
-    # Deprecated
-    def getGrid(self):
-        if self.map_bounds == None:
-            self.getMapBounds();
-            
-        min_x, min_y, max_x, max_y = self.map_bounds;
-        w = self.most_recent_grid_cells.cell_width;
-        h = self.most_recent_grid_cells.cell_height;
-        self.grid = np.full((int((max_x-min_x)/w) + 2, int((max_y-min_y)/h) + 2), False);
-        
-        for point_cell in self.most_recent_grid_cells.cells:
-            point_cell:Point;
-
-            x = int((point_cell.x - min_x)/w);
-            y = int((point_cell.y - min_y)/h);
-
-            self.grid[x, y] = True;
-            
-        return self.grid;
-    #endregion
 
 
 
 
-class GetRobotLocationState(smach.State):
+class GetRobotLocationState(SmachBaseClass):
     """ Smach state for getting the robot's current location.
 
     This state will get the robot's current location and return it in the userdata dict.
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes = ['stored'],
                                 output_keys=['robot_location'])
 
@@ -271,7 +196,7 @@ class GetRobotLocationState(smach.State):
 
 
 #region navigation states
-class SimpleNavigateState(smach.State):
+class SimpleNavigateState(SmachBaseClass):
     """ 
     DEPRECATED in favour of SimpleNavigateState_v2
     State for navigating directly to a location on the map.
@@ -291,7 +216,7 @@ class SimpleNavigateState(smach.State):
     DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
 
     def __init__(self, execute_nav_commands:bool):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
             input_keys=['pose', 'number_of_failures', 'failure_threshold'],
@@ -355,7 +280,7 @@ class SimpleNavigateState(smach.State):
 
 # Associated with SimpleNavigate_v2 state.
 NAVIGATIONAL_FAILURE = "navigational_failure"
-class SimpleNavigateState_v2(smach.State):
+class SimpleNavigateState_v2(SmachBaseClass):
     """ State for navigating directly to a location on the map.
     Version 2 of the navigation stuff. Removes the retrying being a part of the state machine.
 
@@ -378,7 +303,7 @@ class SimpleNavigateState_v2(smach.State):
     SUCCESS = 3;
 
     def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, NAVIGATIONAL_FAILURE],
             input_keys=['pose'],
@@ -481,7 +406,7 @@ class SimpleNavigateState_v2(smach.State):
 #       watif for one message and then set variable.
 
 
-class TopologicalNavigateState(smach.State):
+class TopologicalNavigateState(SmachBaseClass):
     """ State for navigating along the topological map.
 
     This state is given a topological map ID and navigates there.
@@ -512,7 +437,7 @@ class TopologicalNavigateState(smach.State):
         self.stop_repeat_navigation = stop_repeat_navigation;
         self.execute_nav_commands = execute_nav_commands;
 
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
                                 input_keys=['node_id', 'number_of_failures', 'failure_threshold', 'prev_node_nav_to'],
                                 output_keys=['number_of_failures', 'prev_node_nav_to']);
@@ -568,7 +493,7 @@ class TopologicalNavigateState(smach.State):
                 return REPEAT_FAILURE
             return FAILURE
 
-# class GetClosestNodeState(smach.State):
+# class GetClosestNodeState(SmachBaseClass):
 #     """
 #     Inputs:
 #         goal_pose:Pose:     The pose we want to navigate to.
@@ -576,7 +501,7 @@ class TopologicalNavigateState(smach.State):
 #         closest_node:str:   The node we will go via.
 #     """
 #     def __init__(self):
-#         smach.State.__init__(self, 
+#         SmachBaseClass.__init__(self, 
 #                                 outcomes=[SUCCESS],
 #                                 input_keys=['goal_pose'],
 #                                 output_keys=['closest_node']);
@@ -586,7 +511,7 @@ class TopologicalNavigateState(smach.State):
 #         userdata.closest_node = get_closest_node(goal_pose.position);
 #         return SUCCESS;
 
-class NavigateDistanceFromGoalSafely(smach.State):
+class NavigateDistanceFromGoalSafely(SmachBaseClass):
     """
     We want to be able to navigate to a human and sit 1m away from them without colliding into anything.
 
@@ -598,7 +523,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
     DISTANCE_FROM_POSE = 0.9;
 
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS, "skip_navigation"],
             input_keys=['pose'],
@@ -657,7 +582,7 @@ class NavigateDistanceFromGoalSafely(smach.State):
 
         return SUCCESS;
 
-class OrientRobot(smach.State):
+class OrientRobot(SmachBaseClass):
     """
     Orients the robot towards a goal point.
 
@@ -665,7 +590,7 @@ class OrientRobot(smach.State):
         userdata.orient_towards:Pose
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, 
             outcomes=[SUCCESS, FAILURE],
             input_keys=['orient_towards']);
@@ -726,7 +651,7 @@ class OrientRobot(smach.State):
             return FAILURE;
 #endregion
 
-class GetNextNavLoc(smach.State):
+class GetNextNavLoc(SmachBaseClass):
     """
     This is set up specifically for the find my mates task.
     So the overall goal here is to work out where to go to next.
@@ -746,7 +671,7 @@ class GetNextNavLoc(smach.State):
     DISTANCE_FROM_HUMAN = 0.3;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', FAILURE],
+        SmachBaseClass.__init__(self, outcomes=['nav_to_node', 'nav_to_pose', FAILURE],
                                 input_keys=['closest_human', 'robot_location'],
                                 output_keys=['pose_to_nav_to']);
 
@@ -816,7 +741,7 @@ class GetNextNavLoc(smach.State):
         else:
             return 'nav_to_node';
 
-class SetSafePoseFromObject(smach.State):
+class SetSafePoseFromObject(SmachBaseClass):
     """
     Adjust a pose in to be a fixed distance from the point of interest.
     Inputs:
@@ -829,7 +754,7 @@ class SetSafePoseFromObject(smach.State):
     DISTANCE_FROM_POSE = 1;  #m
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=[SUCCESS],
+        SmachBaseClass.__init__(self, outcomes=[SUCCESS],
                                 input_keys=['pose', 'robot_location'],
                                 output_keys=['pose_out']);
 
@@ -872,7 +797,7 @@ class SetSafePoseFromObject(smach.State):
             
         return SUCCESS;
 
-class SearchForGuestNavToNextNode(smach.State):
+class SearchForGuestNavToNextNode(SmachBaseClass):
     """ Smach state to navigate the robot through a sequence of topological nodes during the search for guests (non-operator people)
 
     Returns 'searched' if arrived at next node, 'exhausted_search' if no more nodes are available to visit, `failure` if navigation fails.
@@ -885,7 +810,7 @@ class SearchForGuestNavToNextNode(smach.State):
     """
 
     def __init__(self, execute_nav_commands):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=['searched', 'exhausted_search', FAILURE, 'preempted'],
                                 input_keys=['nodes_not_searched',
                                             'failure_threshold'],
@@ -954,7 +879,7 @@ class SearchForGuestNavToNextNode(smach.State):
         # now remove the node from the nodes_not_searched list, because we have now searched it
         del userdata.nodes_not_searched[0]
         return 'searched'
-
+smach.StateMachine
 
 def testOrientRobot():
     sub_sm = smach.StateMachine(outcomes=[SUCCESS, FAILURE]);

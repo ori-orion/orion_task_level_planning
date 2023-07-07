@@ -26,7 +26,7 @@ def filter_face_attributes_by_exclusion(attributes):
 
 #region Facial stuff
 
-# class RegisterFace(smach.State):
+# class RegisterFace(SmachBaseClass):
 #     """ State for robot to register a new face using facial capture action server
 
 #     The action server detects faces from the robot RGB-D sensor's RGB camera image topic
@@ -39,7 +39,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #     """
 
 #     def __init__(self):
-#         smach.State.__init__(self, outcomes=[SUCCESS,FAILURE],
+#         SmachBaseClass.__init__(self, outcomes=[SUCCESS,FAILURE],
 #                                 input_keys=['face_id'],
 #                                 output_keys=['registered_face_id'])
 
@@ -72,7 +72,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #         rospy.loginfo("Capface action server registered face with id: {}".format(registered_face_id))
 #         return "success"
 
-# class RecogniseFace(smach.State):
+# class RecogniseFace(SmachBaseClass):
 #     """ State for robot to recognise a face and match it to a previously registered face,
 #         using the facial capture action server
 
@@ -84,7 +84,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #     """
 
 #     def __init__(self):
-#         smach.State.__init__(self, outcomes=[SUCCESS, FAILURE],
+#         SmachBaseClass.__init__(self, outcomes=[SUCCESS, FAILURE],
 #                                 input_keys=['min_score_threshold'],
 #                                 output_keys=['face_id','face_match_score'])
 
@@ -123,7 +123,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #         rospy.loginfo("Face FindMatch action server recognised face_id '{}', face_score: {}".format(matched_face_id, matched_face_score))
 #         return "success"
 
-# class DetectFaceAttributes(smach.State):
+# class DetectFaceAttributes(SmachBaseClass):
 #     """ State for the robot to detect face attributes
 
 #     Uses the FaceLib FindAttrs action server.
@@ -140,7 +140,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #     """
 
 #     def __init__(self):
-#         smach.State.__init__(self, outcomes=[SUCCESS],
+#         SmachBaseClass.__init__(self, outcomes=[SUCCESS],
 #                                 input_keys=['face_id'],
 #                                 output_keys=['face_attributes', 'num_attributes'])
 
@@ -172,7 +172,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #         # rospy.loginfo("FaceAttributes action server registered {} face attibutes: \n\t{}\nFound {} unfiltered attributes: \n\t{}".format(num_attributes, face_attributes, num_attributes_raw, face_attributes_raw))
 #         return "success"
 
-# class ClearFaceDB(smach.State):
+# class ClearFaceDB(SmachBaseClass):
 #     """ State for the robot to clear the face database
 
 #     Uses the FaceLib as_Cleardatabase action server
@@ -184,7 +184,7 @@ def filter_face_attributes_by_exclusion(attributes):
 #     """
 
 #     def __init__(self):
-#         smach.State.__init__(self, outcomes=[SUCCESS])
+#         SmachBaseClass.__init__(self, outcomes=[SUCCESS])
 
 #     def execute(self, userdata):
 #         # set action goal and call action server

@@ -1,8 +1,7 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
-execute_navigation_commands: false
-
+execute_navigation_commands: true
 
 
 use_grasping_synthesis : false
@@ -20,35 +19,35 @@ find_placement_options : {
 
 table_pose : {
     # Bordeaux
-    position : {
-        x: 6.898829284925901, y: -0.3345450406571554, z: 0.0
-    },
-    orientation : { 
-        x: 0.0, y: 0.0, z: 0.9941701850029624, w: 0.1078222762288735
-    }
-    # Simulation
     # position : {
-    #     x : 4.61, y : 0.308, z : 0
+    #     x: 6.898829284925901, y: -0.3345450406571554, z: 0.0
     # },
-    # orientation : {
-    #     x : 0, y : 0, z : 0.751, w : 0.66
+    # orientation : { 
+    #     x: 0.0, y: 0.0, z: 0.9941701850029624, w: 0.1078222762288735
     # }
+    # Simulation
+    position : {
+        x : 4.61, y : 0.308, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : 0.751, w : 0.66
+    }
 }
 cabinet_pose : {
     # Bordeaux
-    position : {
-        x: 6.921234442581973, y: -0.28322414645887983, z: 0.0
-    },
-    orientation : { 
-        x: 0.0, y: 0.0, z: 0.5969085861979543, w: 0.8023092544169981
-    }
-    # Simulation
     # position : {
-    #     x : 2.62, y : 0.36, z : 0
+    #     x: 6.921234442581973, y: -0.28322414645887983, z: 0.0
     # },
-    # orientation : {
-    #     x : 0, y : 0, z : -0.821, w : 0.571
+    # orientation : { 
+    #     x: 0.0, y: 0.0, z: 0.5969085861979543, w: 0.8023092544169981
     # }
+    # Simulation
+    position : {
+        x : 2.62, y : 0.36, z : 0
+    },
+    orientation : {
+        x : 0, y : 0, z : -0.821, w : 0.571
+    }
 }
 
 # This list is in order of priority. If it sees a drink, it will try 

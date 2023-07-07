@@ -26,7 +26,7 @@ GLOBAL_FRAME = "map";
 # To give greater resolution when looking at outcomes within the state machine. Not fully implemented.
 MANIPULATION_FAILURE = 'manipulation_failure'
 
-class PickUpObjectState(smach.State):
+class PickUpObjectState(SmachBaseClass):
     """ 
     DEPRECATED in favour of PickUpObjectState_v2. Note that this searches the tf tree to find the thing to pick up.
     However, the function getting all the options is itself deprecated so it is better to use version 2.
@@ -45,7 +45,7 @@ class PickUpObjectState(smach.State):
     """
 
     def __init__(self, object_name=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE, REPEAT_FAILURE],
             input_keys=['object_name', 'number_of_failures', 'failure_threshold', 'ar_marker_ids'],
@@ -119,7 +119,7 @@ class PickUpObjectState(smach.State):
             rospy.loginfo("PickUpObjectState found matching object tf '{}' in tf-tree for task object {}".format(matched_tf_from_tf_tree, userdata.object_name))
             
 
-class PickUpObjectState_v2(smach.State):
+class PickUpObjectState_v2(SmachBaseClass):
     """
     Second iteration for picking up an object.
 
@@ -153,7 +153,7 @@ class PickUpObjectState_v2(smach.State):
     def __init__(self, num_iterations_upon_failure=3, read_from_som_query_results:bool=True, 
                 wait_upon_completion=rospy.Duration(5)):
         input_keys = ['som_query_results'] if read_from_som_query_results else ['tf_name'];
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE],
             input_keys=input_keys,
@@ -174,9 +174,6 @@ class PickUpObjectState_v2(smach.State):
     def execute(self, userdata):
         self.pick_up_object_action_client = actionlib.SimpleActionClient('pick_up_object', PickUpObjectAction)
         self.pick_up_object_action_client.wait_for_server()
-        
-        robot = hsrb_interface.Robot();
-        self.gripper = robot.try_get("gripper")
 
         pick_up_goal = PickUpObjectGoal();
         if self.read_from_som_query_results:
@@ -193,9 +190,10 @@ class PickUpObjectState_v2(smach.State):
             print("status", status);
             print("Failure mode=", failure_mode)
             if result:
-                print("Gripper distance", self.gripper.get_distance());
+                gripper_distance = self.getGripperDistance();
+                print("Gripper distance", gripper_distance);
 
-                if self.gripper.get_distance() > self.GRIPPER_DISTANCCE_THRESHOLD:
+                if gripper_distance > self.GRIPPER_DISTANCCE_THRESHOLD:
                     rospy.sleep(self.wait_upon_completion);
                     return SUCCESS;
                 
@@ -213,13 +211,13 @@ class PickUpObjectState_v2(smach.State):
         return MANIPULATION_FAILURE;
 
 
-class HandoverObjectToOperatorState(smach.State):
+class HandoverObjectToOperatorState(SmachBaseClass):
     """ Smach state for handing a grasped object to an operator.
 
     This state hands over an object to the operator.
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
             input_keys=[],
@@ -241,14 +239,14 @@ class HandoverObjectToOperatorState(smach.State):
             return FAILURE
 
 
-class ReceiveObjectFromOperatorState(smach.State):
+class ReceiveObjectFromOperatorState(SmachBaseClass):
     """ Smach state for receiving an object from an operator.
 
     This state grasps an object currently held by an operator.
     """
 
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
             input_keys=[],
@@ -288,13 +286,13 @@ def putObjOnSurfaceAction(goal:PutObjectOnSurfaceGoal=None):
     return put_on_surface_action.get_result().result;
 
 
-class PutObjectOnSurfaceState(smach.State):
+class PutObjectOnSurfaceState(SmachBaseClass):
     """ Smach state for putting object on a surface in front of the robot.
 
     This state put an object held by the robot on a surface.
     """
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
             input_keys=[],
@@ -344,7 +342,7 @@ def getPlacementOptions(
         print("Service call failed: %s"%e)
 
 
-class PlaceNextTo(smach.State):
+class PlaceNextTo(SmachBaseClass):
     """
     Inputs:
         dims:tuple                          : The dimensions of the object to be put down.
@@ -380,7 +378,7 @@ class PlaceNextTo(smach.State):
         if take_shelf_heights_as_input:
             input_keys.append('shelf_height_dict');
 
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, MANIPULATION_FAILURE, FAILURE],
             input_keys=input_keys,
@@ -394,15 +392,15 @@ class PlaceNextTo(smach.State):
         self.input_put_down_obj_size = input_put_down_obj_size;
         self.take_shelf_heights_as_input = take_shelf_heights_as_input;
     
-    def speakPhrase(self, phrase_speaking):
-        action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
-        action_goal.data.sentence = phrase_speaking
-        rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
+    # def speak(self, phrase_speaking):
+    #     action_goal = TalkRequestGoal()
+    #     action_goal.data.language = Voice.kEnglish  # enum for value: 1
+    #     action_goal.data.sentence = phrase_speaking
+    #     rospy.loginfo("HSR speaking phrase: '{}'".format(phrase_speaking))
 
-        self.speak_action_client.wait_for_server()
-        self.speak_action_client.send_goal(action_goal)
-        # self.speak_action_client.wait_for_result()
+    #     self.speak_action_client.wait_for_server()
+    #     self.speak_action_client.send_goal(action_goal)
+    # #     # self.speak_action_client.wait_for_result()
         
 
     def execute(self, userdata):
@@ -424,7 +422,7 @@ class PlaceNextTo(smach.State):
 
         radius = self.radius;
 
-        self.speakPhrase("Attempting to find a placement location.");
+        self.speak("Attempting to find a placement location.", wait_to_terminate=False);
 
         put_down_dims = self.dims;
         if self.input_put_down_obj_size:
@@ -452,10 +450,10 @@ class PlaceNextTo(smach.State):
             print("\t", best_tf);
 
             if len(best_tf) == 0:
-                self.speakPhrase("No placement options were found. Retrying.");
+                self.speak("No placement options were found. Retrying.", wait_to_terminate=False);
                 radius *= 1.3;
             else:
-                self.speakPhrase("A placement option was found. Executing now.");
+                self.speak("A placement option was found. Executing now.", wait_to_terminate=False);
                 placement_option_found = True;
                 break;
 
@@ -480,10 +478,10 @@ class PlaceNextTo(smach.State):
 
 
 point_at_uid_ref = 0;
-class PointAtEntity(smach.State):
+class PointAtEntity(SmachBaseClass):
 
     def __init__(self, statement_having_pointed=None, statement_before_pointing=None):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
             input_keys=['point_at_loc'],
@@ -539,13 +537,16 @@ class PointAtEntity(smach.State):
         else:
             return FAILURE;
     
-class DropEntity(smach.State):
+class DropEntity(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self,
             outcomes=[SUCCESS, FAILURE],
             input_keys=[],
             output_keys=[]);
 
     def execute(self, userdata):
+        self.getRobotInterface();
+        self.moveToNeutral();
+        self.gripper.command(1.2);
         return SUCCESS;
