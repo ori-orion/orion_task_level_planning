@@ -21,4 +21,4 @@ All of our states are given within `orion_task_level_planning/state_machines/src
 
 We then have the ideas of sub-state machines.
 These act in a similar manner to functions, in that they are structures that can be reused multiple times.
-![Example state machine](src/state_machines/robocup_2023_hypothesis/Put away the groceries 2.png)
+![Example state machine](/state_machines/src/state_machines/robocup_2023_hypothesis/Put away the groceries 2.png)
