@@ -539,7 +539,7 @@ class PointAtEntity(smach.State):
         else:
             return FAILURE;
     
-class DropEntity(smach.State):
+class DropEntity(SmachBaseClass):
     def __init__(self):
         smach.State.__init__(
             self,
@@ -548,4 +548,7 @@ class DropEntity(smach.State):
             output_keys=[]);
 
     def execute(self, userdata):
+        self.getRobotInterface();
+        self.moveToNeutral();
+        self.gripper.command(1.2);
         return SUCCESS;
