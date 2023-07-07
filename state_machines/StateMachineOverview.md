@@ -131,6 +131,9 @@ This is the set of states that don't seem to fit into any given category.
 - Getting the current time (`GetTime`).
 - Waiting for a set number of seconds (`WaitForSecs`).
 - Checking to see if the door is open for the competition (`CheckDoorIsOpenState`).
+- Looking up (`LookUpState`).
+- Looking at a human (`LookAtHuman`).
+- Looking at a point (`LookAtPoint`).
 - Raising the mast (`RaiseMastState`).
 - Moving to neutral (`MoveToNeutralState`).
 - Spinning the head around (`SpinState`).
@@ -139,4 +142,4 @@ This is the set of states that don't seem to fit into any given category.
 - Waiting for someone to touch the hand (`WaitForWristWrench`).
     - This could do with a little fine tuning. You need to push harder than necessary for this.
 
-8 states
+11 states
