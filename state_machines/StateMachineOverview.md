@@ -63,8 +63,10 @@ These can all be found under `/orion_task_level_planning/state_machines/config` 
     - Here `SimpleNavigateState_v2` should be used instead of `SimpleNavigateState` which is deprecated. The reasoning is basically the same as above, where `NAVIGATIONAL_FAILURE` is returned instead of `FAILURE`.
     - Note that the `SimpleNavigateState_v2` will see if the robot is not moving, and if this is the case, it will try to replan a goal. If this goal is blocked, it will read in the occupancy map (using `NavigationalListener`) to find the closest point that is free.
 - Navigating using the ORI navigational packages (`TopologicalNavigateState`).
+- Finding a nav goal that is a set distance from a given point (`NavigateDistanceFromGoalSafely`). 
+    - The distance here is hardcoded to 0.9m within the class. Potentially could be made an input. 
 
-3 states
+4 states
 
 ### Perception
 
@@ -166,11 +168,23 @@ A lot of these are using older states, so, if you want to use these, it is recom
 This is mainly for local navigation. You want to navigate to a pose from which you can pick up an object or from which you can talk to someone.
 
 - `navigate_within_distance_of_pose_input`
-    - Navigate within a certain 
+    - Navigate within a certain distance (NavigateDistanceFromGoalSafely::DISTANCE_FROM_POSE) of a given pose.
+    - It looks at the goal, finds a nav goal, navigates, and then looks at the goal again.
 - `navigate_within_distance_of_som_input`
+    - Performs a SOM query (which is inputted). 
+    - It then navigates to a point close to the first result from this query (using `navigate_within_distance_of_pose_input`)
 - `search_for_entity`
+    - This has two different modes.
+        - Spin and query where it uses ORIon spin to look round, and then queries for the things it saw during the spin.
+        - All time query where it queries for all the objects it's seen ever.
+    - One of these is then run after the other one, the behaviour being toggled using the input argument `spin_first`. 
+    - `som_query_results`, the results from the query, are then returned.
 - `nav_within_reaching_distance_of`
+    - This combines `search_for_entity` with `navigate_within_distance_of_pose_input`, first searching for an object of a given class or category (toggleable using the flag `find_same_category`), to navigate within reaching distance of a given type of object.
 - `nav_and_pick_up_or_place_next_to`
+    - Finally this uses `nav_within_reaching_distance_of` to either pick up an object matching a given class or category, or to put down an object in the gripper that matches a given class or category.
+    - The put down infrastructure still needs to include a backup for if a placement location is not found.
+    - This is then essentially the entry point for pick and place infrastructure.
 
 ### startup.py
 
