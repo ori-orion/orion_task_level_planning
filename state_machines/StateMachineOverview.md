@@ -41,6 +41,8 @@ These sub systems are as follows:
  - Training
  - Miscellaneous
 
+All of these states are derived from `/orion_task_level_planning/state_machines/src/state_machines/ReusableStates/utils.py::SmachBaseClass` which itself is descended from `smach.State`. This base state has common functionality for the task level planning infrastructure such as speaking (`speak(phrase_speaking:str, wait_to_terminate:bool=True)`) or setting up the manipulation side of things (`getRobotInterface()`) and setting the joint values on the robot (`moveToJointPositions(moving_to:dict)`).
+
 The other thing to note is that we use config files extensively.
 These can all be found under `/orion_task_level_planning/state_machines/config` and the names often match the name of the state machine in question.
 
