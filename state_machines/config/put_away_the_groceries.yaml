@@ -6,7 +6,7 @@ execute_navigation_commands: true
 
 
 use_grasping_synthesis : false
-use_collision_mapping : true
+use_collision_mapping : false
 
 # For putting down objects next to others
 find_placement_options : {
