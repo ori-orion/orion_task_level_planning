@@ -6,7 +6,7 @@ execute_navigation_commands: true
 
 
 use_grasping_synthesis : false
-use_collision_mapping : true
+use_collision_mapping : false
 
 # For putting down objects next to others
 find_placement_options : {
@@ -56,8 +56,8 @@ cabinet_pose : {
 # to pick this up first. Then fruits. etc. "tableware" is hard, so 
 # that's close to the bottom. We will not attempt containers or cutlery.
 categories_to_pick_up : [
-    "fruits", 
     "drinks", 
+    "fruits", 
     "food", 
     "snacks", 
     "tableware", 

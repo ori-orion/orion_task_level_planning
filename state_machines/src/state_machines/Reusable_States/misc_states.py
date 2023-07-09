@@ -252,7 +252,7 @@ class RaiseMastState(smach.State):
             'arm_lift_joint':mast_height,
             'arm_flex_joint':-100*math.pi/180,
             'head_pan_joint':0,
-            'head_tilt_joint':-math.pi/6,
+            'head_tilt_joint':0,
             'wrist_flex_joint':0});
         return SUCCESS;
     
@@ -745,9 +745,38 @@ def testOrionSpin():
     
     sub_sm.execute();
     pass;
+def testRaiseMast():
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "OrionMastTest",
+            RaiseMastState(mast_height=0.5),
+            transitions={
+                SUCCESS:SUCCESS});
+        pass;
+    
+    sub_sm.execute();
+    pass;
+
+def testMoveToGo():
+    sub_sm = smach.StateMachine(outcomes=[SUCCESS]);
+
+    with sub_sm:
+        smach.StateMachine.add(
+            "OrionNeutralTest",
+            MoveToNeutralState(),
+            transitions={
+                SUCCESS:SUCCESS});
+        pass;
+    
+    sub_sm.execute();
+    pass;
 
 
 if __name__ == '__main__':
     rospy.init_node('misc_states_test');
     # testForceSensorState();
-    testOrionSpin();
+    # testOrionSpin();
+    # testRaiseMast();
+    testMoveToGo();
