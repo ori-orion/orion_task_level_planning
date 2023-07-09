@@ -26,9 +26,9 @@ from typing import List;
 In the case where we want to place something amidst other items.
 For this we need to know where the other items are.
 """
-class FindPlacementLocationBackup(smach.State):
+class FindPlacementLocationBackup(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS, FAILURE, MANIPULATION_FAILURE],
             input_keys=['put_down_size'],
             output_keys=[]);
@@ -46,16 +46,9 @@ class FindPlacementLocationBackup(smach.State):
         if location_found==False:
             return FAILURE;
 
-        tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
         TF_NAME = "placement_location_backup";
-
-        transform = geometry_msgs.msg.TransformStamped();
-        transform.transform.translation = loc;
-        transform.transform.rotation.w = 1;
-        transform.header.stamp = rospy.Time.now();
-        transform.header.frame_id = GLOBAL_FRAME;
-        transform.child_frame_id = TF_NAME;
-        tf_broadcaster.sendTransform([transform]);
+        self.publishStaticTf(
+            x=loc.x, y=loc.y, z=loc.z, child_frame_id=TF_NAME);
 
         for i in range(3):
             put_down_goal = PutObjectOnSurfaceGoal();
@@ -76,18 +69,15 @@ Cases:
     - If no object matching the catgegory has been found.
     - If no placement options are found at all.
 """
-class FindShelfBackup(smach.State):
+class FindShelfBackup(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
-        self.buffer = tf2_ros.Buffer();
-        self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
-        self.listener = tf2_ros.TransformListener(self.buffer);
-    
     def execute(self, userdata):
+        self.setupTfStuff();
         PLACEMENT_TF_NAME = "placement_tf_TLP"
 
         rospy.logwarn("Using the backup for finding placement locations. Something has failed along the way.");
@@ -117,23 +107,12 @@ class FindShelfBackup(smach.State):
         using_regions = False;
 
         if res.success:
-            t = geometry_msgs.msg.Transform()
-            t.translation.x =   res.position[0];
-            t.translation.y =   res.position[1];
-            t.translation.z =   res.position[2];
-            t.rotation.x =      0;
-            t.rotation.y =      0;
-            t.rotation.z =      0;
-            t.rotation.w =      1;
-            t_stamped = geometry_msgs.msg.TransformStamped();
-            t_stamped.header.stamp = rospy.Time.now()
-            t_stamped.header.frame_id = "map";
-            t_stamped.child_frame_id = PLACEMENT_TF_NAME;
-            t_stamped.transform = t;
-            
+            self.publishStaticTf(
+                x=res.position[0],
+                y=res.position[1],
+                z=res.position[2],
+                child_frame_id=PLACEMENT_TF_NAME);
             transform_name = PLACEMENT_TF_NAME;
-            
-            self.tf_broadcaster.sendTransform(t_stamped);
         
         else:
             region_query_srv = rospy.ServiceProxy( "/som/object_regions/region_query", SOMRegionQuery );

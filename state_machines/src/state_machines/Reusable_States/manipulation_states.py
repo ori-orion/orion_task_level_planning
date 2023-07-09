@@ -61,6 +61,7 @@ class PickUpObjectState(SmachBaseClass):
         pick_up_goal.goal_tf = object_name.replace(" ", "_")          # need to replace spaces with underscores for ROS TF tree look-up
 
         # check if we can see the tf in the tf tree - if not, check if we need to fall back on an ar_marker, otherwise trigger the failure outcome
+        # Doesn't use tf2, and so can't use the setupTfStuff function in the base class.
         tf_listener = tf.TransformListener()
         buffer = tf_listener._buffer;
         rospy.sleep(2)  # wait 2 seconds for the tf listener to gather tf data
@@ -488,10 +489,6 @@ class PointAtEntity(SmachBaseClass):
         self.statement_having_pointed = "" if statement_having_pointed is None else statement_having_pointed;
         self.statement_before_pointing = "" if statement_before_pointing is None else statement_before_pointing;
         self.point_at_obj_server = actionlib.SimpleActionClient('point_to_object',PointToObjectAction);
-        
-        # self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
-        # self.tf_buffer = tf2_ros.Buffer();
-        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer);
 
     def createPointAtTf_UID(self) -> str:
         global point_at_uid_ref;
