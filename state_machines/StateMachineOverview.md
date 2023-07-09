@@ -87,6 +87,7 @@ These states are supprisingly useful. They are as follows:
 
 ### SOM
 
+
 This pertains to accessing the objects in the memory system. The states allow for
 - Creating a SOM query (`CreateSOMQuery`).
 - Adding a parameter to the SOM query to refine the search (`AddSOMEntry`).
@@ -105,6 +106,40 @@ There then a few states that pertain to the (old) find my mates task. These save
 Finally, there is a standalone class for creating an occupancy map using the entries found within SOM called `SOMOccupancyMap` (allowing us to, for instance, find potential placement locations, or empty chairs. This works fairly well, and might be useful. However, it is specific to objects at present.)
 
 5 states
+
+
+#### An explanation of how SOM works...
+
+The SOM system is the memory system on the robot. 
+Each entry in the system should match a given ROS message type.
+You get information from the memory system by sending a query into the system. 
+The results that are returned are then those that match the query.
+
+So, let's say that the message type is as follows:
+```
+string class_
+string category
+time last_observed_at
+geometry_msgs/Pose obj_position
+```
+ - If we send in a query with `class_="bottle` and leave all other entries at their  default values, then all entries with `class_=="bottle"` will be returned.
+ - If we send in a query with `last_observed_at=rospy.Time.now()-rospy.Duration(5)`, then all entries observed in the last 5 seconds will be returned.
+ - If we send in a query with `class_="bottle"` and `last_observed_at=rospy.Time.now()-rospy.Duration(5)`, then all entries with `class_=="bottle"` that were observed in the last 5 seconds will be returned.
+Thus filling in multiple attributes within the query acts as an AND gate within the query.
+
+#### How this works within the state machine system.
+
+- `CreateSOMQuery` creates a given empty query. The query type is passed in by argument.
+    - For instance `CreateSOMQuery(CreateSOMQuery.OBJECT_QUERY)`, creates a query into the object collection.
+    - `CreateSOMQuery(CreateSOMQuery.HUMAN_QUERY)` creates a query into the human collection.
+    - `CreateSOMQuery(CreateSOMQuery.OBJECT_QUERY, save_time=True)`, creates a query into the object collection that fills the current time in, thus restricting the query to items seen since the time this state was active.
+- `AddSOMEntry` then fills out entries within the query.
+    - `AddSOMEntry("class_")` will fill the `class_` field with `userdata.value`.
+    - `AddSOMEntry("class_", "bottle")` will fill the `class_` field with `"bottle"`.
+    - This uses the python functions `hasattr(...)` and `setattr(...)` so any fields within the query can be passed in.
+- `PerformSOMQuery` then performs the query and fills out `userdata.som_query_results` with the array of results returned.
+    - For instance, when performing an object query, `userdata.som_query_results` will be of type `List[SOMObject]`.
+
 
 ### Speech
 
