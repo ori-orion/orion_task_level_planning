@@ -21,8 +21,6 @@ from typing import List, Tuple;
 import hsrb_interface;
 hsrb_interface.robot.enable_interactive();
 
-GLOBAL_FRAME = "map";
-
 # To give greater resolution when looking at outcomes within the state machine. Not fully implemented.
 MANIPULATION_FAILURE = 'manipulation_failure'
 
@@ -491,9 +489,9 @@ class PointAtEntity(SmachBaseClass):
         self.statement_before_pointing = "" if statement_before_pointing is None else statement_before_pointing;
         self.point_at_obj_server = actionlib.SimpleActionClient('point_to_object',PointToObjectAction);
         
-        self.tfbroadcaster = tf2_ros.StaticTransformBroadcaster();
-        self.tfBuffer = tf2_ros.Buffer();
-        self.listener = tf2_ros.TransformListener(self.tfBuffer);
+        # self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+        # self.tf_buffer = tf2_ros.Buffer();
+        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer);
 
     def createPointAtTf_UID(self) -> str:
         global point_at_uid_ref;
@@ -501,21 +499,18 @@ class PointAtEntity(SmachBaseClass):
         return "POINT_AT_TF_UID_" + str(point_at_uid_ref);
 
     def execute(self, userdata):
+        self.setupTfStuff();
         tf_uid = self.createPointAtTf_UID();
 
         point_at_loc:Pose = userdata.point_at_loc;
 
         self.point_at_obj_server.wait_for_server();
 
-        transform = geometry_msgs.msg.TransformStamped()
-        transform.transform.translation.x = point_at_loc.position.x;
-        transform.transform.translation.y = point_at_loc.position.y;
-        transform.transform.translation.z = point_at_loc.position.z;
-        transform.transform.rotation.w = 1;
-        transform.header.stamp = rospy.Time.now();
-        transform.header.frame_id = GLOBAL_FRAME;
-        transform.child_frame_id = tf_uid;
-        self.tfbroadcaster.sendTransform([transform]);
+        self.publishStaticTf(
+            x=point_at_loc.position.x,
+            y=point_at_loc.position.y,
+            z=point_at_loc.position.z,
+            child_frame_id=tf_uid);
         
         # trans = None;
         # while (trans is None):

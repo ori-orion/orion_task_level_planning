@@ -4,7 +4,9 @@ import math;
 
 import rospy;
 import actionlib
+import tf2_ros;
 from geometry_msgs.msg import Pose, Point, PoseStamped, Quaternion;
+import geometry_msgs.msg;
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from visualization_msgs.msg import Marker, MarkerArray, InteractiveMarker, InteractiveMarkerControl
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
@@ -22,6 +24,8 @@ TASK_FAILURE = 'task_failure';
 SUCCESS = 'success';
 FAILURE = 'failure';
 REPEAT_FAILURE = 'repeat_failure';
+
+GLOBAL_FRAME = "map";
 
 
 def pose_to_xy_theta(pose:Pose):
@@ -399,3 +403,21 @@ class SmachBaseClass(smach.State):
         self.whole_body.gaze_point(
             point=looking_at, 
             ref_frame_id=reference_frame);
+
+    def setupTfStuff(self):
+        if not hasattr(self, "tf_broadcaster"):
+            self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+            self.tf_buffer = tf2_ros.Buffer();
+            self.tf_listener = tf2_ros.TransformListener(self.tf_buffer);
+    def publishStaticTf(self, x,y,z, child_frame_id, frame_id=GLOBAL_FRAME, stamp=None):
+        self.setupTfStuff();
+        
+        transform = geometry_msgs.msg.TransformStamped()
+        transform.transform.translation.x = x;
+        transform.transform.translation.y = y;
+        transform.transform.translation.z = z;
+        transform.transform.rotation.w = 1;
+        transform.header.stamp = rospy.Time.now() if stamp==None else stamp;
+        transform.header.frame_id = frame_id;
+        transform.child_frame_id = child_frame_id;
+        self.tf_broadcaster.sendTransform([transform]);
