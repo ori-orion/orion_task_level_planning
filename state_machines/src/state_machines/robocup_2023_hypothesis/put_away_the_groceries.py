@@ -83,7 +83,9 @@ class FindShelfBackup(smach.State):
             input_keys=['put_down_size', 'shelf_height_dict'],
             output_keys=[]);
     
+        self.buffer = tf2_ros.Buffer();
         self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster();
+        self.listener = tf2_ros.TransformListener(self.buffer);
     
     def execute(self, userdata):
         PLACEMENT_TF_NAME = "placement_tf_TLP"
@@ -99,10 +101,10 @@ class FindShelfBackup(smach.State):
             "/FindPlacementOnEmptySurface", manipulation.srv.FindPlacementOnEmptySurface);
         central_tf = shelf_names[ int(len(shelf_names)/2) ];
 
-        trans_stamped = self._tf_buffer.lookup_transform("head_rgbd_sensor_rgb_frame", central_tf, rospy.Time(), timeout=timeout)
+        trans_stamped = self.tf_buffer.lookup_transform("head_rgbd_sensor_rgb_frame", central_tf, rospy.Time(), timeout=rospy.Duration(1));
         rgbd_goal_transform = trans_stamped.transform;
 
-        res:manipulation.srv.FindPlacementOnEmptySurfaceResponse = self.find_placement_service(
+        res:manipulation.srv.FindPlacementOnEmptySurfaceResponse = find_placement_on_empty_service(
             userdata.put_down_size,     # dimension of object
             0.3,                        # max height from surface
             rgbd_goal_transform,
@@ -165,7 +167,7 @@ class FindShelfBackup(smach.State):
         # If everything has failed, drop the item?
 
         return SUCCESS;
-    
+
 
 
 def sub_state_machine_pick_up_and_put_away():

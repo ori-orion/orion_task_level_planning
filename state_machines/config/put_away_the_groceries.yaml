@@ -4,11 +4,12 @@ params_loaded: True
 # The parameter for executing navigation commands. This doesn't stop manipulation from navigating, but 
 # it will stop TLP from doing so. Very useful for debugging, and the state machines will fail to run if
 # this is not run.
-execute_navigation_commands: false
+execute_navigation_commands: true
 
 
-# Flag now built into manipulation run_all.py. Allows for the dynamic toggling of using gpg.
+# Flag now built into manipulation run_all.py. Allows for the dynamic toggling of gpg and collision mapping.
 use_grasping_synthesis: false
+use_collision_mapping: false
 
 # For putting down objects next to others
 find_placement_options : {
@@ -22,6 +23,14 @@ find_placement_options : {
 
 # The poses the robot will navigate to for doing stuff.
 table_pose : {
+    # Bordeaux
+    # position : {
+    #     x: 6.898829284925901, y: -0.3345450406571554, z: 0.0
+    # },
+    # orientation : { 
+    #     x: 0.0, y: 0.0, z: 0.9941701850029624, w: 0.1078222762288735
+    # }
+    # Simulation
     position : {
         x : 4.61, y : 0.308, z : 0
     },
@@ -30,6 +39,14 @@ table_pose : {
     }
 }
 cabinet_pose : {
+    # Bordeaux
+    # position : {
+    #     x: 6.921234442581973, y: -0.28322414645887983, z: 0.0
+    # },
+    # orientation : { 
+    #     x: 0.0, y: 0.0, z: 0.5969085861979543, w: 0.8023092544169981
+    # }
+    # Simulation
     position : {
         x : 2.62, y : 0.36, z : 0
     },

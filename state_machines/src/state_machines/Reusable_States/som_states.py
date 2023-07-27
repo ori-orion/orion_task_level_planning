@@ -25,7 +25,7 @@ Overall interface into SOM:
 """
 
 
-class CreateSOMQuery(smach.State):
+class CreateSOMQuery(SmachBaseClass):
     """
     Creates a query for the SOM system.
 
@@ -39,7 +39,7 @@ class CreateSOMQuery(smach.State):
     OBJECT_QUERY = 2;
     
     def __init__(self, query_type:int, save_time:bool=False, duration_back:rospy.Duration=None):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=[],
             output_keys=['som_query'])
@@ -78,7 +78,7 @@ class CreateSOMQuery(smach.State):
         return SUCCESS;
 
 
-class AddSOMEntry(smach.State):
+class AddSOMEntry(SmachBaseClass):
     """
     Optional parameters are not a thing within smach. This will add 
     parameters to the SOM query. 
@@ -89,7 +89,7 @@ class AddSOMEntry(smach.State):
         som_query:                  - The field we are editing.
     """
     def __init__(self, field_adding_default:str, set_to_default=None):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query', 'value'],
             output_keys=['som_query']);
@@ -110,7 +110,7 @@ class AddSOMEntry(smach.State):
         return SUCCESS;
 
 
-class PerformSOMQuery(smach.State):
+class PerformSOMQuery(SmachBaseClass):
     """
     Performs a SOM query.
     distance_filter - We may want to filter observations by distance from the robot. 
@@ -123,7 +123,7 @@ class PerformSOMQuery(smach.State):
         som_query_results:List[<response_type>] : The response in the form of a raw array.
     """
     def __init__(self, distance_filter:float=0):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query'],
             output_keys=['som_query_results']);
@@ -169,7 +169,7 @@ class PerformSOMQuery(smach.State):
         return SUCCESS;
 
 
-class FindMyMates_IdentifyOperatorGuests(smach.State):
+class FindMyMates_IdentifyOperatorGuests(SmachBaseClass):
     """
     Inputs:
         som_query_results:Human[]       - What guests were found in the last query.
@@ -180,7 +180,7 @@ class FindMyMates_IdentifyOperatorGuests(smach.State):
         guest_list:Human[]  - Returns a list of the guests.
     """
     def __init__(self):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS, FAILURE, 'one_person_found'],
             input_keys=['som_query_results', 'approximate_operator_pose'],
             output_keys=['operator_pose', 'guest_list']);
@@ -289,7 +289,7 @@ def has_seen_object(time_interval:rospy.Duration=None, wait_before_querying:bool
     return sub_sm;
 
 
-class SortSOMResultsAsPer(smach.State):
+class SortSOMResultsAsPer(SmachBaseClass):
     """
     Take the put away my groceries task. We want to pick things 
     up as per a priority list across category. This sorts the 
@@ -314,7 +314,7 @@ class SortSOMResultsAsPer(smach.State):
             num_observations_filter_proportion=0.001,
             filter_for_duplicates_distance:float=0):
         
-        smach.State.__init__(
+        SmachBaseClass.__init__(
             self, outcomes=[SUCCESS, 'list_empty'],
             input_keys=['som_query_results'],
             output_keys=['som_query_results_out', 'first_result']);
@@ -396,7 +396,7 @@ class SortSOMResultsAsPer(smach.State):
     pass;
 
 
-class FilterSOMResultsAsPer(smach.State):
+class FilterSOMResultsAsPer(SmachBaseClass):
     """
     Filters in/out a set of results by a given parameter.
     Inputs:
@@ -409,7 +409,7 @@ class FilterSOMResultsAsPer(smach.State):
         som_query_results_old   : The old version to allow the remembering of things.
     """
     def __init__(self, filter_by:str, filter_out=True):
-        smach.State.__init__(self, 
+        SmachBaseClass.__init__(self, 
             outcomes=[SUCCESS],
             input_keys=['som_query_results', 'filtering_by'],
             output_keys=['som_query_results', 'som_query_results_old']);
@@ -645,7 +645,7 @@ class SOMOccupancyMap:
 
 
 
-class SaveOperatorToSOM(smach.State):
+class SaveOperatorToSOM(SmachBaseClass):
     """ State for robot to log the operator information as an observation in the SOM
 
     input_keys:
@@ -658,7 +658,7 @@ class SaveOperatorToSOM(smach.State):
     """
 
     def __init__(self, operator_pose=None):
-        smach.State.__init__(self, outcomes=['success', 'failure'],
+        SmachBaseClass.__init__(self, outcomes=['success', 'failure'],
                                 input_keys=['operator_name', 'closest_human'],
                                 output_keys=['operator_som_human_id',
                                             'operator_som_obj_id'])
@@ -705,7 +705,7 @@ class SaveOperatorToSOM(smach.State):
         userdata.operator_som_obj_id = operator_obs.adding.object_uid
         return 'success'
 
-class SaveGuestToSOM(smach.State):
+class SaveGuestToSOM(SmachBaseClass):
     """ State for robot to log the guest information as an observation in the SOM,
         and update the ongoing list of som ids (both human ids and object ids)
 
@@ -719,7 +719,7 @@ class SaveGuestToSOM(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success', 'failure'],
+        SmachBaseClass.__init__(self, outcomes=['success', 'failure'],
                                 input_keys=['operator_name', 
                                             'closest_human', 
                                             'guest_attributes',
@@ -770,7 +770,7 @@ class SaveGuestToSOM(smach.State):
         userdata.guest_som_obj_ids.append(guest_obs.adding.object_uid)
         return 'success'
 
-class GetNearestHuman(smach.State):
+class GetNearestHuman(SmachBaseClass):
     """
     Finds the closest operator to the current robot's position.
     NOTE: currently might return a human with a single observation (which has the possibility of being unreliable).
@@ -783,7 +783,7 @@ class GetNearestHuman(smach.State):
         human_pose:Pose
     """
     def __init__(self, ignore_operators=True):
-        smach.State.__init__(self, outcomes=['new_human_found', 'human_not_found', 'existing_human_found'],
+        SmachBaseClass.__init__(self, outcomes=['new_human_found', 'human_not_found', 'existing_human_found'],
                                 input_keys=['nearest_to'],
                                 output_keys=['closest_human', 'robot_location', 'human_pose', 'human_object_uid'])
 
@@ -844,7 +844,7 @@ class GetNearestHuman(smach.State):
             userdata.human_object_uid = closest_human.object_uid;
             return 'new_human_found';
 
-class GetHumanRelativeLoc(smach.State):
+class GetHumanRelativeLoc(SmachBaseClass):
     """
     We want to be able to give the location of the human relative to other objects around the room.
     This will work this out.
@@ -861,7 +861,7 @@ class GetHumanRelativeLoc(smach.State):
         "door", "sink", "clock", "vase", "desk"];
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
+        SmachBaseClass.__init__(self, outcomes=['success', 'no_relevant_matches_found'],
                                 input_keys=['couch_left','couch_right', 'left_of_couch', 'right_of_couch'],
                                 output_keys=['relevant_matches'])
 
@@ -934,9 +934,9 @@ class GetHumanRelativeLoc(smach.State):
             userdata.relevant_matches = returns;
             return "success"
 
-class GetOperatorLoc(smach.State):
+class GetOperatorLoc(SmachBaseClass):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['success', 'failure'],
+        SmachBaseClass.__init__(self, outcomes=['success', 'failure'],
                                 input_keys=[],
                                 output_keys=['operator_pose'])
         self.human_query_srv = rospy.ServiceProxy('/som/humans/basic_query', SOMQueryHumans);
@@ -955,7 +955,7 @@ class GetOperatorLoc(smach.State):
         return 'success';
     pass;
 
-class CheckForNewGuestSeen(smach.State):
+class CheckForNewGuestSeen(SmachBaseClass):
     """ Smach state to check if we have seen a new guest (i.e., a guest we have not spoken to yet)
 
     Returns 'success' if a new guest is found, otherwise runs indefinitely. Needs to be preempted in a concurrency state.
@@ -967,7 +967,7 @@ class CheckForNewGuestSeen(smach.State):
     """
 
     def __init__(self):
-        smach.State.__init__(self,
+        SmachBaseClass.__init__(self,
                                 outcomes=['success', 'preempted'],
                                 input_keys=[],
                                 output_keys=['found_guest_uid'])

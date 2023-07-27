@@ -19,7 +19,7 @@ def create_wait_for_startup():
 
         smach.StateMachine.add(
             'WaitFor5',
-            WaitForSecs(5),
+            WaitForSecs(2),
             transitions={
                 SUCCESS:'StartSpeech'});
 
