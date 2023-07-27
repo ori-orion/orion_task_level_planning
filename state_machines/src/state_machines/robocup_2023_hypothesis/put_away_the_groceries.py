@@ -325,7 +325,11 @@ def create_state_machine():
             region_adding.adding.corner_loc.translation = copy.deepcopy( shelves_pose.position );
             region_adding.adding.corner_loc.rotation = copy.deepcopy( shelves_pose.orientation );
             # We need a rotation in here somewhere. It should be - :(
-            roll, pitch, yaw = euler_from_quaternion( [shelves_pose.orientation.x, shelves_pose.orientation.y, shelves_pose.orientation.z, shelves_pose.orientation.w ] );
+            roll, pitch, yaw = euler_from_quaternion( [
+                shelves_pose.orientation.x, 
+                shelves_pose.orientation.y, 
+                shelves_pose.orientation.z, 
+                shelves_pose.orientation.w ] );
             print(roll, pitch, yaw);
             translation_x = math.cos(yaw)*shelves_width - math.sin(yaw)*shelves_depth;
             translation_y = math.sin(yaw)*shelves_width + math.cos(yaw)*shelves_depth;

@@ -1,10 +1,13 @@
 # Basic flag to wait for the parameters to be loaded in.
 params_loaded: True
 
+# The parameter for executing navigation commands. This doesn't stop manipulation from navigating, but 
+# it will stop TLP from doing so. Very useful for debugging, and the state machines will fail to run if
+# this is not run.
 execute_navigation_commands: false
 
 
-
+# Flag now built into manipulation run_all.py. Allows for the dynamic toggling of using gpg.
 use_grasping_synthesis: false
 
 # For putting down objects next to others
@@ -17,6 +20,7 @@ find_placement_options : {
     dims : [0.05, 0.05, 0.02]
 }
 
+# The poses the robot will navigate to for doing stuff.
 table_pose : {
     position : {
         x : 4.61, y : 0.308, z : 0
@@ -51,11 +55,16 @@ categories_to_pick_up : [
 # the `num_observations` parameter within the query.
 min_number_of_observations : 3
 
+# The height that the robot mast goes to upon arriving at the table etc.
 table_mast_height : 0
 cabinet_mast_height : 0
 
 
 # Next thing to worry about is potentially hardcoding the shelves.
+# These are added as an rviz visual under the address "zzz_task_level_planning/markers" 
+# It then looks for the highest shelf that is below a given object and then assumes that that is the shelf
+# the object is sitting on. Thus the shelf heights should ideally be under-estimates rather than over-estimates. 
+# width and depth are then the width and depth of the shelves.
 use_hardcoded_shelves : true
 shelves_hardcoded : {
     normal: [0,0,1],
