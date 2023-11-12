@@ -356,7 +356,7 @@ class SmachBaseClass(smach.State):
         self.getRobotInterface();
         self.whole_body.move_to_go();
         
-    def moveToJointPositions(self, moving_to:Dict[str:float]) -> bool:
+    def moveToJointPositions(self, moving_to:Dict[str, float]) -> bool:
         """
         Uses the hsrb interface to move the joints into a given configuration.
         Returns True if the robot completed the action without the target pose being in collision.
