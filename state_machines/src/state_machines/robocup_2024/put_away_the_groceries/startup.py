@@ -8,12 +8,18 @@ from orion_door_pass.msg import DoorCheckGoal, DoorCheckAction
 
 
 class StartupWaitForDoor(SmachBaseClass):
-    """
-    Move the robot to the neutral pose, then wait until it detects the door to 
-    be open.
-    """
-
     def __init__(self, speak_through_console = False):
+        """
+        Move the robot to the neutral pose, then wait until it detects the door to 
+        be open.
+
+        Possible outcomes:
+        - SUCCESS
+
+        Output keys:
+        - task_start_time: the time at which the task started (after detecting the 
+                            door open)
+        """
         SmachBaseClass.__init__(self, outcomes=[SUCCESS], output_keys=["task_start_time"])
 
         self.wait_time = 2

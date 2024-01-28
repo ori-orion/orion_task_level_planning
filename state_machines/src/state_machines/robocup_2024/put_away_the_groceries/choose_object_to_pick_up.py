@@ -9,30 +9,45 @@ import hsrb_interface
 
 hsrb_interface.robot.enable_interactive()
 
-from state_machines.Reusable_States.utils import SmachBaseClass, SUCCESS, distance_between_poses, get_current_pose
+from state_machines.Reusable_States.utils import SmachBaseClass, SUCCESS, distance_between_poses
 from orion_actions.msg import SOMObject
-from orion_actions.srv import SOMQueryObjectsRequest, SOMQueryObjects, SOMQueryObjectsResponse
-from orion_spin.msg import SpinAction, SpinGoal
+from orion_actions.srv import SOMQueryObjectsRequest
 from tmc_msgs.msg import TalkRequestAction, TalkRequestGoal, Voice
 
-from state_machines.robocup_2024.put_away_the_groceries.common import look_around, query_objects_from_som
+from state_machines.robocup_2024.put_away_the_groceries.common import compute_safe_mast_height, look_around, query_objects_from_som
 
 
 class ChooseObjectToPickUp(SmachBaseClass):
-    """
-    """
-    MAST_JOINT_MAX = 0.69
-    MAST_JOINT_MIN = 0
+    
     DISTANCE_FROM_POSE = 0.9
 
     def __init__(self, min_num_observations: int, 
                  table_mast_height: float, 
                  categories_to_pick_up: List[str],
-                 distance_filter = 2, 
-                 num_observations_filter_proportion = 0.001,
+                 distance_filter: float = 2, 
+                 num_observations_filter_proportion=0.001,
                  filter_for_duplicates_distance=0.02):
+        """
+        Choose an object to be picked up from the table.
+        Possible outcomes:
+        - SUCCESS: an object has been detected
+
+        Output keys:
+        - `target_obj`: the chosen object
+
+        Parameters:
+        - `min_num_observations`: the minimum num of observations for an object 
+                                    to be considered
+        - `table_mast_height`: the height of the mast needed to look over the table
+        - `categories_to_pick_up`: the categories the robot should choose from
+        - `distance_filter`: the maximum distance for an object to be considered
+        - `num_observations_filter_proportion`: used to filter out objects with not 
+            enough observations
+        - `filter_for_duplicates_distance`: we consider pairs of objects closer
+            than this value to be duplicates
+        """
         SmachBaseClass.__init__(self, outcomes=[SUCCESS], 
-                                output_keys=["obj_to_pick_up", "objects_to_pick_up"])
+                                output_keys=["target_obj"])
 
         self.min_num_observations = min_num_observations
         self.table_mast_height = table_mast_height
@@ -44,8 +59,7 @@ class ChooseObjectToPickUp(SmachBaseClass):
 
     def raise_mast(self):
         """Raise the mast to the table height"""
-        mast_height = min(self.table_mast_height, self.MAST_JOINT_MAX)
-        mast_height = max(mast_height, self.MAST_JOINT_MIN)
+        mast_height = compute_safe_mast_height(self.table_mast_height)
         
         if mast_height == 0:
             return
@@ -58,50 +72,50 @@ class ChooseObjectToPickUp(SmachBaseClass):
             self.JOINT_WRIST_FLEX : 0})
 
 
-    
-
     def query_som(self, query: SOMQueryObjectsRequest):
         """Send query to the SOM, filter out objects too distant or with not 
         enough observations, and sort the remaining objects by category and 
-        by num of observations (descending)."""
+        by num of observations (descending).
+        
+        - `query`: the query to be sent to the SOM
+        """
 
-        queries = query_objects_from_som(query, distance_filter=self.distance_filter)
-        if len(queries) == 0:
+        query_results = query_objects_from_som(query, distance_filter=self.distance_filter)
+        if len(query_results) == 0:
             return []
 
-        # Sort by num observations, and remove the objects with not enough observations or duplicates
-        queries.sort(key=lambda x:-x.num_observations)
-        max_num_observations = queries[0].num_observations
-        queries_carry: List[SOMObject] = []
-        for element in queries:
-            if element.num_observations > max_num_observations * self.num_observations_filter_proportion:
-                queries_carry.append(element)
+        # Sort by num observations, and remove the objects with not enough observations
+        query_results.sort(key=lambda x:-x.num_observations)
+        num_observations_threshold = query_results[0].num_observations * self.num_observations_filter_proportion
+        filtered_results = [element for element in query_results if 
+                            element.num_observations > num_observations_threshold]
 
-        indices_removing = []
-        for i in range(len(queries_carry)):
-            for j in range(i+1,len(queries_carry)):
-                if distance_between_poses(queries_carry[i].obj_position, queries_carry[j].obj_position) < self.filter_for_duplicates_distance:
-                    indices_removing.append(j)
-        queries = []
-        for i, element in enumerate(queries_carry):
-            if i not in indices_removing:
-                queries.append(element)
+        # Remove objects that are duplicates
+        results_no_duplicates: List[SOMObject] = []
+        duplicate_indices: List[int] = []
+        for i, element in enumerate(filtered_results):
+            if i in duplicate_indices:
+                continue
+            results_no_duplicates.append(element)
+            # Find duplicates of this object
+            for j in range(i+1, len(filtered_results)):
+                if distance_between_poses(element.obj_position, filtered_results[j].obj_position) < self.filter_for_duplicates_distance:
+                    duplicate_indices.append(j)
 
         print("Filtered for duplicates:")
-        for element in queries:
+        for element in results_no_duplicates:
             print(element.class_, end=", ")
         print()
         
         # Sort objects by category
         queries_output: List[SOMObject] = []
         for element in self.categories_to_pick_up:
-            for query in queries:
-                if query.category == element:
-                    queries_output.append(query)
+            for result in results_no_duplicates:
+                if result.category == element:
+                    queries_output.append(result)
 
-        if len(queries_output) < len(queries):
-            rospy.loginfo("{0} entries were ignored. They had the correct field, but their values were not found in order of preference".format(
-                len(queries) - len(queries_output)))
+        if len(queries_output) < len(results_no_duplicates):
+            rospy.loginfo(f"{len(results_no_duplicates) - len(queries_output)} entries were ignored. They did not belong to a category to pick up.")
 
         print("Sorted elements")
         for element in queries_output:
@@ -111,12 +125,15 @@ class ChooseObjectToPickUp(SmachBaseClass):
         return queries_output
     
     def say_object_to_pick_up(self, obj_to_pick_up: SOMObject):
-        """State the class and category of the object."""
+        """State the class and category of the object.
+        
+        - `obj_to_pick_up`: the chosen object
+        """
         action_goal = TalkRequestGoal()
-        action_goal.data.language = Voice.kEnglish  # enum for value: 1
+        action_goal.data.language = Voice.kEnglish
         action_goal.data.sentence = f"Trying to pick up the {obj_to_pick_up.class_} of category {obj_to_pick_up.category}."
 
-        rospy.loginfo("HSR speaking phrase: '{}'".format(action_goal.data.sentence))
+        rospy.loginfo("HSR speaking phrase: " + action_goal.data.sentence)
         speak_action_client = SimpleActionClient('/talk_request_action', TalkRequestAction)
 
         speak_action_client.wait_for_server()
@@ -129,7 +146,7 @@ class ChooseObjectToPickUp(SmachBaseClass):
         while len(objects_to_pick_up) == 0:
             query = SOMQueryObjectsRequest()
             query.query.last_observed_at = rospy.Time.now()
-            query.num_observations = self.min_num_observations
+            query.query.num_observations = self.min_num_observations
 
             self.raise_mast()
             look_around()
@@ -139,6 +156,5 @@ class ChooseObjectToPickUp(SmachBaseClass):
         obj_to_pick_up = objects_to_pick_up[0]
         self.say_object_to_pick_up(obj_to_pick_up)
         
-        userdata.obj_to_pick_up = obj_to_pick_up
-        userdata.objects_to_pick_up = objects_to_pick_up
+        userdata.target_obj = obj_to_pick_up
         return SUCCESS

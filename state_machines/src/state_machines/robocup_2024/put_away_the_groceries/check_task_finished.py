@@ -1,25 +1,34 @@
 #!/usr/bin/env python3
 
 import rospy
-from actionlib import SimpleActionClient
-import math
-from typing import List, Union
 
-import hsrb_interface
-import hsrb_interface.geometry as geometry
-from geometry_msgs.msg import Point, Pose
-hsrb_interface.robot.enable_interactive()
+from state_machines.Reusable_States.include_all import SmachBaseClass
 
-from state_machines.Reusable_States.utils import SmachBaseClass, SUCCESS, NAVIGATIONAL_FAILURE, MANIPULATION_FAILURE, distance_between_poses, \
-                get_current_pose, NavigationalListener, MoveBaseGoal, MoveBaseAction, GoalStatus
-from orion_actions.msg import SOMObject, PoseStamped, PickUpObjectGoal, PickUpObjectResult
-from orion_actions.srv import NavigationalQuery, NavigationalQueryRequest, NavigationalQueryResponse, PickUpObjectAction
 
+TASK_FINISHED = "task_finished"
+CONTINUE_TASK = "continue"
 
 class CheckTaskFinished(SmachBaseClass):
     def __init__(self, num_objects_to_put_away: int):
+        """
+        Increase the number of objects stored, and check if we have stored enough
+        objects to end the task.
+
+        Possible outcomes:
+        - `TASK_FINISHED`: the task has been completed
+        - `CONTINUE_TASK`: need to put away more objects
+
+        Input keys:
+        - `num_objects_placed`: the number of objects already placed
+
+        Output keys:
+        - `num_objects_placed`: the number of objects placed
+
+        Parameters:
+        - `num_objects_to_put_away`: the total number of objects to be put away
+        """
         SmachBaseClass.__init__(self, 
-                                outcomes=["task_finished", "continue"], 
+                                outcomes=[TASK_FINISHED, CONTINUE_TASK], 
                                 input_keys=["num_objects_placed"],
                                 output_keys=["num_objects_placed"])
 
@@ -28,6 +37,6 @@ class CheckTaskFinished(SmachBaseClass):
     def execute(self, userdata):
         userdata.num_objects_placed += 1
         if userdata.num_objects_placed < self.num_objects_to_put_away:
-            return "continue"
+            return CONTINUE_TASK
         else:
-            return "task_finished"
+            return TASK_FINISHED
