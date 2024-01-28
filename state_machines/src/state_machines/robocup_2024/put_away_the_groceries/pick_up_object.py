@@ -74,11 +74,11 @@ class PickUpObject(SmachBaseClass):
             failure_mode = result.failure_mode
 
             status = pick_up_object_action_client.get_state()
-            print(f"status {status}")
-            print(f"Failure mode={failure_mode}")
+            print(f"status: {status}")
+            print(f"Failure mode = {failure_mode}")
             if is_successful:
                 gripper_distance = self.getGripperDistance()
-                print(f"Gripper distance {gripper_distance}")
+                print(f"Gripper distance: {gripper_distance}")
 
                 if gripper_distance > self.GRIPPER_DISTANCE_THRESHOLD:
                     rospy.sleep(self.wait_upon_completion)

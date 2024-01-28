@@ -103,8 +103,7 @@ class ChooseObjectToPickUp(SmachBaseClass):
                     duplicate_indices.append(j)
 
         print("Filtered for duplicates:")
-        for element in results_no_duplicates:
-            print(element.class_, end=", ")
+        print(list(map(lambda el: el.class_, results_no_duplicates)))
         print()
         
         # Sort objects by category
@@ -117,9 +116,8 @@ class ChooseObjectToPickUp(SmachBaseClass):
         if len(queries_output) < len(results_no_duplicates):
             rospy.loginfo(f"{len(results_no_duplicates) - len(queries_output)} entries were ignored. They did not belong to a category to pick up.")
 
-        print("Sorted elements")
-        for element in queries_output:
-            print(element.class_, end=", ")
+        print("Sorted elements:")
+        print(list(map(lambda el: el.class_, results_no_duplicates)))
         print()
 
         return queries_output

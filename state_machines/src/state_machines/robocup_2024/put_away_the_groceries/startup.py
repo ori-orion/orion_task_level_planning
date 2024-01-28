@@ -57,8 +57,8 @@ class StartupWaitForDoor(SmachBaseClass):
         is_door_open_action_client.wait_for_server()
         is_door_open_action_client.send_goal(is_door_open_goal)
         is_door_open_action_client.wait_for_result()
-
-        is_door_open: bool = is_door_open_action_client.get_result().open
+        
+        is_door_open: bool = is_door_open_action_client.get_result().open #type:ignore
         if is_door_open:
             rospy.loginfo("Detected open door")
             return True

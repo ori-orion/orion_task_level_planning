@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from enum import Enum
 from state_machines.Reusable_States.utils import *;
 
 import smach;
@@ -298,9 +299,10 @@ class SimpleNavigateState_v2(SmachBaseClass):
     """
 
     DISTANCE_SAME_PLACE_THRESHOLD = 0.1;
-    RETRY = 1;
-    RETRY_STAYED_IN_SAME_PLACE = 2;
-    SUCCESS = 3;
+    class NavResult(Enum):
+        RETRY = 1;
+        RETRY_STAYED_IN_SAME_PLACE = 2;
+        SUCCESS = 3;
 
     def __init__(self, execute_nav_commands:bool, max_num_failure_repetitions=4):
         SmachBaseClass.__init__(
@@ -313,28 +315,32 @@ class SimpleNavigateState_v2(SmachBaseClass):
         self.max_num_failure_repetitions = max_num_failure_repetitions;
         
         
-    def checkSamePlaceLoop(self, target_pose) -> int:
+    def checkSamePlaceLoop(self, target_pose):
         prev_current_pose = get_current_pose();
         while True:
             self.navigate_action_client.wait_for_result(rospy.Duration(1));
-            print("Checking goal dist", end="\t");
-            if distance_between_poses(prev_current_pose, target_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
-                return self.SUCCESS;
+            print("------------------------------")
+            print("Checking distance from goal...");
+            dist_from_goal = distance_between_poses(prev_current_pose, target_pose)
+            if dist_from_goal < self.DISTANCE_SAME_PLACE_THRESHOLD:
+                print("Goal reached")
+                return self.NavResult.SUCCESS;
+            print(f"Distance from goal: {dist_from_goal}")
             current_pose = get_current_pose();
-            print("Checking if moved", end="\t");
+            print("Checking if moved...");
             if distance_between_poses(current_pose, prev_current_pose) < self.DISTANCE_SAME_PLACE_THRESHOLD:
                 print("Not moved");
-                return self.RETRY_STAYED_IN_SAME_PLACE;
+                return self.NavResult.RETRY_STAYED_IN_SAME_PLACE;
             print("Moved");
             prev_current_pose = current_pose;
         
 
-    def executeAction(self, goal, target_pose:Pose, initial_pose:Pose, userdata) -> bool:
+    def executeAction(self, goal, target_pose:Pose, initial_pose:Pose, userdata):
         """
         Executes the navigation action. 
         """
         if self.execute_nav_commands == False:
-            return SUCCESS;
+            return self.NavResult.SUCCESS;
         
         self.navigate_action_client.send_goal(goal);
 
@@ -343,21 +349,22 @@ class SimpleNavigateState_v2(SmachBaseClass):
         
         rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.");
 
-        current_pose = get_current_pose();
-        rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose)=" + str(distance_between_poses(current_pose, target_pose)));
-        rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose)=" + str(distance_between_poses(current_pose, initial_pose)));
         loop_result = self.checkSamePlaceLoop(target_pose);
-        if loop_result == self.RETRY_STAYED_IN_SAME_PLACE:
+        current_pose = get_current_pose();
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, target_pose) = " + str(distance_between_poses(current_pose, target_pose)));
+        rospy.loginfo("\t\tdistance_between_poses(current_pose, initial_pose) = " + str(distance_between_poses(current_pose, initial_pose)));
+
+        if loop_result == self.NavResult.RETRY_STAYED_IN_SAME_PLACE:
             self.navigate_action_client.cancel_all_goals();
-            return self.RETRY_STAYED_IN_SAME_PLACE;
+            return self.NavResult.RETRY_STAYED_IN_SAME_PLACE;
         
         self.navigate_action_client.wait_for_result();
         status = self.navigate_action_client.get_state();
         self.navigate_action_client.cancel_all_goals()
         if status == GoalStatus.SUCCEEDED:
-            return self.SUCCESS;
+            return self.NavResult.SUCCESS;
         else:
-            return self.RETRY;
+            return self.NavResult.RETRY;
     
     def execute(self, userdata):
         target_pose:Pose = userdata.pose;
@@ -394,7 +401,7 @@ class SimpleNavigateState_v2(SmachBaseClass):
             rospy.loginfo('\t\tSending nav goal.');
             status = self.executeAction(goal, target_pose, initial_pose, userdata);
             rospy.loginfo('status = ' + str(status))
-            if status == self.SUCCESS:
+            if status == self.NavResult.SUCCESS:
                 return SUCCESS;
             else:
                 i += 1;

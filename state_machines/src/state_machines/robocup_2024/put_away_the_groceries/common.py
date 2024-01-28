@@ -107,7 +107,7 @@ def find_navigation_goal(target_obj: SOMObject, distance_from_pose: float = 0.9)
     if distance_from_object < 1.3:
         return None
 
-    print("Userdata.pose")
+    print("Navigation target pose:")
     print(target_obj.obj_position)
     nav_goal_getter_req = NavigationalQueryRequest()
     nav_goal_getter_req.navigating_within_reach_of = target_obj.obj_position.position
@@ -121,7 +121,7 @@ def find_navigation_goal(target_obj: SOMObject, distance_from_pose: float = 0.9)
     nav_goal_getter_resp.navigate_to.position.z = 0
     nav_goal_getter_resp.navigate_to.orientation = robot_pose.orientation
 
-    print("Positing a nav goal of", nav_goal_getter_resp.navigate_to)
+    print("Navigation goal created: ", nav_goal_getter_resp.navigate_to)
     return nav_goal_getter_resp.navigate_to
 
 DISTANCE_SAME_PLACE_THRESHOLD = 0.1
@@ -145,11 +145,13 @@ def checkSamePlaceLoop(target_pose: Pose, navigate_action_client: SimpleActionCl
     prev_current_pose = get_current_pose()
     while True:
         navigate_action_client.wait_for_result(rospy.Duration(1))
-        print("Checking goal dist", end="\t")
+        print("------------------------------")
+        print("Checking distance from goal...")
         if distance_between_poses(prev_current_pose, target_pose) < DISTANCE_SAME_PLACE_THRESHOLD:
+            print("Goal reached")
             return NavigationResult.SUCCESS
         current_pose = get_current_pose()
-        print("Checking if moved", end="\t")
+        print("Checking if moved...")
         if distance_between_poses(current_pose, prev_current_pose) < DISTANCE_SAME_PLACE_THRESHOLD:
             print("Not moved")
             return NavigationResult.RETRY_STAYED_IN_SAME_PLACE
@@ -182,10 +184,12 @@ def execute_navigation(goal: MoveBaseGoal,
         
         rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.")
 
-        current_pose = get_current_pose()
-        rospy.loginfo(f"\t\tdistance_between_poses(current_pose, target_pose)={distance_between_poses(current_pose, target_pose)}")
-        rospy.loginfo(f"\t\tdistance_between_poses(current_pose, initial_pose)={distance_between_poses(current_pose, initial_pose)}")
         loop_result = checkSamePlaceLoop(target_pose, navigate_action_client)
+
+        current_pose = get_current_pose()
+        rospy.loginfo(f"\t\tdistance to target = {distance_between_poses(current_pose, target_pose)}")
+        rospy.loginfo(f"\t\tdistance from initial pose = {distance_between_poses(current_pose, initial_pose)}")
+
         if loop_result == NavigationResult.RETRY_STAYED_IN_SAME_PLACE:
             navigate_action_client.cancel_all_goals()
             return NavigationResult.RETRY_STAYED_IN_SAME_PLACE
