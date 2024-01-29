@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 import rospy
 import smach_ros
-import actionlib
 import std_srvs.srv
-import manipulation.srv
 from typing import List
-from geometry_msgs.msg import Vector3
+import smach
+import math
+import copy
+import tf2_ros
+from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import Vector3, Pose, Point, TransformStamped
+from visualization_msgs.msg import Marker
+from interactive_markers.interactive_marker_server import InteractiveMarkerServer
+from orion_actions.srv import SOMAddRegion, SOMAddRegionRequest
 
 from state_machines.robocup_2024.put_away_the_groceries.startup import StartupWaitForDoor
 from state_machines.robocup_2024.put_away_the_groceries.choose_object_to_pick_up import ChooseObjectToPickUp
 from state_machines.robocup_2024.put_away_the_groceries.pick_up_object import PickUpObject
 from state_machines.robocup_2024.put_away_the_groceries.check_task_finished import CONTINUE_TASK, TASK_FINISHED, CheckTaskFinished
 from state_machines.robocup_2024.put_away_the_groceries.put_down_object import PutDownObject
-from state_machines.SubStateMachines.include_all import *
+from state_machines.robocup_2024.put_away_the_groceries.navigation_state import NavigationState
+from state_machines.SubStateMachines.include_all import RvizVisualisationManager, utils, \
+    TASK_FAILURE, TASK_SUCCESS, SUCCESS, NAVIGATIONAL_FAILURE, MANIPULATION_FAILURE
 
 
 def load_hardcoded_shelves(userdata):
@@ -46,7 +54,7 @@ def load_hardcoded_shelves(userdata):
             obj_class=shelf_name,
             alpha_val=0.8,
             marker_type=Marker.CUBE)
-        individual_tf = geometry_msgs.msg.TransformStamped()
+        individual_tf = TransformStamped()
         individual_tf.header.stamp = rospy.Time.now()
         individual_tf.header.frame_id = "map"
         individual_tf.child_frame_id = shelf_name
@@ -152,7 +160,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'MoveToTable',
-            SimpleNavigateState_v2(execute_nav_commands),
+            NavigationState(execute_nav_commands),
             transitions={
                 SUCCESS: 'ChooseObjectToPickUp',
                 NAVIGATIONAL_FAILURE: TASK_FAILURE
@@ -190,7 +198,7 @@ def create_state_machine():
 
         smach.StateMachine.add(
             'NavToCabinet',
-            SimpleNavigateState_v2(execute_nav_commands),
+            NavigationState(execute_nav_commands),
             transitions={
                 SUCCESS: 'PutDownObject',
                 NAVIGATIONAL_FAILURE: TASK_FAILURE

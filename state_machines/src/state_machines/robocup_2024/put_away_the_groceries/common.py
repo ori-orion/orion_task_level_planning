@@ -147,9 +147,11 @@ def checkSamePlaceLoop(target_pose: Pose, navigate_action_client: SimpleActionCl
         navigate_action_client.wait_for_result(rospy.Duration(1))
         print("------------------------------")
         print("Checking distance from goal...")
-        if distance_between_poses(prev_current_pose, target_pose) < DISTANCE_SAME_PLACE_THRESHOLD:
+        dist_to_goal = distance_between_poses(prev_current_pose, target_pose)
+        if dist_to_goal < DISTANCE_SAME_PLACE_THRESHOLD:
             print("Goal reached")
             return NavigationResult.SUCCESS
+        print(f"Distance to target: {dist_to_goal}")
         current_pose = get_current_pose()
         print("Checking if moved...")
         if distance_between_poses(current_pose, prev_current_pose) < DISTANCE_SAME_PLACE_THRESHOLD:
@@ -182,13 +184,13 @@ def execute_navigation(goal: MoveBaseGoal,
         # We want to be able to check to see if the robot has moved or not
         # (to check to see if path planning has failed.)
         
-        rospy.loginfo("\t\tChecking to see if we've stayed in the same place for too long.")
+        rospy.loginfo("Checking to see if we've stayed in the same place for too long.")
 
         loop_result = checkSamePlaceLoop(target_pose, navigate_action_client)
 
         current_pose = get_current_pose()
-        rospy.loginfo(f"\t\tdistance to target = {distance_between_poses(current_pose, target_pose)}")
-        rospy.loginfo(f"\t\tdistance from initial pose = {distance_between_poses(current_pose, initial_pose)}")
+        rospy.loginfo(f"distance to target = {distance_between_poses(current_pose, target_pose)}")
+        rospy.loginfo(f"distance from initial pose = {distance_between_poses(current_pose, initial_pose)}")
 
         if loop_result == NavigationResult.RETRY_STAYED_IN_SAME_PLACE:
             navigate_action_client.cancel_all_goals()
@@ -228,7 +230,7 @@ def navigate_to_pose(target_pose: Pose,
         goal.target_pose.pose = target_pose
 
         navigate_action_client = SimpleActionClient('move_base/move',  MoveBaseAction)
-        rospy.loginfo('\t\tWaiting for move_base/move.')
+        rospy.loginfo('Waiting for move_base/move.')
         navigate_action_client.wait_for_server()
 
         for i in range(max_num_failure_repetitions):
@@ -241,7 +243,7 @@ def navigate_to_pose(target_pose: Pose,
                     print("Goal blocked. Recalculating goal.")
                 target_pose.position = new_goal
             
-            rospy.loginfo('\t\tSending nav goal.')
+            rospy.loginfo('Sending nav goal.')
             status = execute_navigation(goal, 
                                         target_pose, 
                                         initial_pose, 
