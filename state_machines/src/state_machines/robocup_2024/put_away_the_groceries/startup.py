@@ -37,8 +37,7 @@ class StartupWaitForDoor(SmachBaseClass):
                 self.moveToGo()
                 return
             except Exception as e:
-                rospy.logwarn("Exception raised within self.whole_body.move_to_neutral().")
-                print(e)
+                rospy.logwarn("Exception raised within self.whole_body.move_to_neutral():\n" + str(e))
                 rospy.loginfo("Retrying in 2s")
                 rospy.sleep(2)
         
@@ -67,7 +66,9 @@ class StartupWaitForDoor(SmachBaseClass):
             return False
 
     def execute(self, userdata):
+        rospy.loginfo("Moving to neutral pose")
         self.moveToNeutral()
+        rospy.loginfo("Waiting for door to open")
         while not self.checkDoorOpen():
             rospy.sleep(self.wait_time)
         

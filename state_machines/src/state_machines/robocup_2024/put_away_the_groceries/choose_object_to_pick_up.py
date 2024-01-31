@@ -59,6 +59,7 @@ class ChooseObjectToPickUp(SmachBaseClass):
 
     def raise_mast(self):
         """Raise the mast to the table height"""
+        rospy.loginfo("Raising mast to table height")
         mast_height = compute_safe_mast_height(self.table_mast_height)
         
         if mast_height == 0:
@@ -102,9 +103,8 @@ class ChooseObjectToPickUp(SmachBaseClass):
                 if distance_between_poses(element.obj_position, filtered_results[j].obj_position) < self.filter_for_duplicates_distance:
                     duplicate_indices.append(j)
 
-        print("Filtered for duplicates:")
-        print(list(map(lambda el: el.class_, results_no_duplicates)))
-        print()
+        rospy.loginfo("Removed duplicates from query results:")
+        rospy.loginfo(list(map(lambda el: (el.class_, el.category), results_no_duplicates)))
         
         # Sort objects by category
         queries_output: List[SOMObject] = []
@@ -116,9 +116,8 @@ class ChooseObjectToPickUp(SmachBaseClass):
         if len(queries_output) < len(results_no_duplicates):
             rospy.loginfo(f"{len(results_no_duplicates) - len(queries_output)} entries were ignored. They did not belong to a category to pick up.")
 
-        print("Sorted elements:")
-        print(list(map(lambda el: el.class_, results_no_duplicates)))
-        print()
+        rospy.loginfo("Sorted query result:")
+        rospy.loginfo(list(map(lambda el: (el.class_, el.category), queries_output)))
 
         return queries_output
     
@@ -141,12 +140,12 @@ class ChooseObjectToPickUp(SmachBaseClass):
     
     def execute(self, userdata):
         objects_to_pick_up: List[SOMObject] = []
+        self.raise_mast()
         while len(objects_to_pick_up) == 0:
             query = SOMQueryObjectsRequest()
             query.query.last_observed_at = rospy.Time.now()
             query.query.num_observations = self.min_num_observations
-
-            self.raise_mast()
+            
             look_around()
 
             objects_to_pick_up = self.query_som(query)

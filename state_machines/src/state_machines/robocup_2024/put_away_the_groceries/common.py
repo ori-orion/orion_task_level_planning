@@ -21,47 +21,49 @@ from state_machines.Reusable_States.navigational_states import NavigationalListe
 hsrb_interface.robot.enable_interactive()
 
 def look_around(spin_offset: float=0):
-        """Move the head to look around
-        
-        - `spin_offset`: the spin offset to be used
-        """
-        client = SimpleActionClient('spin', SpinAction)
-        client.wait_for_server()
-        goal = SpinGoal()
-        goal.only_look_forwards = True
-        goal.height_to_look_at = 0.7
-        goal.spin_offset = spin_offset
+    """Move the head to look around
+    
+    - `spin_offset`: the spin offset to be used
+    """
+    rospy.loginfo("Looking around...")
+    client = SimpleActionClient('spin', SpinAction)
+    client.wait_for_server()
+    goal = SpinGoal()
+    goal.only_look_forwards = True
+    goal.height_to_look_at = 0.7
+    goal.spin_offset = spin_offset
 
-        client.send_goal(goal)
-        client.wait_for_result()
+    client.send_goal(goal)
+    client.wait_for_result()
 
 def query_objects_from_som(query: SOMQueryObjectsRequest, distance_filter: float = 0):
-        """Send query to the SOM, filter out objects too distant or with not 
-        enough observations, and sort the remaining objects by category and 
-        by num of observations (descending).
-        
-        - `query`: the query to be sent
-        - `distance filter`: filter out objects more distant than this value 
-            (if 0, all objects are kept)
-        """
+    """Send query to the SOM, filter out objects too distant or with not 
+    enough observations, and sort the remaining objects by category and 
+    by num of observations (descending).
+    
+    - `query`: the query to be sent
+    - `distance filter`: filter out objects more distant than this value 
+        (if 0, all objects are kept)
+    """
+    rospy.loginfo("Querying SOM...")
+    rospy.wait_for_service('/som/objects/basic_query')
+    object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', 
+                                            SOMQueryObjects)
+    result: SOMQueryObjectsResponse = object_query_srv(query)
+    objects_returned: List[SOMObject] = result.returns #type: ignore 
 
-        rospy.wait_for_service('/som/objects/basic_query')
-        object_query_srv = rospy.ServiceProxy('/som/objects/basic_query', 
-                                              SOMQueryObjects)
-        result: SOMQueryObjectsResponse = object_query_srv(query)
-        objects_returned: List[SOMObject] = result.returns #type: ignore 
+    # Filter out objects that are too distant
+    rospy.loginfo("Filtering out objects that are too far away")
+    if distance_filter != 0:
+        current_pose = get_current_pose()
+        objects_returned = [obj for obj in objects_returned if 
+                            distance_between_poses(current_pose, obj.obj_position) < distance_filter]
 
-        # Filter out objects that are too distant
-        if distance_filter != 0:
-            current_pose = get_current_pose()
-            objects_returned = [obj for obj in objects_returned if 
-                                distance_between_poses(current_pose, obj.obj_position) < distance_filter]
+    rospy.loginfo(f"{len(objects_returned)} entities found matching the query:")
+    rospy.loginfo(list(map(lambda el: f"({el.class_}, {el.category}, {el.num_observations})", 
+                            objects_returned)))
 
-        rospy.loginfo(f"\t\t {len(objects_returned)} entities found matching the query.")
-        for element in objects_returned:
-            print(f"\t({element.class_}, {element.category}, {element.num_observations})")
-
-        return objects_returned
+    return objects_returned
 
 def look_at_object(target_obj: SOMObject, lookAtPoint: Callable):
     """Look towards the given object. Wait 0.5 seconds before returning.
@@ -69,6 +71,7 @@ def look_at_object(target_obj: SOMObject, lookAtPoint: Callable):
     - `target_obj`: the object towards which we want to look
     - `lookAtPoint`: function self.lookAtPoint from SmachBaseClass (passed here for convenience) 
     """
+    rospy.loginfo(f"Looking towards {target_obj.class_}")
     pose = target_obj.obj_position
 
     point_look_at = hsrb_interface.geometry.Vector3(pose.position.x, pose.position.y, pose.position.z)
@@ -97,6 +100,7 @@ def find_navigation_goal(target_obj: SOMObject, distance_from_pose: float = 0.9)
 
     Returns the target Pose, or `None` if we are already close enough.
     """
+    rospy.loginfo("Creating navigation goal...")
     rospy.wait_for_service("tlp/get_nav_goal")
     nav_goal_getter = rospy.ServiceProxy('tlp/get_nav_goal', NavigationalQuery)
 
@@ -105,23 +109,22 @@ def find_navigation_goal(target_obj: SOMObject, distance_from_pose: float = 0.9)
     target_pos = target_obj.obj_position.position
     distance_from_object = math.sqrt( (robot_pos.x-target_pos.x)**2 + (robot_pos.y-target_pos.y)**2 )
     if distance_from_object < 1.3:
+        rospy.loginfo("Target already reached, no goal created")
         return None
 
-    print("Navigation target pose:")
-    print(target_obj.obj_position)
+    #print("Navigation target pose:")
+    #print(target_obj.obj_position)
     nav_goal_getter_req = NavigationalQueryRequest()
     nav_goal_getter_req.navigating_within_reach_of = target_obj.obj_position.position
     nav_goal_getter_req.distance_from_obj = distance_from_pose
     nav_goal_getter_req.current_pose = get_current_pose().position
-    print()
-    print(nav_goal_getter_req)
-    print()
+    #print(nav_goal_getter_req)
 
     nav_goal_getter_resp: NavigationalQueryResponse = nav_goal_getter(nav_goal_getter_req)
     nav_goal_getter_resp.navigate_to.position.z = 0
     nav_goal_getter_resp.navigate_to.orientation = robot_pose.orientation
 
-    print("Navigation goal created: ", nav_goal_getter_resp.navigate_to)
+    rospy.loginfo("Navigation goal created: ", nav_goal_getter_resp.navigate_to)
     return nav_goal_getter_resp.navigate_to
 
 DISTANCE_SAME_PLACE_THRESHOLD = 0.1
@@ -145,19 +148,18 @@ def checkSamePlaceLoop(target_pose: Pose, navigate_action_client: SimpleActionCl
     prev_current_pose = get_current_pose()
     while True:
         navigate_action_client.wait_for_result(rospy.Duration(1))
-        print("------------------------------")
-        print("Checking distance from goal...")
+        rospy.loginfo("Checking distance from goal...")
         dist_to_goal = distance_between_poses(prev_current_pose, target_pose)
         if dist_to_goal < DISTANCE_SAME_PLACE_THRESHOLD:
-            print("Goal reached")
+            rospy.loginfo("Goal reached")
             return NavigationResult.SUCCESS
-        print(f"Distance to target: {dist_to_goal}")
+        rospy.loginfo(f"Distance to target: {dist_to_goal}")
         current_pose = get_current_pose()
-        print("Checking if moved...")
+        rospy.loginfo("Checking if moved...")
         if distance_between_poses(current_pose, prev_current_pose) < DISTANCE_SAME_PLACE_THRESHOLD:
-            print("Not moved")
+            rospy.loginfo("Not moved")
             return NavigationResult.RETRY_STAYED_IN_SAME_PLACE
-        print("Moved")
+        rospy.loginfo("Moved")
         prev_current_pose = current_pose
 
 def execute_navigation(goal: MoveBaseGoal, 
@@ -217,13 +219,12 @@ def navigate_to_pose(target_pose: Pose,
         """
         initial_pose = get_current_pose()
 
-        if DISTANCE_SAME_PLACE_THRESHOLD < distance_between_poses(initial_pose, target_pose) and not execute_nav_commands:
+        if distance_between_poses(initial_pose, target_pose) < DISTANCE_SAME_PLACE_THRESHOLD or not execute_nav_commands:
             return True
         
         nav_listener = NavigationalListener()
 
         # Navigating without top nav
-        rospy.loginfo('Navigating without top nav')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
@@ -238,9 +239,9 @@ def navigate_to_pose(target_pose: Pose,
                 nav_listener.getOccupancyMap()
                 new_goal, old_goal_fine = nav_listener.findClosestUnoccupiedPoint(target_pose.position)
                 if old_goal_fine:
-                    print("Old goal was fine")
+                    rospy.loginfo("Old goal was fine")
                 else:
-                    print("Goal blocked. Recalculating goal.")
+                    rospy.loginfo("Goal blocked. Recalculating goal.")
                 target_pose.position = new_goal
             
             rospy.loginfo('Sending nav goal.')

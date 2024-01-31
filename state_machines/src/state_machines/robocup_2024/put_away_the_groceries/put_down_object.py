@@ -77,6 +77,7 @@ class PutDownObject(SmachBaseClass):
 
     def raise_mast(self):
         """Raise the mast to the cabinet height"""
+        rospy.loginfo("Raising mast to cabinet height")
         mast_height = compute_safe_mast_height(self.cabinet_mast_height)
         
         if mast_height == 0:
@@ -97,6 +98,7 @@ class PutDownObject(SmachBaseClass):
 
         Returns the list of objects obtained from SOM.
         """
+        rospy.loginfo(f"Querying SOM for objects of category {obj_to_put_down.category}")
         query = SOMQueryObjectsRequest()
         query.query.last_observed_at = rospy.Time.now()
         query.query.category = obj_to_put_down.category
@@ -104,7 +106,7 @@ class PutDownObject(SmachBaseClass):
         look_around()
 
         query_results = query_objects_from_som(query, distance_filter=2)
-        if len(query_results) > 0:
+        if True or len(query_results) > 0:
             return query_results
         
         # If no  object is found, try an all-time query
@@ -141,7 +143,7 @@ class PutDownObject(SmachBaseClass):
 
         obj_size: Point = obj_to_put_down.size
         put_down_dims = ( obj_size.x, obj_size.y, self.dims[2] )
-        print( "\tPut down dims:", put_down_dims )
+        rospy.loginfo(f"Put down dims: {put_down_dims}")
 
         placement_option_found = False
         radius = self.radius
@@ -159,10 +161,10 @@ class PutDownObject(SmachBaseClass):
                 num_candidates=self.num_candidates,
                 goal_tf=obj_put_next_to.tf_name)
             
-            print(f"Getting placement options around {obj_put_next_to.tf_name}")
+            rospy.loginfo(f"Getting placement options around {obj_put_next_to.tf_name}")
             
-            print("\t", place_locations)
-            print("\t", best_tf)
+            rospy.loginfo(f"Locations: {place_locations}")
+            rospy.loginfo(f"best tf: {best_tf}")
 
             if len(best_tf) == 0:
                 self.speak("No placement options were found. Retrying.", wait_to_terminate=False)
@@ -172,18 +174,18 @@ class PutDownObject(SmachBaseClass):
                 placement_option_found = True
                 break
 
-        if not placement_option_found:
-            return False
-
-        for _ in range(self.num_repeats):
-            goal = PutObjectOnSurfaceGoal()
-            goal.goal_tf = best_tf
-            goal.drop_object_by_metres = 0.03
-            goal.object_half_height = obj_size.z/2
-            print("\tSetting obj_half_height to {0}".format(goal.object_half_height))
-            success = putObjOnSurfaceAction(goal)
-            if success:
-                return True
+        if placement_option_found:
+            for _ in range(self.num_repeats):
+                rospy.loginfo("Trying to put down object...")
+                goal = PutObjectOnSurfaceGoal()
+                goal.goal_tf = best_tf
+                goal.drop_object_by_metres = 0.03
+                goal.object_half_height = obj_size.z/2
+                rospy.loginfo("Setting obj_half_height to {0}".format(goal.object_half_height))
+                success = putObjOnSurfaceAction(goal)
+                if success:
+                    return True
+        rospy.logwarn("Could not place object down, trying to use occupancy map...")
         return self.place_down_object_backup(obj_to_put_down) 
         
 
@@ -197,16 +199,17 @@ class PutDownObject(SmachBaseClass):
         Returns `True` if the object has been placed down successfully.
         """
 
-        print("Creating the occupancy map.")
+        rospy.loginfo("Creating the occupancy map.")
         occupancy_map = SOMOccupancyMap(time_horizon=rospy.Duration(5))
         try:
             occupancy_map.createOccupancyMap(ignore_categories=["unknown"])
         except:
             return False
-        print("Finding a placement location")
+        rospy.loginfo("Finding a placement location")
         loc, location_found = occupancy_map.findPlacementLocation(obj_to_put_down.size)
         
         if not location_found:
+            rospy.logwarn("Could not find placement location with occupancy map")
             return False
 
         tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
@@ -221,6 +224,7 @@ class PutDownObject(SmachBaseClass):
         tf_broadcaster.sendTransform([transform])
 
         for _ in range(self.num_repeats):
+            rospy.loginfo("Trying to put down object...")
             put_down_goal = PutObjectOnSurfaceGoal()
             put_down_goal.goal_tf = TF_NAME
             put_down_goal.drop_object_by_metres = 0.03
@@ -229,7 +233,7 @@ class PutDownObject(SmachBaseClass):
 
             if success:
                 return True
-    
+        rospy.logwarn("Could not put down object")
         return False
 
     def place_on_empty_shelf(self, obj_to_put_down: SOMObject, shelf_height_dict: dict):
@@ -330,7 +334,7 @@ class PutDownObject(SmachBaseClass):
 
         # We choose the object next to which we want to place
         obj_put_next_to = query_results[0]
-
+        rospy.loginfo(f"Will put down next  to {obj_put_next_to.class_} with tf: {obj_put_next_to.tf_name}")
         if self.navigate_close_to_object(obj_put_next_to):
             look_at_object(obj_put_next_to, self.lookAtPoint)
         

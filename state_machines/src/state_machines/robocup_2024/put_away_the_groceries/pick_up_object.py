@@ -57,6 +57,7 @@ class PickUpObject(SmachBaseClass):
 
         Returns `True` if the object was picked up, `False` otherwise.
         """
+        rospy.loginfo(f"Trying to pick up {obj_to_pick_up.tf_name}")
         pick_up_object_action_client = SimpleActionClient('pick_up_object', PickUpObjectAction)
         pick_up_object_action_client.wait_for_server()
 
@@ -66,6 +67,7 @@ class PickUpObject(SmachBaseClass):
         pick_up_goal.publish_own_tf = False
 
         for _ in range(self.num_iterations_upon_failure):
+            rospy.loginfo("Trying to execute pick up action...")
             pick_up_object_action_client.send_goal(pick_up_goal)
             pick_up_object_action_client.wait_for_result()
 
@@ -74,22 +76,22 @@ class PickUpObject(SmachBaseClass):
             failure_mode = result.failure_mode
 
             status = pick_up_object_action_client.get_state()
-            print(f"status: {status}")
-            print(f"Failure mode = {failure_mode}")
+            rospy.loginfo(f"status: {status} (0=pending, 1=active, 9=lost)")
+            rospy.loginfo(f"Failure mode: {failure_mode} (SUCCESS=0, TF_NOT_FOUND=1, TF_TIMEOUT=2, GRASPING_FAILED=3)")
             if is_successful:
                 gripper_distance = self.getGripperDistance()
-                print(f"Gripper distance: {gripper_distance}")
+                rospy.loginfo(f"Gripper distance: {gripper_distance}")
 
                 if gripper_distance > self.GRIPPER_DISTANCE_THRESHOLD:
                     rospy.sleep(self.wait_upon_completion)
                     return True
                 
             elif failure_mode == PickUpObjectResult.TF_NOT_FOUND or failure_mode == PickUpObjectResult.TF_TIMEOUT:
-                rospy.loginfo("Tf error")
+                rospy.logwarn("Tf error while tring to pick up")
                 pick_up_goal.publish_own_tf = True
             elif failure_mode == PickUpObjectResult.GRASPING_FAILED or status == GoalStatus.ABORTED:
-                rospy.loginfo("Grasping failed.")
-            rospy.loginfo("Manipulation failed.")
+                rospy.logwarn("Grasping failed.")
+            rospy.logerr("Manipulation failed.")
 
         rospy.sleep(self.wait_upon_completion)
         return False
