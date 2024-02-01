@@ -72,6 +72,7 @@ class PutDownObject(SmachBaseClass):
 
 
         self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
 
@@ -329,19 +330,22 @@ class PutDownObject(SmachBaseClass):
         obj_to_put_down: SOMObject = userdata.target_obj
 
         query_results: List[SOMObject] = []
-        while len(query_results) == 0:
+        i = 0
+        while len(query_results) == 0 and i < 3:
             query_results = self.query_same_category(obj_to_put_down)
+            i += 1
 
-        # We choose the object next to which we want to place
-        obj_put_next_to = query_results[0]
-        rospy.loginfo(f"Will put down next  to {obj_put_next_to.class_} with tf: {obj_put_next_to.tf_name}")
-        if self.navigate_close_to_object(obj_put_next_to):
-            look_at_object(obj_put_next_to, self.lookAtPoint)
-        
-        self.moveToJointPositions({self.JOINT_HEAD_TILT:0})
-        rospy.sleep(2)
-        if self.place_down_object(obj_put_next_to, obj_to_put_down):
-            return SUCCESS
+        if len(query_results) > 0:
+            # We choose the object next to which we want to place
+            obj_put_next_to = query_results[0]
+            rospy.loginfo(f"Will put down next  to {obj_put_next_to.class_} with tf: {obj_put_next_to.tf_name}")
+            if self.navigate_close_to_object(obj_put_next_to):
+                look_at_object(obj_put_next_to, self.lookAtPoint)
+            
+            self.moveToJointPositions({self.JOINT_HEAD_TILT:0})
+            rospy.sleep(2)
+            if self.place_down_object(obj_put_next_to, obj_to_put_down):
+                return SUCCESS
         
         self.place_on_empty_shelf(obj_to_put_down, userdata.shelf_height_dict)
         return SUCCESS

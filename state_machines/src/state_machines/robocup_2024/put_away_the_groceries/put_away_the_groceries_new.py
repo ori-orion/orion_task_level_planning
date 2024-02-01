@@ -150,6 +150,8 @@ def create_state_machine():
     else:
         rospy.logwarn("shelves_hardcoded not found.")
 
+    sm.userdata.num_objects_placed = 0
+
     with sm:
         smach.StateMachine.add(
             'Startup',
